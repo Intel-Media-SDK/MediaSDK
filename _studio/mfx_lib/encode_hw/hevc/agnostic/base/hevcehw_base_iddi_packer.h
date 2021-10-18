@@ -63,7 +63,7 @@ protected:
         }
 
         caps.SliceIPOnly        = IsOn(par.mfx.LowPower);
-        caps.msdk.PSliceSupport = !(IsOn(par.mfx.LowPower) || hw > MFX_HW_ICL);
+        caps.msdk.PSliceSupport = !(IsOn(par.mfx.LowPower) || hw > MFX_HW_ICL_LP);
     }
 };
 

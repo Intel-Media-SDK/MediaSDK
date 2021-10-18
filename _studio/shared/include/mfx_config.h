@@ -23,6 +23,10 @@
 
 #include "mfxdefs.h"
 
+#ifndef MFX_DEPRECATED_OFF
+#define MFX_DEPRECATED_OFF
+#endif
+
 #ifdef MFX_VA
     #if defined(LINUX32) || defined(LINUX64)
         #include <va/va_version.h>
@@ -68,7 +72,7 @@
         #define MFX_ENABLE_H264_VIDEO_FEI_PAK
     #endif
     #if defined(MFX_ENABLE_MCTF)
-        //#define MXF_ENABLE_MCTF_IN_AVC
+        #define MFX_ENABLE_MCTF_IN_AVC
     #endif
 #endif
 
@@ -127,7 +131,5 @@
 #endif
 
 #define CMAPIUPDATE
-
-#define MFX_ENABLE_HEVCEHW_REFACTORING
 
 #endif // _MFX_CONFIG_H_

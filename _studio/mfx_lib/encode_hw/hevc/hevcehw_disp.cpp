@@ -23,112 +23,18 @@
 
 #include "hevcehw_disp.h"
 #include "hevcehw_base.h"
-#include "mfx_h265_encode_hw.h"
-#include "mfx_h265_fei_encode_hw.h"
-
-namespace HEVCEHW
-{
-    namespace LegacyFallback
-    {
-#if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-        class FEI
-            : public MfxHwH265FeiEncode::H265FeiEncode_HW
-            , public ImplBase
-        {
-        public:
-            FEI(
-                VideoCORE* core
-                , mfxStatus& status
-                , eFeatureMode)
-                : MfxHwH265FeiEncode::H265FeiEncode_HW(core, &status)
-            {
-            }
-            virtual mfxStatus InternalQuery(
-                VideoCORE& core
-                , mfxVideoParam *in
-                , mfxVideoParam& out) override
-            {
-                return MfxHwH265FeiEncode::H265FeiEncode_HW::Query(&core, in, &out);
-            }
-            virtual mfxStatus InternalQueryIOSurf(
-                VideoCORE& core
-                , mfxVideoParam& par
-                , mfxFrameAllocRequest& request) override
-            {
-                return MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(&core, &par, &request);
-            }
-        };
-#endif //defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-
-        class MFXVideoENCODEH265_HW
-            : public MfxHwH265Encode::MFXVideoENCODEH265_HW
-            , public ImplBase
-        {
-        public:
-            MFXVideoENCODEH265_HW(
-                VideoCORE& core
-                , mfxStatus& status
-                , eFeatureMode)
-                : MfxHwH265Encode::MFXVideoENCODEH265_HW(&core, &status)
-            {
-            }
-            virtual mfxStatus InternalQuery(
-                VideoCORE& core
-                , mfxVideoParam *in
-                , mfxVideoParam& out) override
-            {
-                return MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(&core, in, &out);
-            }
-            virtual mfxStatus InternalQueryIOSurf(
-                VideoCORE& core
-                , mfxVideoParam& par
-                , mfxFrameAllocRequest& request) override
-            {
-                return MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&core, &par, &request);
-            }
-
-            virtual ImplBase* ApplyMode(mfxU32 mode) override
-            {
-#if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-                if (mode == IMPL_MODE_FEI && !dynamic_cast<FEI*>(this))
-                {
-                    mfxStatus sts = MFX_ERR_NONE;
-                    auto pFEI = new FEI(m_core, sts, eFeatureMode(0));
-
-                    delete this;
-
-                    return pFEI;
-                }
-#else
-                std::ignore = mode;
-#endif //defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-                return this;
-            }
-        };
-    };
-};
 
 #if defined(MFX_VA_LINUX)
     #include "hevcehw_base_lin.h"
-    namespace HEVCEHWDisp { namespace Base { using namespace HEVCEHW::Linux::Base; }; };
-#else
-    namespace HEVCEHWDisp { namespace Base { using namespace HEVCEHW::LegacyFallback; }; };
-#endif
-
-#if defined(MFX_VA_LINUX)
-    // There is no gen9/gen11 separation in code - use Base code-pass for ICL as well
-    #include "hevcehw_base_lin.h"
-    namespace HEVCEHWDisp { namespace Gen11 { using namespace HEVCEHW::Linux::Base; }; };
-#else
-    namespace HEVCEHWDisp { namespace Gen11 { using namespace HEVCEHW::LegacyFallback; }; };
-#endif
-
-#if defined(MFX_VA_LINUX)
     #include "hevcehw_g12_lin.h"
-    namespace HEVCEHWDisp { namespace TGL { using namespace HEVCEHW::Linux::Gen12; }; };
-    namespace HEVCEHWDisp { namespace DG1 { using namespace HEVCEHW::Linux::Gen12; }; };
-#else
-    namespace HEVCEHWDisp { namespace TGL { using namespace HEVCEHW::LegacyFallback; }; };
+    namespace HEVCEHWDisp
+    {
+        namespace Base { using namespace HEVCEHW::Linux::Base; };
+        // There is no gen9/gen11 separation in code - use Base code-pass for ICL as well
+        namespace Gen11 { using namespace HEVCEHW::Linux::Base; };
+        namespace TGL { using namespace HEVCEHW::Linux::Gen12; };
+        namespace DG1 { using namespace HEVCEHW::Linux::Gen12; };
+    };
 #endif
 
 namespace HEVCEHW

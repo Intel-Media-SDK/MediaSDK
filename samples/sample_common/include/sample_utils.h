@@ -212,6 +212,91 @@ namespace QPFile {
     }
 }
 
+namespace TCBRCTestFile {
+
+    enum ReaderStatus
+    {
+        READER_ERR_NONE,
+        READER_ERR_NOT_INITIALIZED,
+        READER_ERR_CODEC_UNSUPPORTED,
+        READER_ERR_FILE_NOT_OPEN,
+        READER_ERR_INCORRECT_FILE
+    };
+
+    struct FrameInfo
+    {
+        mfxU32 displayOrder;
+        mfxU32 targetFrameSize;
+    };
+
+    // TCBRCTestFile reads target frame size in display order
+    // from external text file (for encoding in Low delay BRC mode)
+
+    class Reader
+    {
+    public:
+        mfxStatus Read(const msdk_string& strFileName, mfxU32 codecid);
+        void ResetState();
+
+        mfxU32 GetTargetFrameSize(mfxU32 frameOrder) const;
+        mfxU32 GetFramesNum() const;
+        void NextFrame();
+        std::string GetErrorMessage() const;
+
+    private:
+        void ResetState(ReaderStatus set_sts);
+
+        ReaderStatus            m_ReaderSts = READER_ERR_NOT_INITIALIZED;
+        mfxU32                  m_CurFrameNum = std::numeric_limits<mfxU32>::max();
+        std::vector<FrameInfo>  m_FrameVals{};
+    };
+
+    inline bool get_line(std::ifstream& ifs, std::string& line)
+    {
+        std::getline(ifs, line, '\n');
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+        return !ifs.fail();
+    }
+    inline size_t find_nth(const std::string& str, size_t pos, const std::string& needle, mfxU32 nth)
+    {
+        size_t found_pos = str.find(needle, pos);
+        for (; nth != 0 && std::string::npos != found_pos; --nth)
+            found_pos = str.find(needle, found_pos + 1);
+        return found_pos;
+    }
+
+    inline std::string ReaderStatusToString(ReaderStatus sts)
+    {
+        switch (sts)
+        {
+        case READER_ERR_NOT_INITIALIZED:
+            return std::string("reader not initialized (TCBRCTestfile has not yet read the file)\n");
+        case READER_ERR_FILE_NOT_OPEN:
+            return std::string("failed to open file  with TargetFrameSize parameters (check provided path in -tcbrcfile <path>)\n");
+        case READER_ERR_INCORRECT_FILE:
+            return std::string("incorrect file with frame parameters\n");
+        case READER_ERR_CODEC_UNSUPPORTED:
+            return std::string("h264 and h265 are supported now\n");
+        default:
+            return std::string();
+        }
+    }
+    inline mfxU32 ReadDisplayOrder(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ":", 0);
+        if (pos != std::string::npos)
+            return std::stoi(line.substr(0, pos));
+        else
+            return 0;
+    }
+    inline mfxU16 ReadTargetFrameSize(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ":", 0);
+        pos = (pos != std::string::npos) ? pos + 1 : 0;
+        return static_cast<mfxU16>(std::stoi(line.substr(pos, line.size() - pos)));
+    }
+}
 mfxStatus GetFrameLength(mfxU16 width, mfxU16 height, mfxU32 ColorFormat, mfxU32 &length);
 
 bool IsDecodeCodecSupported(mfxU32 codecFormat);
@@ -683,7 +768,8 @@ private:
             MFX_EXTBUFF_FEI_PPS,
             MFX_EXTBUFF_FEI_SPS,
             MFX_EXTBUFF_LOOKAHEAD_CTRL,
-            MFX_EXTBUFF_LOOKAHEAD_STAT
+            MFX_EXTBUFF_LOOKAHEAD_STAT,
+            MFX_EXTBUFF_DEC_VIDEO_PROCESSING
         };
 
         auto it = std::find_if(std::begin(allowed), std::end(allowed),
@@ -1296,6 +1382,12 @@ struct APIChangeFeatures {
     bool SupportCodecPluginAPI;
 };
 
+inline
+mfxU32 MakeVersion(mfxU16 major, mfxU16 minor)
+{
+    return major * 1000 + minor;
+}
+
 mfxVersion getMinimalRequiredVersion(const APIChangeFeatures &features);
 
 enum msdkAPIFeature {
@@ -1371,5 +1463,32 @@ mfxI32 getMonitorType(msdk_char* str);
 void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint, mfxStatus& currentStatus);
 
 mfxU16 FourCCToChroma(mfxU32 fourCC);
+
+class FPSLimiter
+{
+public:
+    FPSLimiter()  = default;
+    ~FPSLimiter() = default;
+    void Reset(mfxU32 fps)
+    {
+        m_delayTicks = fps ? msdk_time_get_frequency() / fps : 0;
+    }
+    void Work()
+    {
+        msdk_tick current_tick = msdk_time_get_tick();
+        while( m_delayTicks && (m_startTick + m_delayTicks > current_tick) )
+        {
+            msdk_tick left_tick = m_startTick + m_delayTicks - current_tick;
+            uint32_t sleepTime = (uint32_t)(left_tick * 1000 / msdk_time_get_frequency());
+            MSDK_SLEEP(sleepTime);
+            current_tick = msdk_time_get_tick();
+        };
+        m_startTick = msdk_time_get_tick();
+    }
+
+protected:
+    msdk_tick               m_startTick  = 0;
+    msdk_tick               m_delayTicks = 0;
+};
 
 #endif //__SAMPLE_UTILS_H__

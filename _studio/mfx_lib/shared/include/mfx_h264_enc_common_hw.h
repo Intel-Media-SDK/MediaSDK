@@ -718,7 +718,7 @@ namespace MfxHwH264Encode
 
     mfxStatus SetLowPowerDefault(
         MfxVideoParam& par,
-        const eMFXHWType& platfrom);
+        const eMFXHWType& platform);
 
     mfxStatus QueryHwCaps(
         VideoCORE *       core,

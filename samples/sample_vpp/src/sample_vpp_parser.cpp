@@ -679,6 +679,7 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
     pParams->videoSignalInfoParam.push_back(*pDefaultFiltersParam->pVideoSignalInfo    );
     pParams->mirroringParam.push_back(      *pDefaultFiltersParam->pMirroringParam     );
     pParams->rotate.push_back(               0                                         );
+    pParams->colorfillParam.push_back(      *pDefaultFiltersParam->pColorfillParam     );
 
     mfxU32 readData;
     mfxU32 ioStatus;
@@ -1893,15 +1894,13 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
         }
     }
 
-
-
-    if ((pParams->ImpLib & MFX_IMPL_HARDWARE) && !(pParams->ImpLib & MFX_IMPL_VIA_D3D11))
+    if ((pParams->ImpLib & MFX_IMPL_HARDWARE) && !(pParams->ImpLib & MFX_IMPL_VIA_D3D11 || pParams->ImpLib & MFX_IMPL_VIA_D3D9))
     {
         pParams->ImpLib = MFX_IMPL_HARDWARE |
         #ifdef LIBVA_SUPPORT
                 MFX_IMPL_VIA_VAAPI;
         #else
-                MFX_IMPL_VIA_D3D9;
+                MFX_IMPL_VIA_D3D11;
         #endif
     }
 

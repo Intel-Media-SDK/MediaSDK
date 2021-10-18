@@ -590,7 +590,7 @@ JERRCODE CJPEGDecoder::ParseSOF2(void)
     if(JPEG_OK != jerr)
       return jerr;
 
-    if(curr_comp->m_hsampling <= 0 || curr_comp->m_vsampling <= 0)
+    if(curr_comp->m_hsampling <= 0 || curr_comp->m_vsampling <= 0 || curr_comp->m_q_selector >= MAX_QUANT_TABLES)
     {
       return JPEG_ERR_SOF_DATA;
     }
@@ -719,7 +719,7 @@ JERRCODE CJPEGDecoder::ParseSOF3(void)
     if(JPEG_OK != jerr)
       return jerr;
 
-    if(curr_comp->m_hsampling <= 0 || curr_comp->m_vsampling <= 0)
+    if(curr_comp->m_hsampling <= 0 || curr_comp->m_vsampling <= 0 || curr_comp->m_q_selector >= MAX_QUANT_TABLES)
     {
       return JPEG_ERR_SOF_DATA;
     }
@@ -1897,6 +1897,11 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
           while(j < (int) srcWidth / m_dd_factor)
           {
+              if (pDst > curr_comp->GetCCBufferPtr<uint8_t>(0) + (curr_comp->m_cc_bufsize - 1) * sizeof(uint8_t))
+              {
+                 LOG0("Error: CCBuferPtr out of bound!");
+                 return JPEG_ERR_BUFF;
+              }
               status = mfxiSampleUpRowH2V2_Triangle_JPEG_8u_C1(pSrc + j, pSrc + j, pixelToProcess, pDst + j * 2);    
               if(ippStsNoErr != status)
               {
@@ -2360,6 +2365,10 @@ JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, 
     for(n = m_curr_scan->first_comp; n < m_curr_scan->first_comp + m_curr_scan->ncomps; n++)
     {
       int16_t*                lastDC = &m_ccomp[n].m_lastDC;
+      if (m_ccomp[n].m_dc_selector >= MAX_HUFF_TABLES)
+      {
+          return JPEG_ERR_PARAMS;
+      }
       IppiDecodeHuffmanSpec* dctbl  = m_dctbl[m_ccomp[n].m_dc_selector];
       IppiDecodeHuffmanSpec* actbl  = m_actbl[m_ccomp[n].m_ac_selector];
 
@@ -2528,6 +2537,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8_NxN(int16_t* pMCUBuf,
       lnz       = m_ccomp[c].GetLNZBufferPtr(thread_id);
       curr_lnz  = mcu_col * curr_comp->m_lnz_ds;
 
+      if (curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       uint16_t* qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
@@ -4283,6 +4296,10 @@ JERRCODE CJPEGDecoder::ReadData(uint32_t restartNum, uint32_t restartsToDecode)
         }
 
         // reset DC predictors
+        if (m_jpeg_ncomp < 0 || m_jpeg_ncomp > MAX_COMPS_PER_SCAN)
+        {
+            return JPEG_ERR_SOF_DATA;
+        }
         for (int n = 0; n < m_jpeg_ncomp; n++)
         {
             m_ccomp[n].m_lastDC = 0;

@@ -134,12 +134,14 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -i::i420|nv12 <file-name>\n"));
     msdk_printf(MSDK_STRING("                 Set raw input file and color format\n"));
     msdk_printf(MSDK_STRING("  -i::rgb4_frame Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).\n"));
-    msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>\n"));
+    msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>|null\n"));
     msdk_printf(MSDK_STRING("                Set output file and encoder type\n"));
-    msdk_printf(MSDK_STRING("  -sw|-hw|-hw_d3d11\n"));
+    msdk_printf(MSDK_STRING("                \'null\' keyword as file-name disables output file writing \n"));
+    msdk_printf(MSDK_STRING("  -sw|-hw|-hw_d3d11|-hw_d3d9\n"));
     msdk_printf(MSDK_STRING("                SDK implementation to use: \n"));
     msdk_printf(MSDK_STRING("                      -hw - platform-specific on default display adapter (default)\n"));
-    msdk_printf(MSDK_STRING("                      -hw_d3d11 - platform-specific via d3d11\n"));
+    msdk_printf(MSDK_STRING("                      -hw_d3d11 - platform-specific via d3d11 (d3d11 is default for win)\n"));
+    msdk_printf(MSDK_STRING("                      -hw_d3d9 - platform-specific via d3d9\n"));
     msdk_printf(MSDK_STRING("                      -sw - software\n"));
 #if defined(LINUX32) || defined(LINUX64)
     msdk_printf(MSDK_STRING("   -device /path/to/device - set graphics device for processing\n"));
@@ -201,8 +203,10 @@ void TranscodingSample::PrintHelp()
         MSDK_STRING("                In encoding sessions (-o::source) and transcoding sessions \n") \
         MSDK_STRING("                  this parameter limits number of frames sent to encoder.\n"));
 
-    msdk_printf(MSDK_STRING("  -ext_allocator    Force usage of external allocators\n"));
-    msdk_printf(MSDK_STRING("  -sys          Force usage of external system allocator\n"));
+    msdk_printf(MSDK_STRING("  -MemType::video    Force usage of external video allocator (default)\n"));
+    msdk_printf(MSDK_STRING("  -MemType::system   Force usage of external system allocator\n"));
+    msdk_printf(MSDK_STRING("  -MemType::opaque   Force usage of internal allocator\n"));
+
     msdk_printf(MSDK_STRING("  -dec::sys     Set dec output to system memory\n"));
     msdk_printf(MSDK_STRING("  -vpp::sys     Set vpp output to system memory\n"));
     msdk_printf(MSDK_STRING("  -vpp::vid     Set vpp output to video memory\n"));
@@ -289,8 +293,14 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -qpp          Constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
     msdk_printf(MSDK_STRING("  -qpb          Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
 #endif
+    msdk_printf(MSDK_STRING("  -minqp        Minimum quantizer for the stream. 0 by default, i.e.no limitations.\n"));
+    msdk_printf(MSDK_STRING("  -maxqp        Maximum quantizer for the stream. 0 by default, i.e.no limitations.\n"));
     msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
     msdk_printf(MSDK_STRING("  -lowpower:<on,off>       Turn this option ON to enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
+#if (MFX_VERSION >= 1027)
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthLuma] - Encoding target bit depth for luma samples, by default same as source one.\n"));
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthChroma] - Encoding target bit depth for chroma samples, by default same as source one.\n"));
+#endif
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -roi_file <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("                Set Regions of Interest for each frame from <roi-file-name>\n"));
@@ -304,6 +314,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -PicTimingSEI:<on,off>                    Enables or disables picture timing SEI\n"));
     msdk_printf(MSDK_STRING("  -NalHrdConformance:<on,off>               Enables or disables picture HRD conformance\n"));
     msdk_printf(MSDK_STRING("  -VuiNalHrdParameters:<on,off>             Enables or disables NAL HRD parameters in VUI header\n"));
+    msdk_printf(MSDK_STRING("  -VuiTC                                    Sets transfer_characteristics for VUI. 1 - BT.709, 18 - HLG(BT.2020)\n"));
 
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Pipeline description (vpp options):\n"));
@@ -317,13 +328,14 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -FRC::PT      Enables FRC filter with Preserve Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::DT      Enables FRC filter with Distributed Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::INTERP  Enables FRC filter with Frame Interpolation algorithm\n"));
-    msdk_printf(MSDK_STRING("  -ec::nv12|rgb4|yuy2|nv16|p010|p210|p016|y216|y416   Forces encoder input to use provided chroma mode\n"));
-    msdk_printf(MSDK_STRING("  -dc::nv12|rgb4|yuy2|p016|y216   Forces decoder output to use provided chroma mode\n"));
+    msdk_printf(MSDK_STRING("  -scaling_mode <mode> Specifies scaling mode (lowpower/quality)\n"));
+    msdk_printf(MSDK_STRING("  -ec::nv12|rgb4|yuy2|nv16|p010|p210|y210|y410|p016|y216|y416   Forces encoder input to use provided chroma mode\n"));
+    msdk_printf(MSDK_STRING("  -dc::nv12|rgb4|yuy2|p010|y210|y410|p016|y216   Forces decoder output to use provided chroma mode\n"));
     msdk_printf(MSDK_STRING("     NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided\n"));
     msdk_printf(MSDK_STRING("  -angle 180    Enables 180 degrees picture rotation user module before encoding\n"));
     msdk_printf(MSDK_STRING("  -opencl       Uses implementation of rotation plugin (enabled with -angle option) through Intel(R) OpenCL\n"));
-    msdk_printf(MSDK_STRING("  -w            Destination picture width, invokes VPP resize\n"));
-    msdk_printf(MSDK_STRING("  -h            Destination picture height, invokes VPP resize\n"));
+    msdk_printf(MSDK_STRING("  -w            Destination picture width, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified)\n"));
+    msdk_printf(MSDK_STRING("  -h            Destination picture height, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified)\n"));
     msdk_printf(MSDK_STRING("  -field_processing t2t|t2b|b2t|b2b|fr2fr - Field Copy feature\n"));
     msdk_printf(MSDK_STRING("  -WeightedPred::default|implicit       Enambles weighted prediction usage\n"));
     msdk_printf(MSDK_STRING("  -WeightedBiPred::default|implicit     Enambles weighted bi-prediction usage\n"));
@@ -1185,6 +1197,15 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
             return MFX_ERR_UNSUPPORTED;
         }
     }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-VuiTC")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nTransferCharacteristics))
+        {
+            PrintError(NULL, MSDK_STRING("-VuiTC TransferCharacteristics is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
     else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-lowpower:on")))
     {
         InputParams.enableQSVFF=true;
@@ -1297,6 +1318,59 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
     {
         InputParams.DecOutPattern = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
     }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-ext_allocator")) || 0 == msdk_strcmp(argv[i], MSDK_STRING("-MemType::video")))
+    {
+        InputParams.bUseOpaqueMemory = false;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-sys")) || 0 == msdk_strcmp(argv[i], MSDK_STRING("-MemType::system")))
+    {
+        InputParams.bUseOpaqueMemory = false;
+        InputParams.bForceSysMem = true;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-opaq")) || 0 == msdk_strcmp(argv[i], MSDK_STRING("-MemType::opaque")))
+    {
+        InputParams.bUseOpaqueMemory = true;
+    }
+#if (MFX_VERSION >= 1027)
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-TargetBitDepthLuma")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.TargetBitDepthLuma))
+        {
+            PrintError(MSDK_STRING("TargetBitDepthLuma param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-TargetBitDepthChroma")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.TargetBitDepthChroma))
+        {
+            PrintError(MSDK_STRING("TargetBitDepthChroma param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+#endif
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-minqp")))
+    {
+        VAL_CHECK(i + 1 == argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nMinQP))
+        {
+            PrintError(MSDK_STRING("Minimum quantizer is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-maxqp")))
+    {
+        VAL_CHECK(i + 1 == argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nMaxQP))
+        {
+            PrintError(MSDK_STRING("Maximum quantizer is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
     else
     {
         // no matching argument was found
@@ -1377,6 +1451,21 @@ mfxStatus ParseVPPCmdLine(msdk_char *argv[], mfxU32 argc, mfxU32& index, Transco
         params->DeinterlacingMode=MFX_DEINTERLACING_ADVANCED_NOREF;
         return MFX_ERR_NONE;
     }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-scaling_mode")) )
+    {
+        VAL_CHECK(index+1 == argc, index, argv[index]);
+        index++;
+        if (0 == msdk_strcmp(argv[index], MSDK_STRING("lowpower")) )
+            params->ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+        else if (0 == msdk_strcmp(argv[index], MSDK_STRING("quality")) )
+            params->ScalingMode = MFX_SCALING_MODE_QUALITY;
+        else
+        {
+            PrintError(NULL, MSDK_STRING("-scaling_mode \"%s\" is invalid"), argv[index]);
+            return MFX_ERR_UNSUPPORTED;
+        }
+        return MFX_ERR_NONE;
+    }
     else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::rgb4")))
     {
         params->EncoderFourCC = MFX_FOURCC_RGB4;
@@ -1405,6 +1494,11 @@ mfxStatus ParseVPPCmdLine(msdk_char *argv[], mfxU32 argc, mfxU32& index, Transco
     else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::p210")))
     {
         params->EncoderFourCC = MFX_FOURCC_P210;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::p010")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_P010;
         return MFX_ERR_NONE;
     }
 #if (MFX_VERSION >= 1031)
@@ -1449,6 +1543,28 @@ mfxStatus ParseVPPCmdLine(msdk_char *argv[], mfxU32 argc, mfxU32& index, Transco
         params->DecoderFourCC = MFX_FOURCC_NV12;
         return MFX_ERR_NONE;
     }
+#if (MFX_VERSION >= 1027)
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::y210")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_Y210;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::y410")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_Y410;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::y210")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_Y210;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::y410")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_Y410;
+        return MFX_ERR_NONE;
+    }
+#endif
     else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-field_processing")) )
     {
         VAL_CHECK(index+1 == argc, index, argv[index]);
@@ -1515,7 +1631,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     }
     // default implementation
     InputParams.libType = MFX_IMPL_HARDWARE_ANY;
-    InputParams.bUseOpaqueMemory = true;
+#if defined(_WIN32) || defined(_WIN64)
+    InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D11;
+#endif
+    InputParams.bUseOpaqueMemory = false;
     InputParams.eModeExt = Native;
 
     for (mfxU32 i = 0; i < argc; i++)
@@ -1564,6 +1683,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             {
                 return MFX_ERR_UNSUPPORTED;
             }
+
             VAL_CHECK(i+1 == argc, i, argv[i]);
             i++;
             SIZE_CHECK((msdk_strlen(argv[i])+1) > MSDK_ARRAY_LEN(InputParams.strDstFile));
@@ -1638,11 +1758,19 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-hw")))
         {
+#if defined(_WIN32) || defined(_WIN64)
+            InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D11;
+#elif defined(LIBVA_SUPPORT)
             InputParams.libType = MFX_IMPL_HARDWARE_ANY;
+#endif
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-hw_d3d11")))
         {
             InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D11;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-hw_d3d9")))
+        {
+            InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D9;
         }
 #if (defined(LINUX32) || defined(LINUX64))
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-device")))
@@ -1656,11 +1784,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             InputParams.strDevicePath = argv[++i];
         }
 #endif
-        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-sys")))
-        {
-            InputParams.bUseOpaqueMemory = false;
-            InputParams.bForceSysMem = true;
-        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-perf_opt")))
         {
             InputParams.bIsPerf = true;
@@ -2104,10 +2227,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             }
         }
 #endif
-        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-ext_allocator")))
-        {
-            InputParams.bUseOpaqueMemory = false;
-        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vpp::sys")))
         {
             InputParams.VppOutPattern = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
@@ -2221,8 +2340,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-dec_postproc")))
         {
             InputParams.bDecoderPostProcessing = true;
-            if (InputParams.eModeExt != VppComp)
-                InputParams.eModeExt = VppComp;
         }
 #endif //MFX_VERSION >= 1022
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-n")))

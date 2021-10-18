@@ -206,6 +206,7 @@ inline void SetOrCopy(mfxExtCodingOption3 *pDst, mfxExtCodingOption3 const *pSrc
     SET_OR_COPY_PAR(TargetChromaFormatPlus1);
     SET_OR_COPY_PAR(TargetBitDepthLuma);
     SET_OR_COPY_PAR(TargetBitDepthChroma);
+    COPY_PTR(ScenarioInfo);
 #endif
 }
 
@@ -988,9 +989,17 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
     Bool changed = false;
     Bool unsupported = false;
 
-    if (false == CheckTriStateOption(par.mfx.LowPower))
+    if (par.mfx.LowPower != MFX_CODINGOPTION_UNKNOWN &&
+        par.mfx.LowPower != MFX_CODINGOPTION_ON &&
+        par.mfx.LowPower != MFX_CODINGOPTION_OFF)
     {
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
         changed = true;
+    }
+
+    if (par.mfx.LowPower == MFX_CODINGOPTION_OFF)
+    {
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
     }
 
     // clean out non-configurable params but do not return any errors on that (ignore mode)
@@ -1913,13 +1922,13 @@ mfxStatus CheckSurface(
 
     if (video.m_inMemType == INPUT_SYSTEM_MEMORY)
     {
-        MFX_CHECK(!LumaIsNull(&surface), MFX_ERR_NULL_PTR);
+        MFX_CHECK(!LumaIsNull(&surface) || surface.Data.MemId, MFX_ERR_NULL_PTR);
 #if (MFX_VERSION >= 1027)
         if (surface.Info.FourCC != MFX_FOURCC_Y410)
 #endif
         {
-            MFX_CHECK(surface.Data.U != 0, MFX_ERR_NULL_PTR);
-            MFX_CHECK(surface.Data.V != 0, MFX_ERR_NULL_PTR);
+            MFX_CHECK(surface.Data.U != 0 || (surface.Data.MemId && LumaIsNull(&surface)), MFX_ERR_NULL_PTR);
+            MFX_CHECK(surface.Data.V != 0 || (surface.Data.MemId && LumaIsNull(&surface)), MFX_ERR_NULL_PTR);
         }
     }
     else if (isOpaq == false)

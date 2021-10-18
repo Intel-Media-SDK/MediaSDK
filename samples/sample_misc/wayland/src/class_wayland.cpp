@@ -35,6 +35,11 @@ extern "C" {
 
 #define BATCH_SIZE 0x80000
 
+struct buffer {
+   struct wl_buffer *buffer;
+   mfxFrameSurface1 *pInSurface;
+};
+
 static const struct wl_callback_listener frame_listener = {
     handle_done
 };
@@ -169,15 +174,22 @@ void Wayland::SetRenderWinPos(int x, int y)
 }
 
 void Wayland::RenderBuffer(struct wl_buffer *buffer
-     , int32_t width
-     , int32_t height)
+     , mfxFrameSurface1 *surface)
 {
+    wld_buffer *m_buffer = new wld_buffer;
+    if (m_buffer == NULL)
+      return;
+
+    m_buffer->buffer = buffer;
+    m_buffer->pInSurface = surface;
+
     wl_surface_attach(m_surface, buffer, 0, 0);
-    wl_surface_damage(m_surface, m_x, m_y, width, height);
+    wl_surface_damage(m_surface, m_x, m_y, surface->Info.CropW, surface->Info.CropH);
 
     wl_proxy_set_queue((struct wl_proxy *) buffer, m_event_queue);
 
-    wl_buffer_add_listener(buffer, &buffer_listener, NULL);
+    AddBufferToList(m_buffer);
+    wl_buffer_add_listener(buffer, &buffer_listener, this);
     m_pending_frame=1;
     if (m_perf_mode)
         m_callback = wl_display_sync(m_display);
@@ -365,6 +377,8 @@ Wayland::~Wayland()
         wl_compositor_destroy(m_compositor);
     if(NULL != m_event_queue)
         wl_event_queue_destroy(m_event_queue);
+    if(0 != m_buffers_list.size())
+        DestroyBufferList();
     if(NULL != m_registry)
         wl_registry_destroy(m_registry);
     if(NULL != m_display)
@@ -419,13 +433,61 @@ void Wayland::DrmHandleDevice(const char *name)
             m_device_name << "\n";
         return;
     }
-    drmGetMagic(m_fd, &magic);
-    wl_drm_authenticate(m_drm, magic);
+
+    int type = drmGetNodeTypeFromFd(m_fd);
+    if (type != DRM_NODE_RENDER) {
+        drmGetMagic(m_fd, &magic);
+        wl_drm_authenticate(m_drm, magic);
+    }
 }
 
 void Wayland::DrmHandleAuthenticated()
 {
     m_bufmgr = drm_intel_bufmgr_gem_init(m_fd, BATCH_SIZE);
+}
+
+void Wayland::AddBufferToList(wld_buffer *buffer)
+{
+   if (buffer == NULL)
+     return;
+
+   if (buffer->pInSurface) {
+     msdkFrameSurface *surface = FindUsedSurface(buffer->pInSurface);
+     msdk_atomic_inc16(&(surface->render_lock));
+     m_buffers_list.push_back(buffer);
+   }
+}
+
+void Wayland::RemoveBufferFromList(struct wl_buffer *buffer)
+{
+   wld_buffer *m_buffer = NULL;
+   m_buffer = m_buffers_list.front();
+   if (NULL != m_buffer && (m_buffer->buffer == buffer)) {
+     if (m_buffer->pInSurface) {
+       msdkFrameSurface *surface = FindUsedSurface(m_buffer->pInSurface);
+       msdk_atomic_dec16(&(surface->render_lock));
+     }
+     m_buffer->buffer = NULL;
+     m_buffer->pInSurface = NULL;
+     m_buffers_list.pop_front();
+     delete m_buffer;
+   }
+}
+
+void Wayland::DestroyBufferList()
+{
+   wld_buffer *m_buffer = NULL;
+   while (!m_buffers_list.empty())
+   {
+      m_buffer = m_buffers_list.front();
+      if (m_buffer->pInSurface)
+      {
+        msdkFrameSurface *surface = FindUsedSurface(m_buffer->pInSurface);
+        msdk_atomic_dec16(&(surface->render_lock));
+      }
+      m_buffers_list.pop_front();
+      delete m_buffer;
+   }
 }
 
 Wayland* WaylandCreate()
@@ -437,4 +499,3 @@ void WaylandDestroy(Wayland *pWld)
 {
     delete pWld;
 }
-

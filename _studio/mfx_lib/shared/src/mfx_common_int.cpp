@@ -29,8 +29,6 @@
 #include <climits>
 
 
-mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type);
-
 mfxExtBuffer* GetExtendedBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id)
 {
     if (extBuf != 0)
@@ -55,14 +53,10 @@ mfxExtBuffer* GetExtendedBufferInternal(mfxExtBuffer** extBuf, mfxU32 numExtBuf,
 
 mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
 {
-    if (!info)
-        return MFX_ERR_NULL_PTR;
+    MFX_CHECK_NULL_PTR1(info);
 
-    if ((info->Width % 16) || !info->Width)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
-
-    if ((info->Height % 16) || !info->Height)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK(info->Width && info->Width % 16 == 0, MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(info->Height && info->Height % 16 == 0, MFX_ERR_INVALID_VIDEO_PARAM);
 
     switch (info->FourCC)
     {
@@ -92,12 +86,12 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
 
         break;
     default:
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
-    if ((info->BitDepthLuma && (info->BitDepthLuma < 8)) ||
-        (info->BitDepthChroma && (info->BitDepthChroma < 8)))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK((!info->BitDepthLuma || (info->BitDepthLuma >= 8)) &&
+              (!info->BitDepthChroma || (info->BitDepthChroma >= 8))
+              , MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (info->BitDepthLuma > 8 || info->BitDepthChroma > 8)
     {
@@ -116,11 +110,10 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
         case MFX_FOURCC_Y216:
         case MFX_FOURCC_Y416:
 #endif
-
             break;
 
         default:
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 
@@ -135,18 +128,14 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
             && info->FourCC != MFX_FOURCC_Y416
 #endif
             )
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
-    if (info->ChromaFormat > MFX_CHROMAFORMAT_YUV444)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK(info->ChromaFormat <= MFX_CHROMAFORMAT_YUV444,  MFX_ERR_INVALID_VIDEO_PARAM);
 
-    if (info->FrameRateExtN != 0 && info->FrameRateExtD == 0)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK(!(info->FrameRateExtN != 0 && info->FrameRateExtD == 0), MFX_ERR_INVALID_VIDEO_PARAM);
 
-    if ((info->AspectRatioW || info->AspectRatioH) &&
-        (!info->AspectRatioW || !info->AspectRatioH))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK((!info->AspectRatioW && !info->AspectRatioH) || (info->AspectRatioW && info->AspectRatioH), MFX_ERR_INVALID_VIDEO_PARAM);
 
     return MFX_ERR_NONE;
 }
@@ -193,18 +182,16 @@ mfxStatus CheckFrameInfoEncoders(mfxFrameInfo  *info)
 mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
 {
     mfxStatus sts = CheckFrameInfoCommon(info, codecId);
-    if (sts != MFX_ERR_NONE)
-        return sts;
+    MFX_CHECK_STS(sts);
 
     switch (codecId)
     {
     case MFX_CODEC_JPEG:
         if (info->FourCC != MFX_FOURCC_NV12 && info->FourCC != MFX_FOURCC_RGB4 && info->FourCC != MFX_FOURCC_YUY2)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_VP8:
-        if (info->FourCC != MFX_FOURCC_NV12 && info->FourCC != MFX_FOURCC_YV12)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(info->FourCC == MFX_FOURCC_NV12 || info->FourCC == MFX_FOURCC_YV12, MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_VP9:
         if (info->FourCC != MFX_FOURCC_NV12
@@ -218,14 +205,14 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             && info->FourCC != MFX_FOURCC_Y416
 #endif
             )
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_AVC:
         if (info->FourCC != MFX_FOURCC_NV12 &&
             info->FourCC != MFX_FOURCC_P010 &&
             info->FourCC != MFX_FOURCC_NV16 &&
             info->FourCC != MFX_FOURCC_P210)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_HEVC:
         if (info->FourCC != MFX_FOURCC_NV12 &&
@@ -244,7 +231,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             && info->FourCC != MFX_FOURCC_Y416
 #endif
             )
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
         break;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE) || defined(MFX_ENABLE_AV1_VIDEO_ENCODE)
     case MFX_CODEC_AV1:
@@ -258,35 +245,35 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
 #endif
 
     default:
-        if (info->FourCC != MFX_FOURCC_NV12)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(info->FourCC == MFX_FOURCC_NV12, MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     }
 
     switch (codecId)
     {
     case MFX_CODEC_JPEG:
-        if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420 && info->ChromaFormat != MFX_CHROMAFORMAT_YUV444 &&
-            info->ChromaFormat != MFX_CHROMAFORMAT_YUV400 && info->ChromaFormat != MFX_CHROMAFORMAT_YUV422H)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(   info->ChromaFormat == MFX_CHROMAFORMAT_YUV420
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV444
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV400
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV422H
+                  , MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_AVC:
-        if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420 && info->ChromaFormat != MFX_CHROMAFORMAT_YUV422 &&
-            info->ChromaFormat != MFX_CHROMAFORMAT_YUV400)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(   info->ChromaFormat == MFX_CHROMAFORMAT_YUV420
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV422
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV400
+                  , MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     case MFX_CODEC_HEVC:
     case MFX_CODEC_VP9:
-        if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420
-            && info->ChromaFormat != MFX_CHROMAFORMAT_YUV400
-            && info->ChromaFormat != MFX_CHROMAFORMAT_YUV422
-            && info->ChromaFormat != MFX_CHROMAFORMAT_YUV444
-            )
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(   info->ChromaFormat == MFX_CHROMAFORMAT_YUV420
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV400
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV422
+                  || info->ChromaFormat == MFX_CHROMAFORMAT_YUV444
+                  , MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     default:
-        if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420 && info->ChromaFormat != MFX_CHROMAFORMAT_YUV400)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(info->ChromaFormat == MFX_CHROMAFORMAT_YUV420 || info->ChromaFormat == MFX_CHROMAFORMAT_YUV400, MFX_ERR_INVALID_VIDEO_PARAM);
         break;
     }
 
@@ -303,9 +290,65 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
 #endif
         ))
     {
-        if (info->Shift != (isHW ? 1 : 0))
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(info->Shift == (isHW ? 1 : 0), MFX_ERR_INVALID_VIDEO_PARAM);
     }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *request)
+{
+#ifdef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    (void)par;
+    (void)request;
+#else
+    mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+    if (videoProcessing && videoProcessing->Out.FourCC != par->mfx.FrameInfo.FourCC)
+    {
+        request->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
+        request->Info.FourCC = videoProcessing->Out.FourCC;
+
+        switch (videoProcessing->Out.FourCC)
+        {
+            // if is 8 bit, shift value has to be 0
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_AYUV:
+            request->Info.BitDepthLuma = 8;
+            request->Info.Shift = 0;
+            break;
+            // 10 bit
+        case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_Y210:
+            request->Info.BitDepthLuma = 10;
+            request->Info.Shift = 1;
+            break;
+        case MFX_FOURCC_Y410:
+            request->Info.BitDepthLuma = 10;
+            request->Info.Shift = 0;
+            break;
+#endif
+            // 12 bit
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y416:
+        case MFX_FOURCC_Y216:
+            request->Info.BitDepthLuma = 12;
+            request->Info.Shift = 1;
+            break;
+#endif
+        case MFX_FOURCC_RGB4:
+            request->Info.BitDepthLuma = 0;
+            request->Info.Shift = 0;
+            break;
+        default:
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        request->Info.BitDepthChroma = request->Info.BitDepthLuma;
+    }
+#endif // !MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 
     return MFX_ERR_NONE;
 }
@@ -345,19 +388,16 @@ mfxStatus CheckAudioParamEncoders(mfxAudioParam *in)
 }
 
 
-mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
+static mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 {
-    if (!in)
-        return MFX_ERR_NULL_PTR;
+    MFX_CHECK_NULL_PTR1(in);
 
     mfxStatus sts = CheckFrameInfoCodecs(&in->mfx.FrameInfo, in->mfx.CodecId, type != MFX_HW_UNKNOWN);
-    if (sts != MFX_ERR_NONE)
-        return sts;
+    MFX_CHECK_STS(sts);
 
     if (in->Protected)
     {
-        if (type == MFX_HW_UNKNOWN || !IS_PROTECTION_ANY(in->Protected))
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        MFX_CHECK(type != MFX_HW_UNKNOWN && IS_PROTECTION_ANY(in->Protected), MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     switch (in->mfx.CodecId)
@@ -374,11 +414,10 @@ mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 #endif
             break;
         default:
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
-    if (!in->IOPattern)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK(in->IOPattern, MFX_ERR_INVALID_VIDEO_PARAM);
 
     if (   in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
         || in->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
@@ -394,13 +433,11 @@ mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
     {
         if (type == MFX_HW_UNKNOWN)
         {
-            if (in->mfx.FrameInfo.Shift != 0)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_CHECK(in->mfx.FrameInfo.Shift == 0, MFX_ERR_INVALID_VIDEO_PARAM);
         }
         else
         {
-            if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && in->mfx.FrameInfo.Shift != 1)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || in->mfx.FrameInfo.Shift == 1, MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 
@@ -410,30 +447,28 @@ mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocator, eMFXHWType type)
 {
     mfxStatus sts = CheckVideoParamCommon(in, type);
-    if (sts < MFX_ERR_NONE)
-        return sts;
+    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
-    if (!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && !(in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) || (in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
+        , MFX_ERR_INVALID_VIDEO_PARAM);
 
-    if ((in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || !(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+        , MFX_ERR_INVALID_VIDEO_PARAM);
 
-    if ((in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
-
-    if ((in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY) && (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    if (in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
+    {
+        MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY), MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY), MFX_ERR_INVALID_VIDEO_PARAM);
+    }
 
     if (in->mfx.DecodedOrder && in->mfx.CodecId != MFX_CODEC_JPEG && in->mfx.CodecId != MFX_CODEC_AVC && in->mfx.CodecId != MFX_CODEC_HEVC)
         return MFX_ERR_UNSUPPORTED;
 
-    if (!IsExternalFrameAllocator && (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+    if (!IsExternalFrameAllocator)
+        MFX_CHECK(!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY), MFX_ERR_INVALID_VIDEO_PARAM);
 
     sts = CheckDecodersExtendedBuffers(in);
-    if (sts < MFX_ERR_NONE)
-        return sts;
+    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
     return MFX_ERR_NONE;
 }

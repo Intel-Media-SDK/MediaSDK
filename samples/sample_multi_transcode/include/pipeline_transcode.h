@@ -221,6 +221,7 @@ namespace TranscodingSample
         int DetailLevel;
         mfxU16 FRCAlgorithm;
         EFieldCopyMode fieldProcessingMode;
+        mfxU16 ScalingMode;
 
         mfxU16 nAsyncDepth; // asyncronous queue
 
@@ -284,6 +285,8 @@ namespace TranscodingSample
         mfxU16 nQPI;
         mfxU16 nQPP;
         mfxU16 nQPB;
+        mfxU16 nMinQP;
+        mfxU16 nMaxQP;
         bool bDisableQPOffset;
         mfxU16 QVBRQuality;
         mfxU16 ICQQuality;
@@ -298,6 +301,7 @@ namespace TranscodingSample
         mfxU16 nPicTimingSEI;
         mfxU16 nNalHrdConformance;
         mfxU16 nVuiNalHrdParameters;
+        mfxU16 nTransferCharacteristics;
 
         bool bOpenCL;
         mfxU16 reserved[4];
@@ -347,6 +351,11 @@ namespace TranscodingSample
         mfxU16 numMFEFrames;
         mfxU16 MFMode;
         mfxU32 mfeTimeout;
+#endif
+
+#if (MFX_VERSION >= 1027)
+        mfxU16 TargetBitDepthLuma;
+        mfxU16 TargetBitDepthChroma;
 #endif
 
 #if defined(LIBVA_WAYLAND_SUPPORT)
@@ -620,6 +629,7 @@ namespace TranscodingSample
         virtual mfxStatus ProcessOutputBitstream(mfxBitstreamWrapper* pBitstream);
         virtual mfxStatus ResetInput();
         virtual mfxStatus ResetOutput();
+        virtual bool      IsNulOutput();
 
     protected:
         std::unique_ptr<CSmplBitstreamReader> m_pFileReader;

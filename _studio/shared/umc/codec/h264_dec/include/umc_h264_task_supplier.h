@@ -598,6 +598,7 @@ protected:
     virtual void OnFullFrame(H264DecoderFrame * pFrame);
     virtual bool ProcessNonPairedField(H264DecoderFrame * pFrame) = 0;
 
+    void DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFrame * pFrame);
     void DBPUpdate(H264DecoderFrame * pFrame, int32_t field);
 
     virtual void AddFakeReferenceFrame(H264Slice * pSlice);
@@ -724,7 +725,7 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         case H264VideoDecoderParams::H264_LEVEL_52:
             MaxDPBMbs = 184320;
             break;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
         case H264VideoDecoderParams::H264_LEVEL_6:
         case H264VideoDecoderParams::H264_LEVEL_61:
         case H264VideoDecoderParams::H264_LEVEL_62:
@@ -792,14 +793,14 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         // can be used to calculate the DPB size.
         case H264VideoDecoderParams::H264_LEVEL_51:
         case H264VideoDecoderParams::H264_LEVEL_52:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
             level_idc = H264VideoDecoderParams::H264_LEVEL_6;
 #else
             level_idc = INTERNAL_MAX_LEVEL;
 #endif
             break;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
         case H264VideoDecoderParams::H264_LEVEL_6:
         case H264VideoDecoderParams::H264_LEVEL_61:
         case H264VideoDecoderParams::H264_LEVEL_62:

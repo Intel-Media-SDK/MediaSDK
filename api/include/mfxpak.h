@@ -28,7 +28,7 @@ extern "C"
 #endif /* __cplusplus */
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxU16 reserved[32];
 
     mfxFrameSurface1 *InSurface;
@@ -47,7 +47,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxU16  reserved[32];
 
     mfxBitstream     *Bs;
@@ -60,15 +60,15 @@ typedef struct {
 MFX_PACK_END()
 
 typedef struct _mfxSession *mfxSession;
-mfxStatus MFX_CDECL MFXVideoPAK_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out);
-mfxStatus MFX_CDECL MFXVideoPAK_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest request[2]);
-mfxStatus MFX_CDECL MFXVideoPAK_Init(mfxSession session, mfxVideoParam *par);
-mfxStatus MFX_CDECL MFXVideoPAK_Reset(mfxSession session, mfxVideoParam *par);
-mfxStatus MFX_CDECL MFXVideoPAK_Close(mfxSession session);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoPAK_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoPAK_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest request[2]);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoPAK_Init(mfxSession session, mfxVideoParam *par);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoPAK_Reset(mfxSession session, mfxVideoParam *par);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoPAK_Close(mfxSession session);
 
-mfxStatus MFX_CDECL MFXVideoPAK_ProcessFrameAsync(mfxSession session, mfxPAKInput *in, mfxPAKOutput *out,  mfxSyncPoint *syncp);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoPAK_ProcessFrameAsync(mfxSession session, mfxPAKInput *in, mfxPAKOutput *out,  mfxSyncPoint *syncp);
 
-mfxStatus MFX_CDECL MFXVideoPAK_GetVideoParam(mfxSession session, mfxVideoParam *par);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoPAK_GetVideoParam(mfxSession session, mfxVideoParam *par);
 
 #ifdef __cplusplus
 } // extern "C"

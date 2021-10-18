@@ -371,7 +371,6 @@ H265DecoderFrame *H265DBPList::findShortRefPic(int32_t picPOC)
 H265DecoderFrame *H265DBPList::findLongTermRefPic(const H265DecoderFrame *excludeFrame, int32_t picPOC, uint32_t bitsForPOC, bool isUseMask) const
 {
     H265DecoderFrame *pCurr = m_pHead;
-    H265DecoderFrame *pStPic = pCurr;
     uint32_t POCmask = (1 << bitsForPOC) - 1;
 
     if (!isUseMask)
@@ -386,7 +385,6 @@ H265DecoderFrame *H265DBPList::findLongTermRefPic(const H265DecoderFrame *exclud
         {
             if (pCurr->isLongTermRef() && (!correctPic || correctPic->m_UID < pCurr->m_UID))
                 correctPic = pCurr;
-            pStPic = pCurr;
         }
 
         pCurr = pCurr->future();

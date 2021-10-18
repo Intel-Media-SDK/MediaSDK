@@ -287,7 +287,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
     mfxFrameSurface1 *output,
     mfxStatus *intSts)
 {
-    bool isIncreasedSurface = false;
     std::vector<mfxFrameSurface1 *>::iterator iterator;
 
     mfxU64 inputTimeStamp = input->Data.TimeStamp;
@@ -339,7 +338,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
 
             if (m_LockedSurfacesList.end() != iterator)
             {
-                isIncreasedSurface = true;
                 m_LockedSurfacesList.erase(m_LockedSurfacesList.begin());
             }
 
@@ -359,7 +357,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
             }
             else
             {
-                isIncreasedSurface = true;
             }
 
             // calculate timestamp increment
@@ -385,7 +382,6 @@ mfxStatus CpuFrc::PtsFrc::DoCpuFRC_AndUpdatePTS(
 
         if (m_LockedSurfacesList.end() != iterator)
         {
-            isIncreasedSurface = true;
             m_LockedSurfacesList.erase(m_LockedSurfacesList.begin());
         }
 
@@ -2301,6 +2297,7 @@ mfxStatus  VideoVPPHW::Init(
             case MFX_HW_TGL_LP:
             case MFX_HW_DG1:
             case MFX_HW_RKL:
+            case MFX_HW_ADL_S:
                 res = m_pCmDevice->LoadProgram((void*)genx_fcopy_gen12lp,sizeof(genx_fcopy_gen12lp),m_pCmProgram,"nojitter");
                 break;
 #endif
@@ -3629,6 +3626,7 @@ int RunGpu(
     } else {
         status = MFX_ERR_DEVICE_FAILED;
     }
+    std::ignore = status;
 
     if(e) queue->DestroyEvent(e);
 
@@ -5871,17 +5869,16 @@ mfxStatus ConfigureExecuteParams(
                         mfxExtVPPComposite* extComp = (mfxExtVPPComposite*) videoParam.ExtParam[i];
                         StreamCount = extComp->NumInputStream;
 
-                        if (!executeParams.dstRects.empty())
+                        if (executeParams.dstRects.empty())
                         {
-                            if (executeParams.dstRects.size() < StreamCount)
-                                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                            executeParams.initialStreamNum = StreamCount;
                         }
+                        else
+                        {
+                            MFX_CHECK(StreamCount <= executeParams.initialStreamNum, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                        }
+                        executeParams.dstRects.resize(StreamCount);
 
-                        if (executeParams.dstRects.size() != StreamCount)
-                        {
-                            executeParams.dstRects.clear();
-                            executeParams.dstRects.resize(StreamCount);
-                        }
 #if MFX_VERSION > 1023
                         executeParams.iTilesNum4Comp = extComp->NumTiles;
 #endif

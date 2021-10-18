@@ -57,9 +57,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 enum MemType {
-    SYSTEM_MEMORY = 0x00,
-    D3D9_MEMORY   = 0x01,
-    D3D11_MEMORY  = 0x02,
+    SYSTEM_MEMORY = 0x01,
+    D3D9_MEMORY   = 0x02,
+    D3D11_MEMORY  = 0x03,
+    VAAPI_MEMORY  = D3D11_MEMORY
 };
 
 enum eWorkMode {
@@ -85,7 +86,7 @@ struct sInputParams
     bool    bLowLat; // low latency mode
     bool    bCalLat; // latency calculation
     bool    bUseFullColorRange; //whether to use full color range
-    mfxU16  nMaxFPS; //rendering limited by certain fps
+    mfxU16  nMaxFPS; // limits overall fps
     mfxU32  nWallCell;
     mfxU32  nWallW; //number of windows located in each row
     mfxU32  nWallH; //number of windows located in each column
@@ -112,6 +113,7 @@ struct sInputParams
     mfxU16  chromaType;
     mfxU32  nFrames;
     mfxU16  eDeinterlace;
+    mfxU16  ScalingMode;
     bool    outI420;
 
     bool    bPerfMode;
@@ -143,6 +145,7 @@ struct sInputParams
     msdk_char     strDstFile[MSDK_MAX_FILENAME_LEN];
     sPluginParams pluginParams;
 
+    bool bDisableFilmGrain;
 };
 
 struct CPipelineStatistics
@@ -304,8 +307,7 @@ protected: // variables
     bool                    m_bSoftRobustFlag;
     std::vector<msdk_tick>  m_vLatency;
 
-    msdk_tick               m_startTick;
-    msdk_tick               m_delayTicks;
+    FPSLimiter              m_fpsLimiter;
 
     mfxExtVPPVideoSignalInfo m_VppVideoSignalInfo;
     std::vector<mfxExtBuffer*> m_VppSurfaceExtParams;

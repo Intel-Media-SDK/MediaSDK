@@ -971,12 +971,11 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
     bool  bIdr = (type == MFX_FRAMETYPE_IDR);
 
 
-    mfxF64 HRDDevFactor = 0.0;
     mfxF64 HRDDev = 0.0;
     mfxF64 maxFrameSizeHrd = 0.0;
     if (m_par.HRDConformance != MFX_BRC_NO_HRD)
     {
-        HRDDevFactor = m_hrdSpec->GetBufferDeviationFactor(par->EncodedOrder);
+        m_hrdSpec->GetBufferDeviationFactor(par->EncodedOrder);
         HRDDev = m_hrdSpec->GetBufferDeviation(par->EncodedOrder);
         maxFrameSizeHrd = m_hrdSpec->GetMaxFrameSizeInBits(par->EncodedOrder, bIdr);
     }

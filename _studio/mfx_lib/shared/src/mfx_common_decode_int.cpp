@@ -166,18 +166,22 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoDecoderParams *um
 
     umcVideoParams->numThreads = par->mfx.NumThread;
 
-    switch(par->mfx.TimeStampCalc)
+    // TimeStampCalc is present only in Decoding Options union, not in JPEG Decoding Options union
+    if (par->mfx.CodecId != MFX_CODEC_JPEG)
     {
-    case MFX_TIMESTAMPCALC_TELECINE:
-        umcVideoParams->lFlags |= UMC::FLAG_VDEC_TELECINE_PTS;
-        break;
+        switch(par->mfx.TimeStampCalc)
+        {
+        case MFX_TIMESTAMPCALC_TELECINE:
+            umcVideoParams->lFlags |= UMC::FLAG_VDEC_TELECINE_PTS;
+            break;
 
-    case MFX_TIMESTAMPCALC_UNKNOWN:
-        break;
+        case MFX_TIMESTAMPCALC_UNKNOWN:
+            break;
 
-    default:
-        VM_ASSERT(false);
-        break;
+        default:
+            VM_ASSERT(false);
+            break;
+        }
     }
 }
 
@@ -255,6 +259,7 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
         case UMC::YUV411:  return MFX_FOURCC_YUV411;
         case UMC::YUV444:  return MFX_FOURCC_YUV444;
         case UMC::UYVY:    return MFX_FOURCC_UYVY;
+        case UMC::GRAY:    return MFX_FOURCC_YUV400;
 
         default:
             VM_ASSERT(!"Unknown color format");

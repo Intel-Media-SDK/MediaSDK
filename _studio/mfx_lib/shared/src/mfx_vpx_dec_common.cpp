@@ -107,7 +107,10 @@ namespace MFX_VPX_Utility
 
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
             if (codecId == MFX_CODEC_AV1)
+            {
                 p_out->mfx.CodecLevel = p_in->mfx.CodecLevel;
+                p_out->mfx.FilmGrain = p_in->mfx.FilmGrain;
+            }
 #endif
 
             if (p_in->mfx.NumThread < 128)
@@ -320,7 +323,10 @@ namespace MFX_VPX_Utility
 
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
             if (codecId == MFX_CODEC_AV1)
+            {
                 p_out->mfx.CodecLevel = MFX_LEVEL_AV1_2;
+                p_out->mfx.FilmGrain = 1;
+            }
 #endif
 
             p_out->mfx.NumThread = 1;

@@ -351,8 +351,6 @@ mfxStatus ASC::CreateCmKernels() {
 
     res = m_device->CreateThreadSpace(m_threadsWidth, m_threadsHeight, m_threadSpace);
     SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
-    res = m_threadSpace->SelectThreadDependencyPattern(CM_NONE_DEPENDENCY);
-    SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     res = m_device->CreateKernel(m_program, CM_KERNEL_FUNCTION(SubSamplePoint_p), m_kernel_p);
     SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     res = m_kernel_p->SetThreadCount(m_threadsWidth * m_threadsHeight);
@@ -531,7 +529,6 @@ mfxStatus ASC::IO_Setup() {
         m_threadsWidth = (UINT)ceil((double)m_gpuwidth / SCD_BLOCK_PIXEL_WIDTH);
         m_threadsHeight = (UINT)ceil((double)m_gpuheight / SCD_BLOCK_HEIGHT);
         SCD_CHECK_CM_ERR(m_device->CreateThreadSpace(m_threadsWidth, m_threadsHeight, m_threadSpaceCp), MFX_ERR_DEVICE_FAILED);
-        SCD_CHECK_CM_ERR(m_threadSpaceCp->SelectThreadDependencyPattern(CM_NONE_DEPENDENCY), MFX_ERR_DEVICE_FAILED);
         SCD_CHECK_CM_ERR(m_kernel_cp->SetThreadCount(m_threadsWidth * m_threadsHeight), MFX_ERR_DEVICE_FAILED);
 #ifndef CMRT_EMU
         SCD_CHECK_CM_ERR(m_kernel_cp->AssociateThreadSpace(m_threadSpaceCp), MFX_ERR_DEVICE_FAILED);

@@ -45,7 +45,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   <codecid>=h265|vp9|capture            - in-box Media SDK plugins (may require separate downloading and installation)\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Work models:\n"));
-    msdk_printf(MSDK_STRING("  1. Performance model: decoding on MAX speed, no rendering, no YUV dumping (no -r or -o option)\n"));
+    msdk_printf(MSDK_STRING("  1. Performance model: decoding on MAX speed, no screen rendering, no YUV dumping (no -r or -o option)\n"));
     msdk_printf(MSDK_STRING("  2. Rendering model: decoding with rendering on the screen (-r option)\n"));
     msdk_printf(MSDK_STRING("  3. Dump model: decoding with YUV dumping (-o option)\n"));
     msdk_printf(MSDK_STRING("\n"));
@@ -56,10 +56,11 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-p plugin]               - decoder plugin. Supported values: hevcd_sw, hevcd_hw, vp8d_hw, vp9d_hw, camera_hw, capture_hw\n"));
     msdk_printf(MSDK_STRING("   [-path path]              - path to plugin (valid only in pair with -p option)\n"));
     msdk_printf(MSDK_STRING("                               (optional for Media SDK in-box plugins, required for user-decoder ones)\n"));
-    msdk_printf(MSDK_STRING("   [-f]                      - rendering framerate\n"));
+    msdk_printf(MSDK_STRING("   [-fps]                    - limits overall fps of pipeline\n"));
     msdk_printf(MSDK_STRING("   [-w]                      - output width\n"));
     msdk_printf(MSDK_STRING("   [-h]                      - output height\n"));
     msdk_printf(MSDK_STRING("   [-di bob/adi]             - enable deinterlacing BOB/ADI\n"));
+    msdk_printf(MSDK_STRING("   [-scaling_mode value]     - specify scaling mode (lowpower/quality) for VPP\n"));
 #if (MFX_VERSION >= 1025)
     msdk_printf(MSDK_STRING("   [-d]                      - enable decode error report\n"));
 #endif
@@ -73,9 +74,10 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("                                              '-device /dev/dri/renderD128'\n"));
     msdk_printf(MSDK_STRING("                                 If not specified, defaults to the first Intel device found on the system\n"));
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)   
+#if (MFX_VERSION >= 1035)   
     msdk_printf(MSDK_STRING("   [-ignore_level_constrain] - ignore level constrain\n"));
 #endif
+    msdk_printf(MSDK_STRING("   [-disable_film_grain] - disable film grain application(valid only for av1)\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("JPEG Chroma Type:\n"));
     msdk_printf(MSDK_STRING("   [-jpeg_rgb] - RGB Chroma Type\n"));
@@ -95,6 +97,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-y416] - pipeline output format: Y416, output file format: Y416\n"));
 #endif
     msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("   [-sys]                    - work with linear buffer in system memory\n"));
 #if D3D_SURFACES_SUPPORT
     msdk_printf(MSDK_STRING("   [-d3d]                    - work with d3d9 surfaces\n"));
     msdk_printf(MSDK_STRING("   [-d3d11]                  - work with d3d11 surfaces\n"));
@@ -208,6 +211,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->bUseHWLib = true;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-sys")))
+        {
+            pParams->memType = SYSTEM_MEMORY;
+        }
 #if D3D_SURFACES_SUPPORT
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d3d")))
         {
@@ -220,9 +227,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-r")))
         {
             pParams->mode = MODE_RENDERING;
-            // use d3d9 rendering by default
-            if (SYSTEM_MEMORY == pParams->memType)
-                pParams->memType = D3D9_MEMORY;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-wall")))
         {
@@ -231,9 +235,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -wall key"));
                 return MFX_ERR_UNSUPPORTED;
             }
-            // use d3d9 rendering by default
-            if (SYSTEM_MEMORY == pParams->memType)
-                pParams->memType = D3D9_MEMORY;
 
             pParams->mode = MODE_RENDERING;
 
@@ -253,17 +254,15 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
 #if defined(LIBVA_SUPPORT)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vaapi")))
         {
-            pParams->memType = D3D9_MEMORY;
+            pParams->memType = VAAPI_MEMORY;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-r")))
         {
-            pParams->memType = D3D9_MEMORY;
             pParams->mode = MODE_RENDERING;
             pParams->libvaBackend = MFX_LIBVA_X11;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rwld")))
         {
-            pParams->memType = D3D9_MEMORY;
             pParams->mode = MODE_RENDERING;
             pParams->libvaBackend = MFX_LIBVA_WAYLAND;
         }
@@ -273,7 +272,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strncmp(strInput[i], MSDK_STRING("-rdrm"), 5))
         {
-            pParams->memType = D3D9_MEMORY;
             pParams->mode = MODE_RENDERING;
             pParams->libvaBackend = MFX_LIBVA_DRM_MODESET;
             if (strInput[i][5]) {
@@ -392,7 +390,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
-
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-di")))
         {
             if(i + 1 >= nArgNum)
@@ -414,6 +411,33 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             else if (0 == msdk_strcmp(diMode, MSDK_CHAR("adi")))
             {
                 pParams->eDeinterlace = MFX_DEINTERLACING_ADVANCED;
+            }
+            else
+            {
+                PrintHelp(strInput[0], MSDK_STRING("deinterlace value is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-scaling_mode")))
+        {
+            if(i + 1 >= nArgNum)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -scaling_mode key"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            msdk_char diMode[32] = {};
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], diMode))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("mode type is not set"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if (0 == msdk_strcmp(diMode, MSDK_CHAR("lowpower")))
+            {
+                pParams->ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+            }
+            else if (0 == msdk_strcmp(diMode, MSDK_CHAR("quality")))
+            {
+                pParams->ScalingMode = MFX_SCALING_MODE_QUALITY;
             }
             else
             {
@@ -535,16 +559,16 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             }
         }
 #endif //MFX_VERSION >= 1022
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-f")))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-fps")))
         {
             if(i + 1 >= nArgNum)
             {
-                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -f key"));
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -fps key"));
                 return MFX_ERR_UNSUPPORTED;
             }
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nMaxFPS))
             {
-                PrintHelp(strInput[0], MSDK_STRING("rendering frame rate is invalid"));
+                PrintHelp(strInput[0], MSDK_STRING("overall fps is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
@@ -661,6 +685,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->bIgnoreLevelConstrain = true;
         }
 #endif
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-disable_film_grain")))
+        {
+            pParams->bDisableFilmGrain = true;
+        }
         else // 1-character options
         {
             switch (strInput[i][1])
@@ -743,6 +771,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         pParams->bPrefferdGfx = false;
     }
 #endif
+
+    if(pParams->mode == MODE_RENDERING && pParams->memType == SYSTEM_MEMORY)
+    {
+        msdk_printf(MSDK_STRING("error: rendering model is unsupported for system memory"));
+        return MFX_ERR_UNSUPPORTED;
+    }
 
     return MFX_ERR_NONE;
 }

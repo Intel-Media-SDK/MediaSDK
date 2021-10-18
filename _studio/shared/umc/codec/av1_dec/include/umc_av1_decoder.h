@@ -131,6 +131,8 @@ namespace UMC_AV1_DECODER
 
         virtual bool QueryFrames() = 0;
 
+        AV1DecoderParams* GetAv1DecoderParams() {return &params;}
+
     protected:
 
         static UMC::Status FillVideoParam(SequenceHeader const&, UMC_AV1_DECODER::AV1DecoderParams&);
@@ -164,7 +166,7 @@ namespace UMC_AV1_DECODER
 
         uint32_t                        counter;
         AV1DecoderParams                params;
-        AV1DecoderFrame*                Poutput; // store frame need to be output
+        std::vector<AV1DecoderFrame*>   outputed_frames; // tore frames need to be output
         AV1DecoderFrame*                Curr; // store current frame for Poutput
         AV1DecoderFrame*                Curr_temp; // store current frame insist double updateDPB
         uint32_t                        Repeat_show; // show if current frame is repeated frame

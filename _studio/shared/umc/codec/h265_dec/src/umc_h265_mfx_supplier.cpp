@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -79,8 +79,14 @@ void RawHeader_H265::Resize(int32_t id, size_t newSize)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void RawHeaders_H265::Reset()
 {
+    m_vps.Reset();
     m_sps.Reset();
     m_pps.Reset();
+}
+
+RawHeader_H265 * RawHeaders_H265::GetVPS()
+{
+    return &m_vps;
 }
 
 RawHeader_H265 * RawHeaders_H265::GetSPS()
@@ -264,14 +270,26 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
         return sts;
 
     {
-        // save sps/pps
+        static const uint8_t start_code_prefix[] = {0, 0, 0, 1};
+        // save vps/sps/pps
         uint32_t nal_unit_type = nalUnit->GetExData()->values[0];
         switch(nal_unit_type)
         {
+            case NAL_UT_VPS:
+                {
+                    size_t const prefix_size = sizeof(start_code_prefix);
+
+                    size_t size = nalUnit->GetDataSize();
+                    RawHeader_H265 * hdr = GetVPS();
+                    int32_t id = m_Headers.m_VideoParams.GetCurrentID();
+                    hdr->Resize(id, size + prefix_size);
+                    std::copy(start_code_prefix, start_code_prefix + prefix_size, hdr->GetPointer());
+                    std::copy((uint8_t*)nalUnit->GetDataPointer(), (uint8_t*)nalUnit->GetDataPointer() + size, hdr->GetPointer() + prefix_size);
+                }
+            break;
             case NAL_UT_SPS:
             case NAL_UT_PPS:
                 {
-                    static const uint8_t start_code_prefix[] = {0, 0, 0, 1};
                     size_t const prefix_size = sizeof(start_code_prefix);
 
                     size_t size = nalUnit->GetDataSize();

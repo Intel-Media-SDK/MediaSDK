@@ -68,11 +68,11 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 
 |Option|Description|
 |---|---|
- |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9\|av1 <file-name>| Set input file and decoder type|
+ |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9\|av1 \<file-name\>| Set input file and decoder type|
  |-i::i420\|nv12 <file-name>| Set raw input file and color format|
   |-i::rgb4_frame | Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).|
- | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|vp9\|raw <file-name>|  Set output file and encoder type|
- | -sw\|-hw\|-hw_d3d11| SDK implementation to use:<br>-hw - platform-specific on default display adapter (default)<br>-hw_d3d11 - platform-specific via d3d11<br>-sw - software|
+ | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|vp9\|raw \<file-name\>\|null |  Set output file and encoder type. \'null\' keyword as file-name disables output file writing|
+ | -sw\|-hw\|-hw_d3d11\|-hw_d3d9 SDK implementation to use:<br>-hw - platform-specific on default display adapter (default)<br>-hw_d3d11 - platform-specific via d3d11 <br>-hw_d3d9 - platform-specific via d3d9<br>-sw - software|
  | -mfe_frames| <N> maximum number of frames to be combined in multi-frame encode pipeline               0 - default for platform will be used|
   |-mfe_mode 0\|1\|2\|3| multi-frame encode operation mode - should be the same for all sessions<br>0, MFE operates as DEFAULT mode, decided by SDK if MFE enabled<br>1, MFE is disabled<br>2, MFE operates as AUTO mode<br>3, MFE operates as MANUAL mode|
   |-mfe_timeout <N\> | multi-frame encode timeout in milliseconds - set per sessions control|
@@ -156,13 +156,14 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -FRC::PT|  Enables FRC filter with Preserve Timestamp algorithm|
 | -FRC::DT| Enables FRC filter with Distributed Timestamp algorithm|
 | -FRC::INTERP|  Enables FRC filter with Frame Interpolation algorithm<br>NOTE: -FRC filters do not work with -i::sink pipelines !!!|
-|-ec::nv12\|rgb4\|yuy2\|nv16\|p010\|p210 |Forces encoder input to use provided chroma mode|
-|-dc::nv12\|rgb4\|yuy2| Forces decoder output to use provided chroma mode<br>NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided|
+|-ec::nv12\|rgb4\|yuy2\|nv16\|p010\|p210\|y210\|y410\|p016\|y216\|y416 |Forces encoder input to use provided chroma mode|
+|-dc::nv12\|rgb4\|yuy2\|p010\|y210\|y410\|p016\|y216 | Forces decoder output to use provided chroma mode<br>NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided|
 |-angle 180| Enables 180 degrees picture rotation user module before encoding|
 | -opencl|Uses implementation of rotation plugin (enabled with -angle option) through Intel(R) OpenCL|
-  |-w|    Destination picture width, invokes VPP resize|
-|  -h|  Destination picture height, invokes VPP resize|
+|-w| Destination picture width, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified) |
+|-h| Destination picture height, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified)|
 |-field_processing t2t\|t2b\|b2t\|b2b\|fr2fr | Field Copy feature|
+|-scaling_mode| Specifies scaling mode (lowpower/quality) for VPP|
   |-WeightedPred::default\|implicit|  Enables weighted prediction usage|
 |  -WeightedBiPred::default\|implicit|     Enambles weighted bi-prediction usage|
 |  -extbrc:<on,off,implicit>| Enables external BRC for AVC and HEVC encoders|
@@ -181,6 +182,8 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
   |-vpp_comp_dump <null_render\>| Disabling rendering after VPP Composition. This is for performance measurements|
   |-dec_postproc |Resize after decoder using direct pipe (should be used in decoder session)|
 | -single_texture_d3d11|  single texture mode for d3d11 allocator|
+| -TargetBitDepthLuma | Target encoding bit-depth for luma samples. May differ from source one. 0 mean default target bit-depth which is equal to source |
+| -TargetBitDepthChroma | Target encoding bit-depth for chroma samples. May differ from source one. 0 mean default target bit-depth which is equal to source. |
 
 #### stat logging:
 

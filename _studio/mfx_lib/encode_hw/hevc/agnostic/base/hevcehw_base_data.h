@@ -783,6 +783,9 @@ namespace Base
         mfxI32              PrevRAP             = -1;
         mfxU16              NumRecode           = 0;
         mfxI8               QpY                 = 0;
+        mfxI8               m_minQP             = 0;
+        mfxI8               m_maxQP             = 0;
+
         mfxU8               SliceNUT            = 0;
         mfxU32              InsertHeaders       = 0;
         mfxU32              RepackHeaders       = 0;
@@ -792,7 +795,7 @@ namespace Base
         mfxU32              initial_cpb_removal_offset  = 0;
         mfxU32              cpb_removal_delay           = 0;
         //dpb_output_delay = (DisplayOrder + sps.sub_layer[0].max_num_reorder_pics - EncodedOrder);
-
+        mfxU32              TCBRCTargetFrameSize        = 0;
         mfxU8 RefPicList[2][MAX_DPB_SIZE] =
         {
             {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
@@ -968,6 +971,25 @@ namespace Base
         }
     };
 
+    /*SliceStructure indicates the restrictions set on the slice structure.*/
+    enum SliceStructure
+    {
+        // Once slice for the whole frame
+        ONESLICE              = 0
+        /*Slices are composed of a power of 2 number of rows and each slice
+          must have the same size (width and height) except for the last one,
+          which must be smaller or equal to the previous slices. */
+        , POW2ROW             = 1
+        /*Slices are composed of any number of rows, but all must have the same
+        size (width and height) except for the last one, which must be smaller
+        or equal to the previous slices.*/
+        , ROWSLICE            = 2
+        //Arbitrary number of rows per slice for all slices.
+        , ARBITRARY_ROW_SLICE = 3
+        //Arbitrary number of macroblocks per slice for all slices.
+        , ARBITRARY_MB_SLICE  = 4
+    };
+
     typedef std::list<StorageRW>::iterator TTaskIt;
 
     template<class T, mfxU32 K>
@@ -1030,6 +1052,7 @@ namespace Base
         : CallChain<TTaskIt, const DpbArray&, TTaskIt, TTaskIt, bool>
     {
         mfxU16 BufferSize = 0;
+        mfxU16 MaxReorder = 0;
         NotNull<DpbArray*> DPB;
 
         using TBaseCC = CallChain<TTaskIt, const DpbArray&, TTaskIt, TTaskIt, bool>;

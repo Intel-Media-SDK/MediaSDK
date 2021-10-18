@@ -1,7 +1,7 @@
-![](./pic/intel_logo.png)
+﻿![](./pic/intel_logo.png)
 
 # **Media SDK Developer Reference**
-## Media SDK API Version 1.34
+## Media SDK API Version 1.35
 
 <div style="page-break-before:always" />
 
@@ -144,6 +144,8 @@ Notice revision #20110804
   * [mfxExtBuffer](#mfxExtBuffer)
   * [mfxExtAVCRefListCtrl](#mfxExtAVCRefListCtrl)
   * [mfxExtAVCRefLists](#mfxextavcreflists)
+  * [mfxExtHEVCRefListCtrl](#mfxExtHEVCRefListCtrl)
+  * [mfxExtHEVCRefLists](#mfxExtHEVCRefLists)
   * [mfxExtCodingOption](#mfxExtCodingOption)
   * [mfxExtCodingOption2](#mfxExtCodingOption2)
   * [mfxExtCodingOption3](#mfxExtCodingOption3)
@@ -152,6 +154,7 @@ Notice revision #20110804
   * [mfxExtVideoSignalInfo](#mfxExtVideoSignalInfo)
   * [mfxExtPictureTimingSEI](#mfxExtPictureTimingSEI)
   * [mfxExtAvcTemporalLayers](#mfxExtAvcTemporalLayers)
+  * [mfxExtHEVCTemporalLayers](#mfxExtHEVCTemporalLayers)
   * [mfxExtVppAuxData](#mfxExtVppAuxData)
   * [mfxExtVPPDenoise](#mfxExtVPPDenoise)
   * [mfxExtVppMctf](#mfxExtVppMctf)
@@ -315,7 +318,9 @@ Notice revision #20110804
 
 Intel® Media Software Development Kit – SDK, further referred to as the SDK, is a software development library that exposes the media acceleration capabilities of Intel platforms for decoding, encoding and video processing. The API library covers a wide range of Intel platforms.
 
-This document describes the SDK API.
+This document describes the SDK API. 
+
+SDK version 1.35 supposed to be last in 1.xx series. Successor API is oneVPL https://docs.oneapi.com/versions/latest/onevpl/index.html
 
 ## Document Conventions
 
@@ -706,8 +711,6 @@ The application controls encoder behavior during parameter change by attaching [
 The application uses the following procedure to change encoding configurations:
 
 - The application retrieves any cached frames in the SDK encoder by calling the [MFXVideoENCODE_EncodeFrameAsync](#MFXVideoENCODE_EncodeFrameAsync) function with a `NULL` input frame pointer until the function returns [MFX_ERR_MORE_DATA](#mfxStatus).
-
-**Note:** The application must set the initial encoding configuration flag `EndOfStream` of the [mfxExtCodingOption](#mfxExtCodingOption) structure to `OFF` to avoid inserting an End of Stream (EOS) marker into the bitstream. An EOS marker causes the bitstream to terminate before encoding is complete.
 
 - The application calls the [MFXVideoENCODE_Reset](#MFXVideoENCODE_Reset) function with the new configuration:
 
@@ -1747,6 +1750,8 @@ This function is available since SDK API 1.0.
 
 ### <a id='MFXDoWork'>MFXDoWork</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Syntax**
 
 [mfxStatus](#mfxStatus) `MFXDoWork(mfxSession session);`
@@ -2050,6 +2055,7 @@ If the specified system handle is a COM interface, the reference counter of the 
 --- | ---
 `MFX_ERR_NONE` | The function completed successfully.
 `MFX_ERR_UNDEFINED_BEHAVIOR` | The same handle is redefined. For example, the function has been called twice with the same handle type or internal handle has been created by the SDK before this function call.
+`MFX_ERR_DEVICE_FAILED` | The SDK cannot initialize using the handle.
 
 **Change History**
 
@@ -2085,6 +2091,8 @@ This function obtains system handles previously set by the [MFXVideoCORE_SetHand
 This function is available since SDK API 1.0.
 
 ### <a id='MFXVideoCORE_SetBufferAllocator'>MFXVideoCORE_SetBufferAllocator</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Syntax**
 
@@ -3797,7 +3805,7 @@ This structure is available since SDK API 1.3.
 
 The SDK API 1.7 adds `LongTermIdx` and `ApplyLongTermIdx` fields.
 
-## mfxExtAVCRefLists
+## <a id='mfxExtAVCRefLists'>mfxExtAVCRefLists</a>
 
 **Definition**
 
@@ -3836,6 +3844,94 @@ Not all implementations of the SDK encoder support this structure. The applicati
 **Change History**
 
 This structure is available since SDK API 1.9.
+
+## <a id='mfxExtHEVCRefListCtrl'>mfxExtHEVCRefListCtrl</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          NumRefIdxL0Active;
+    mfxU16          NumRefIdxL1Active;
+
+    struct {
+        mfxU32      FrameOrder;
+        mfxU16      PicStruct;
+        mfxU16      ViewId;
+        mfxU16      LongTermIdx;
+        mfxU16      reserved[3];
+    } PreferredRefList[32], RejectedRefList[16], LongTermRefList[16];
+
+    mfxU16      ApplyLongTermIdx;
+    mfxU16      reserved[15];
+} mfxExtHEVCRefListCtrl;
+```
+
+**Description**
+
+The `mfxExtHEVCRefListCtrl` structure configures reference frame options for the HEVC encoder. See [Reference List Selection](#Reference_List_Selection) and [Long-term Reference frame](#Long-term_Reference_frame) chapters for more details.
+
+Not all implementations of the SDK encoder support `LongTermIdx` and `ApplyLongTermIdx` fields in this structure. The application has to use query mode 1 to determine if such functionality is supported. To do so, the application has to attach this extended buffer to [mfxVideoParam](#mfxVideoParam) structure and call [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function. If function returns `MFX_ERR_NONE` and these fields were set to one, then such functionality is supported. If function fails or sets fields to zero then this functionality is not supported.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_HEVC_REFLIST_CTRL](#ExtendedBufferID)
+`NumRefIdxL0Active` | Specify the number of reference frames in the active reference list L0. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`NumRefIdxL1Active` | Specify the number of reference frames in the active reference list L1. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`PreferredRefList` | Specify list of frames that should be used to predict the current frame.
+`RejectedRefList` | Specify list of frames that should not be used for prediction.
+`LongTermRefList` | Specify list of frames that should be marked as long-term reference frame.
+`FrameOrder`, `PicStruct` | Together these fields are used to identify reference picture. Use `FrameOrder = MFX_FRAMEORDER_UNKNOWN` to mark unused entry.
+`ViewID` | Reserved and must be zero.
+`LongTermIdx` | Index that should be used by the SDK encoder to mark long-term reference frame.
+`ApplyLongTermIdx` | If it is equal to zero, the SDK encoder assigns long-term index according to internal algorithm. If it is equal to one, the SDK encoder uses `LongTermIdx` value as long-term index.
+
+**Change History**
+
+This structure is available since SDK API 1.17.
+
+## <a id='mfxExtHEVCRefLists'>mfxExtHEVCRefLists</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          NumRefIdxL0Active;
+    mfxU16          NumRefIdxL1Active;
+    mfxU16          reserved[2];
+
+    struct mfxRefPic{
+        mfxU32      FrameOrder;
+        mfxU16      PicStruct;
+        mfxU16      reserved[5];
+    } RefPicList0[32], RefPicList1[32];
+
+} mfxExtHEVCRefLists;
+```
+
+**Description**
+
+The `mfxExtHEVCRefLists` structure specifies reference lists for the SDK encoder. It may be used together with the `mfxExtHEVCRefListCtrl` structure to create customized reference lists. If both structures are used together, then the SDK encoder takes reference lists from `mfxExtHEVCRefLists` structure and modifies them according to the `mfxExtHEVCRefListCtrl` instructions. In case of interlaced coding, the first `mfxExtHEVCRefLists` structure affects TOP field and the second – BOTTOM field.
+
+Not all implementations of the SDK encoder support this structure. The application has to use query function to determine if it is supported
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_AVC_REFLISTS](#ExtendedBufferID)
+`NumRefIdxL0Active` | Specify the number of reference frames in the active reference list L0. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`NumRefIdxL1Active` | Specify the number of reference frames in the active reference list L1. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`RefPicList0, RefPicList1` | Specify L0 and L1 reference lists.
+`FrameOrder`, `PicStruct` | Together these fields are used to identify reference picture. Use `FrameOrder = MFX_FRAMEORDER_UNKNOWN` to mark unused entry. Use `PicStruct = MFX_PICSTRUCT_FIELD_TFF` for TOP field, `PicStruct = MFX_PICSTRUCT_FIELD_BFF` for BOTTOM field.
+
+**Change History**
+
+This structure is available since SDK API 1.17.
 
 ## <a id='mfxExtCodingOption'>mfxExtCodingOption</a>
 
@@ -3983,7 +4079,7 @@ The application can attach this extended buffer to the [mfxVideoParam](#mfxVideo
 `Header.BufferId` | Must be [MFX_EXTBUFF_CODING_OPTION2](#ExtendedBufferID).
 `IntRefType` | Specifies intra refresh type. See the [IntraRefreshTypes](#IntraRefreshTypes). The major goal of intra refresh is improvement of error resilience without significant impact on encoded bitstream size caused by I frames. The SDK encoder achieves this by encoding part of each frame in refresh cycle using intra MBs. `MFX_REFRESH_NO` means no refresh. `MFX_REFRESH_VERTICAL` means vertical refresh, by column of MBs. `MFX_REFRESH_HORIZONTAL` means horizontal refresh, by rows of MBs. `MFX_REFRESH_SLICE` means horizontal refresh by slices without overlapping. In case of `MFX_REFRESH_SLICE` SDK ignores IntRefCycleSize (size of refresh cycle equals number slices).  This parameter is valid during initialization and runtime. When used with [temporal scalability](#Temporal_scalability), intra refresh applied only to base layer.
 `IntRefCycleSize` | Specifies number of pictures within refresh cycle starting from 2. 0 and 1 are invalid values. This parameter is valid only during initialization
-`IntRefQPDelta` | Specifies QP difference for inserted intra MBs. This is signed value in [-51, 51] range. This parameter is valid during initialization and runtime.
+`IntRefQPDelta` | Specifies QP difference for inserted intra MBs. This is signed value in [-51, 51] range if target encoding bit-depth for luma samples is 8 and this range is [-63, 63] for 10 bit-depth or [-75, 75] for 12 bit-depth respectively. This parameter is valid during initialization and runtime.
 `MaxFrameSize` | Specify maximum encoded frame size in byte. This parameter is used in VBR based bitrate control modes and ignored in others. The SDK encoder tries to keep frame size below specified limit but minor overshoots are possible to preserve visual quality. This parameter is valid during initialization and runtime. It is recommended to set MaxFrameSize to 5x-10x target frame size (`(TargetKbps*1000)/(8* FrameRateExtN/FrameRateExtD)`) for I frames and 2x-4x target frame size for P/B frames.
 `MaxSliceSize` | Specify maximum slice size in bytes. If this parameter is specified other controls over number of slices are ignored.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
 `BitrateLimit` | Modifies bitrate to be in the range imposed by the SDK encoder. Setting this flag off may lead to violation of HRD conformance. Mind that specifying bitrate below the SDK encoder range might significantly affect quality. If on this option takes effect in non CQP modes: if `TargetKbps` is not in the range imposed by the SDK encoder, it will be changed to be in the range. See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. The default value is ON, i.e. bitrate is limited. This parameter is valid only during initialization. Flag works with `MFX_CODEC_AVC` only, it is ignored with other codecs.
@@ -3998,7 +4094,7 @@ The application can attach this extended buffer to the [mfxVideoParam](#mfxVideo
 `LookAheadDS` | This option controls down sampling in look ahead bitrate control mode. See [LookAheadDownSampling](#LookAheadDownSampling) enumerator for possible values of this option. This parameter is valid only during initialization.
 `NumMbPerSlice` | This option specifies suggested slice size in number of macroblocks. The SDK can adjust this number based on platform capability. If this option is specified, i.e. if it is not equal to zero, the SDK ignores [mfxInfoMFX](#mfxInfoMFX)`::NumSlice` parameter.
 `SkipFrame` | This option enables usage of [mfxEncodeCtrl](#mfxEncodeCtrl)`::SkipFrame`parameter. See the [SkipFrame](#SkipFrame) enumerator for values of this option.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
-`MinQPI, MaxQPI`, `MinQPP, MaxQPP`, `MinQPB, MinQPB` | Minimum and maximum allowed QP values for different frame types. Valid range is 1..51 inclusive. Zero means default value, i.e.no limitations on QP.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
+`MinQPI, MaxQPI`, `MinQPP, MaxQPP`, `MinQPB, MinQPB` | Minimum and maximum allowed QP values for different frame types. Valid range is 1..51 inclusive if target encoding bit-depth for luma samples is 8. QP range is extended to the higher QP values depending on bit-depth: [1; 51+6*(bits-8)]. Zero means default value, i.e.no limitations on QP.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
 `FixedFrameRate` | This option sets fixed_frame_rate_flag in VUI.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
 `DisableDeblockingIdc` | This option disable deblocking.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
 `DisableVUI` | This option completely disables VUI in output bitstream.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
@@ -4149,7 +4245,7 @@ The application can attach this extended buffer to the [mfxVideoParam](#mfxVideo
 `MaxFrameSizeP` | Same as [mfxExtCodingOption2](#mfxExtCodingOption2)`::MaxFrameSize` but affects only P/B-frames. If MaxFrameSizeP equals 0, the SDK sets MaxFrameSizeP equal to MaxFrameSizeI. If MaxFrameSizeP is not specified or greater than spec limitation, spec limitation will be applied to the sizes of P/B-frames.
 `EnableQPOffset` | Enables `QPOffset` control.<br><br>See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option.
 `QPOffset` | When `EnableQPOffset` set to ON and RateControlMethod is CQP specifies QP offset per pyramid layer.<br>For B-pyramid, B-frame QP = QPB + QPOffset[layer].<br>For P-pyramid, P-frame QP = QPP + QPOffset[layer].
-`NumRefActiveP`, `NumRefActiveBL0`, `NumRefActiveBL1` | Max number of active references for P and B frames in reference picture lists 0 and 1 correspondingly. Array index is pyramid layer.
+`NumRefActiveP`, `NumRefActiveBL0`, `NumRefActiveBL1` | Max number of active references for P and B frames in reference picture lists 0 and 1 correspondingly. Array index is pyramid layer. Use [Query](#MFXVideoENCODE_Query) function to check the maximum values.
 `TransformSkip` | For HEVC if this option turned ON, transform_skip_enabled_flag will be set to 1 in PPS, OFF specifies that transform_skip_enabled_flag will be set to 0.
 `BRCPanicMode` | Controls panic mode in AVC and MPEG2 encoders.
 `LowDelayBRC`  | When rate control method is `MFX_RATECONTROL_VBR`, `MFX_RATECONTROL_QVBR` or `MFX_RATECONTROL_VCM` this parameter specifies frame size tolerance. Set this parameter to `MFX_CODINGOPTION_ON` to allow strictly obey average frame size set by `MaxKbps`, e.g. cases when `MaxFrameSize == (MaxKbps*1000)/(8* FrameRateExtN/FrameRateExtD)`.<br>Also `MaxFrameSizeI` and `MaxFrameSizeP` can be set separately.
@@ -4389,6 +4485,43 @@ This structure can be used with the display-order encoding mode only.
 **Change History**
 
 This structure is available since SDK API 1.3.
+
+## <a id='mfxExtHEVCTemporalLayers'>mfxExtHEVCTemporalLayers</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32          reserved1[4];
+    mfxU16          reserved2;
+    mfxU16          BaseLayerPID;
+
+    struct {
+        mfxU16 Scale;
+        mfxU16 reserved[3];
+    } Layer[8];
+} mmfxExtHEVCTemporalLayers;
+```
+
+**Description**
+
+The `mfxExtHEVCTemporalLayers` structure configures the HEVC temporal layers hierarchy. If application attaches it to the [mfxVideoParam](#mfxVideoParam) structure during initialization, the SDK encoder generates the temporal layers and inserts the prefix NAL unit before each slice to indicate the temporal and priority IDs of the layer.
+
+This structure can be used with the display-order encoding mode only.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_HEVC_TEMPORAL_LAYERS](#ExtendedBufferID)
+`BaseLayerPID` | The priority ID of the base layer; the SDK encoder increases the ID for each temporal layer and writes to the prefix NAL unit.
+`Scale` | The ratio between the frame rates of the current temporal layer and the base layer.
+`Layer` | The array of temporal layers; Use `Scale=0` to specify absent layers.
+
+**Change History**
+
+This structure is available since SDK API 1.17.
 
 ## <a id='mfxExtVppAuxData'>mfxExtVppAuxData</a>
 
@@ -5056,7 +5189,7 @@ The `mfxExtEncoderROI` structure is used by the application to specify different
 **Members**
 
 | | |
---- | --- | --- | --- 
+--- | ---
 `Header.BufferId` | Must be [MFX_EXTBUFF_ENCODER_ROI](#ExtendedBufferID)||
 `NumROI` | Number of ROI descriptions in array. The Query function mode 2 returns maximum supported value (set it to 256 and Query will update it to maximum supported value).||
 `ROIMode` | QP adjustment mode for ROIs. Defines if Priority, `DeltaQP` or absolute value is used during encoding. ||
@@ -6408,7 +6541,7 @@ The **mfxQPandMode** structure specifies specifies per-MB or per-CU mode and QP 
 
 | | |
 --- | ---
-`QP` | QP for MB or CU. Valid when Mode = MFX_MBQP_MODE_QP_VALUE.<br>For AVC valid range is 1..51.<br>For HEVC valid range is 1..51. Application’s provided QP values should be valid; otherwise invalid QP values may cause undefined behavior.<br>MBQP map should be aligned for 16x16 block size. (align rule is (width +15 /16) && (height +15 /16))<br>For MPEG2 QP corresponds to quantizer_scale of the ISO*\/IEC* 13818-2 specification and have valid range 1..112.
+`QP` | QP for MB or CU. Valid when Mode = MFX_MBQP_MODE_QP_VALUE.<br>For AVC valid range is 1..51.<br>For HEVC valid range is 1..51 inclusive if target encoding bit-depth for luma samples is 8 and this range is 1..63 for 10 bit-depth or 1..75 for 12 bit-depth respectively. Application’s provided QP values should be valid; otherwise invalid QP values may cause undefined behavior.<br>MBQP map should be aligned for 16x16 block size. (align rule is (width +15 /16) && (height +15 /16))<br>For MPEG2 QP corresponds to quantizer_scale of the ISO*\/IEC* 13818-2 specification and have valid range 1..112.
 `DeltaQP` | Per-macroblock QP delta. Valid when Mode = `MFX_MBQP_MODE_QP_DELTA`.
 `Mode` | Defines QP update mode. Can be equal to `MFX_MBQP_MODE_QP_VALUE` or `MFX_MBQP_MODE_QP_DELTA`.
 
@@ -6445,7 +6578,7 @@ The **mfxExtMBQP** structure specifies per-macroblock QP for current frame if [m
 --- | ---
 `Header.BufferId` | Must be [MFX_EXTBUFF_MBQP](#ExtendedBufferID).
 `NumQPAlloc` | The allocated QP array size.
-`QP` | Pointer to a list of per-macroblock QP in raster scan order. In case of interlaced encoding the first half of QP array affects top field and the second – bottom field.<br><br>For AVC valid range is 1..51.<br><br>For HEVC valid range is 1..51. Application’s provided QP values should be valid; otherwise invalid QP values may cause undefined behavior. MBQP map should be aligned for 16x16 block size. (align rule is (width +15 /16) && (height +15 /16))<br><br>For MPEG2 QP corresponds to quantizer_scale of the ISO*/IEC* 13818-2 specification and have valid range 1..112.
+`QP` | Pointer to a list of per-macroblock QP in raster scan order. In case of interlaced encoding the first half of QP array affects top field and the second – bottom field.<br><br>For AVC valid range is 1..51.<br><br>For HEVC valid range is 1..51 inclusive if target encoding bit-depth for luma samples is 8 and this range is 1..63 for 10 bit-depth or 1..75 for 12 bit-depth respectively. Application’s provided QP values should be valid; otherwise invalid QP values may cause undefined behavior. MBQP map should be aligned for 16x16 block size. (align rule is (width +15 /16) && (height +15 /16))<br><br>For MPEG2 QP corresponds to quantizer_scale of the ISO*/IEC* 13818-2 specification and have valid range 1..112.
 `QPmode` | Block-granularity modes when `MFX_MBQP_MODE_QP_ADAPTIVE` is set.
 
 **Change History**
@@ -7792,6 +7925,8 @@ This structure is available since SDK API 1.24.
 
 ## <a id='mfxExtMultiFrameParam'>mfxExtMultiFrameParam</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -7823,6 +7958,8 @@ Multi Frame submission will gather frames from several [joined](#MFXJoinSession)
 This structure is available since SDK API 1.25.
 
 ## <a id='mfxExtMultiFrameControl'>mfxExtMultiFrameControl</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Definition**
 
@@ -8310,7 +8447,7 @@ SDK API 1.8 added HEVC level and tier definitions.
 
 SDK API 1.34 added AV1 level definitions.
 
-SDK API **TBD** added H.264 level 6-6.2 definitions.
+SDK API 1.35 added H.264 level 6-6.2 definitions.
 
 ## <a id='CodecProfile'>CodecProfile</a>
 
@@ -8738,10 +8875,10 @@ The `IOPattern` enumerator itemizes memory access patterns for SDK functions. Us
 --- | ---
 `MFX_IOPATTERN_IN_VIDEO_MEMORY` | Input to SDK functions is a video memory surface
 `MFX_IOPATTERN_IN_SYSTEM_MEMORY` | Input to SDK functions is a linear buffer directly in system memory or in system memory through an external allocator
-`MFX_IOPATTERN_IN_OPAQUE_MEMORY` | Input to SDK functions maps at runtime to either a system memory buffer or a video memory surface.
+`MFX_IOPATTERN_IN_OPAQUE_MEMORY` | Input to SDK functions maps at runtime to either a system memory buffer or a video memory surface. *Deprecated in 1.35 and removed starting from 2.0*
 `MFX_IOPATTERN_OUT_VIDEO_MEMORY` | Output to SDK functions is a video memory surface
 `MFX_IOPATTERN_OUT_SYSTEM_MEMORY` | Output to SDK functions is a linear buffer directly in system memory or in system memory through an external allocator
-`MFX_IOPATTERN_OUT_OPAQUE_MEMORY` | Output to SDK functions maps at runtime to either a system memory buffer or a video memory surface.
+`MFX_IOPATTERN_OUT_OPAQUE_MEMORY` | Output to SDK functions maps at runtime to either a system memory buffer or a video memory surface. *Deprecated in 1.35 and removed starting from 2.0*
 
 **Change History**
 
@@ -9424,6 +9561,8 @@ The `PlatformCodeName` enumerator itemizes Intel® microarchitecture code names.
 `MFX_PLATFORM_JASPERLAKE`   | Jasper Lake
 `MFX_PLATFORM_ELKHARTLAKE`  | Elkhart Lake
 `MFX_PLATFORM_TIGERLAKE`    | Tiger Lake
+`MFX_PLATFORM_ROCKETLAKE`   | Rocket Lake
+`MFX_PLATFORM_ALDERLAKE_S`  | Alder Lake S
 `MFX_PLATFORM_KEEMBAY`      | Keem Bay
 
 **Change History**
@@ -9439,7 +9578,7 @@ SDK API 1.31 adds `MFX_PLATFORM_ELKHARTLAKE`, `MFX_PLATFORM_JASPERLAKE`, `MFX_PL
 
 SDK API 1.34 adds `MFX_PLATFORM_KEEMBAY`.
 
-SDK API **TBD** adds `MFX_PLATFORM_LAKEFIELD`.
+SDK API **TBD** adds `MFX_PLATFORM_ROCKETLAKE`, `MFX_PLATFORM_ALDERLAKE_S`, `MFX_PLATFORM_LAKEFIELD`.
 
 ## <a id='mfxMediaAdapterType'>mfxMediaAdapterType</a>
 

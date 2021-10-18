@@ -116,7 +116,7 @@ void PackerVA::PackPriorityParams()
     UMCVACompBuffer *GpuPriorityBuf;
     VAContextParameterUpdateBuffer* GpuPriorityBuf_Vp9Decode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
     if (!GpuPriorityBuf_Vp9Decode)
-        throw vp9_exception(MFX_ERR_MEMORY_ALLOC);;
+        throw vp9_exception(MFX_ERR_MEMORY_ALLOC);
 
     memset(GpuPriorityBuf_Vp9Decode, 0, sizeof(VAContextParameterUpdateBuffer));
     GpuPriorityBuf_Vp9Decode->flags.bits.context_priority_update = 1;

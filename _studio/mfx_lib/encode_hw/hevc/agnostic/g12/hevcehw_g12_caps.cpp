@@ -80,10 +80,10 @@ void Caps::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     {
         auto& caps = Glob::EncodeCaps::Get(strg);
 
-        caps.SliceIPOnly                = IsOn(par.mfx.LowPower) && (par.mfx.TargetUsage == 6 || par.mfx.TargetUsage == 7 || par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC);
+        caps.SliceIPOnly                = IsOn(par.mfx.LowPower) && par.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC;
         caps.msdk.bSingleSliceMultiTile = false;
 
-        caps.YUV422ReconSupport &= (!caps.Color420Only && !IsOn(par.mfx.LowPower));
+        caps.YUV422ReconSupport &= !caps.Color420Only;
 
         SetSpecificCaps(caps);
 

@@ -63,8 +63,6 @@ public:
     // Close decoding & free all allocated resources
     virtual Status Close(void);
 
-    ChromaType GetChromaType();
-
     virtual Status GetFrame(UMC::MediaDataEx *, UMC::FrameData** , const mfxU32  ) { return MFX_ERR_NONE; };
 
     virtual void SetFrameAllocator(FrameAllocator * frameAllocator);
@@ -87,7 +85,8 @@ public:
 
 protected:
 
-    JCOLOR GetColorType();
+    std::pair<JCOLOR, Status> GetColorType();
+    std::pair<ChromaType, Status> GetChromaType();
     virtual void AdjustFrameSize(mfxSize & size);
     // Allocate the destination frame
     virtual Status AllocateFrame() { return MFX_ERR_NONE; };
@@ -99,9 +98,9 @@ protected:
 
     FrameData               m_frameData;
     JCOLOR                  m_color;
-    uint16_t                  m_rotation;
+    uint16_t                m_rotation;
 
-    mfxSize                m_frameDims;
+    mfxSize                 m_frameDims;
     int                     m_frameSampling;
 
     // JPEG decoders allocated

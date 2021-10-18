@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +20,6 @@
 
 #pragma once
 
-#if !defined(MFX_VA_LINUX)
-//TODO: move content here
-#include "hevce_ddi_main.h"
-#else
 namespace HEVCEHW
 {
 typedef struct tagENCODE_CAPS_HEVC
@@ -118,9 +114,11 @@ typedef struct tagENCODE_CAPS_HEVC
             uint16_t PFrameSupport            : 1;
             uint16_t LookaheadAnalysisSupport : 1;
             uint16_t LookaheadBRCSupport      : 1;
-            uint16_t reservedbits             : 13;
+            uint16_t TileReplaySupport        : 1;
+            uint16_t TCBRCSupport             : 1;
+            uint16_t reservedbits             : 11;
         };
-        uint16_t	CodingLimits3;
+        uint16_t CodingLimits3;
     };
 
     uint32_t reserved32bits1;
@@ -129,4 +127,3 @@ typedef struct tagENCODE_CAPS_HEVC
 
 } ENCODE_CAPS_HEVC;
 }; //namespace HEVCEHW
-#endif

@@ -188,7 +188,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
 
     MFX_CHECK(MFX_VPX_Utility::CheckVideoParam(par, MFX_CODEC_AV1, m_platform), MFX_ERR_INVALID_VIDEO_PARAM);
 
-    m_first_par = *par;
+    m_first_par = (mfxVideoParamWrapper)(*par);
 
     MFX_CHECK(m_platform != MFX_PLATFORM_SOFTWARE, MFX_ERR_UNSUPPORTED);
 #if !defined (MFX_VA)
@@ -205,7 +205,7 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     mfxStatus sts = MFX_VPX_Utility::QueryIOSurfInternal(par, &m_request);
     MFX_CHECK_STS(sts);
 
-    m_init_par = *par;
+    m_init_par = (mfxVideoParamWrapper)(*par);
 
     if (0 == m_init_par.mfx.FrameInfo.FrameRateExtN || 0 == m_init_par.mfx.FrameInfo.FrameRateExtD)
     {
@@ -555,6 +555,9 @@ mfxStatus VideoDECODEAV1::QueryIOSurf(VideoCORE* core, mfxVideoParam* par, mfxFr
         request->Type = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_FROM_DECODE;
     }
 
+    sts = UpdateCscOutputFormat(par, request);
+    MFX_CHECK_STS(sts);
+
     request->Type |= par->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY ?
         MFX_MEMTYPE_OPAQUE_FRAME : MFX_MEMTYPE_EXTERNAL_FRAME;
 
@@ -687,6 +690,11 @@ mfxStatus VideoDECODEAV1::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1* s
     MFX_CHECK(m_core, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
+    //gpu session priority
+    UMC_AV1_DECODER::AV1DecoderParams* av1DecoderParams = m_decoder->GetAv1DecoderParams();
+    if (av1DecoderParams->pVideoAccelerator != nullptr)
+        av1DecoderParams->pVideoAccelerator->m_ContextPriority = m_core->GetSession()->m_priority;
+
     mfxStatus sts = SubmitFrame(bs, surface_work, surface_out);
 
     if (sts == MFX_ERR_MORE_DATA || sts == MFX_ERR_MORE_SURFACE)
@@ -805,7 +813,7 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     return MFX_TASK_DONE;
 }
 
-static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info)
+static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
 {
     MFX_SAFE_CALL(CheckFrameInfoCommon(&info, MFX_CODEC_AV1));
 
@@ -813,11 +821,13 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info
     {
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_YUY2:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:
 #endif
         break;
 #if (MFX_VERSION >= 1330)
+    case MFX_FOURCC_Y216:
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y416:
 #endif
@@ -834,13 +844,12 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info
     switch (info.ChromaFormat)
     {
     case MFX_CHROMAFORMAT_YUV420:
+    case MFX_CHROMAFORMAT_YUV422:
     case MFX_CHROMAFORMAT_YUV444:
         break;
     default:
         MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
     }
-
-    MFX_CHECK(currInfo.FourCC == info.FourCC, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     return MFX_ERR_NONE;
 }
@@ -866,7 +875,7 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
         MFX_CHECK(!workSfsIsClean, MFX_ERR_LOCK_MEMORY);
     }
 
-    mfxStatus sts = CheckFrameInfo(m_first_par.mfx.FrameInfo, surface_work->Info);
+    mfxStatus sts = CheckFrameInfo(surface_work->Info);
     MFX_CHECK_STS(sts);
 
     sts = CheckFrameData(surface_work);

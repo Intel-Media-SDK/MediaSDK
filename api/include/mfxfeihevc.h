@@ -29,7 +29,7 @@ extern "C"
 #if (MFX_VERSION >= 1027)
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer Header;
 
     mfxU16  SearchPath;
@@ -56,7 +56,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     struct {
         mfxU8   RefL0 : 4;
         mfxU8   RefL1 : 4;
@@ -70,7 +70,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -82,7 +82,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -94,7 +94,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxU32  ForceToIntra    : 1;
     mfxU32  ForceToInter    : 1;
     mfxU32  reserved0       : 30;
@@ -104,7 +104,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer Header;
     mfxU32  VaBufferID;
     mfxU32  Pitch;
@@ -116,7 +116,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32      MaxFrameSize; /* in bytes */
     mfxU32      NumPasses;    /* up to 8 */
@@ -126,7 +126,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32          NumPasses;
     mfxU16          reserved[58];
@@ -135,7 +135,7 @@ MFX_PACK_END()
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct  {
+MFX_DEPRECATED typedef struct  {
     /* DWORD 0 */
     mfxU32    reserved0;
 
@@ -162,7 +162,7 @@ typedef struct  {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -174,7 +174,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct  {
+MFX_DEPRECATED typedef struct  {
     /* DWORD 0 */
     mfxU32    CuSize               : 2;
     mfxU32    PredMode             : 1;
@@ -233,7 +233,7 @@ typedef struct  {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -245,14 +245,14 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxU32        BestDistortion;
     mfxU32        ColocatedCtuDistortion;
 } mfxFeiHevcDistortionCtu;
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -266,19 +266,32 @@ MFX_PACK_END()
 
 
 enum {
-    MFX_EXTBUFF_HEVCFEI_ENC_CTRL       = MFX_MAKEFOURCC('F','H','C','T'),
-    MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED    = MFX_MAKEFOURCC('F','H','P','D'),
-    MFX_EXTBUFF_HEVCFEI_ENC_QP         = MFX_MAKEFOURCC('F','H','Q','P'),
-    MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL   = MFX_MAKEFOURCC('F','H','E','C'),
-    MFX_EXTBUFF_HEVCFEI_REPACK_CTRL    = MFX_MAKEFOURCC('F','H','R','P'),
-    MFX_EXTBUFF_HEVCFEI_REPACK_STAT    = MFX_MAKEFOURCC('F','H','R','S'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_ENC_CTRL)       = MFX_MAKEFOURCC('F','H','C','T'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED)    = MFX_MAKEFOURCC('F','H','P','D'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_ENC_QP)         = MFX_MAKEFOURCC('F','H','Q','P'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL)   = MFX_MAKEFOURCC('F','H','E','C'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_REPACK_CTRL)    = MFX_MAKEFOURCC('F','H','R','P'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_REPACK_STAT)    = MFX_MAKEFOURCC('F','H','R','S'),
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
-    MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC    = MFX_MAKEFOURCC('F','H','T','B'),
-    MFX_EXTBUFF_HEVCFEI_PAK_CU_REC     = MFX_MAKEFOURCC('F','H','C','U'),
-    MFX_EXTBUFF_HEVCFEI_ENC_DIST       = MFX_MAKEFOURCC('F','H','D','S')
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC)    = MFX_MAKEFOURCC('F','H','T','B'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_PAK_CU_REC)     = MFX_MAKEFOURCC('F','H','C','U'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_HEVCFEI_ENC_DIST)       = MFX_MAKEFOURCC('F','H','D','S')
 #endif
 };
+
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_ENC_CTRL);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_ENC_QP);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_REPACK_CTRL);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_REPACK_STAT);
+
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC);
+    MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_PAK_CU_REC);
+    MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_HEVCFEI_ENC_DIST);
+#endif
 
 #endif // MFX_VERSION
 

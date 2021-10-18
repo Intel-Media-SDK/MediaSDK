@@ -72,9 +72,10 @@ enum {
 };
 
 enum MemType {
-    SYSTEM_MEMORY = 0x00,
-    D3D9_MEMORY   = 0x01,
-    D3D11_MEMORY  = 0x02,
+    SYSTEM_MEMORY = 0x01,
+    D3D9_MEMORY   = 0x02,
+    D3D11_MEMORY  = 0x03,
+    VAAPI_MEMORY  = D3D11_MEMORY
 };
 
 struct sInputParams
@@ -111,6 +112,7 @@ struct sInputParams
     mfxU16 nEncTileCols; // number of columns for encoding tiling
 
     msdk_string strQPFilePath;
+    msdk_string strTCBRCFilePath;
 
     MemType memType;
     bool bUseHWLib; // true if application wants to use HW MSDK library
@@ -167,9 +169,11 @@ struct sInputParams
     bool bSoftRobustFlag;
 
     bool QPFileMode;
+    bool TCBRCFileMode;
 
     mfxU32 nTimeout;
     mfxU16 nPerfOpt; // size of pre-load buffer which used for loop encode
+    mfxU16 nMaxFPS;  // limits overall fps
 
     mfxU16 nNumSlice;
     bool UseRegionEncode;
@@ -212,6 +216,8 @@ struct sInputParams
 
 #if (MFX_VERSION >= 1027)
     msdk_char *RoundingOffsetFile;
+    mfxU16 TargetBitDepthLuma;
+    mfxU16 TargetBitDepthChroma;
 #endif
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
     msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];
@@ -329,6 +335,7 @@ protected:
     CSmplYUVReader m_FileReader;
     CEncTaskPool   m_TaskPool;
     QPFile::Reader m_QPFileReader;
+    TCBRCTestFile::Reader m_TCBRCFileReader;
 
     MFXVideoSession m_mfxSession;
     MFXVideoENCODE* m_pmfxENC;
@@ -375,6 +382,7 @@ protected:
     CHWDevice *m_hwdev;
 
     bool m_bQPFileMode;
+    bool m_bTCBRCFileMode;
 
     bool isV4L2InputEnabled;
 #if (MFX_VERSION >= 1027)
@@ -398,6 +406,8 @@ protected:
     CTimeStatisticsReal m_statOverall;
     CTimeStatisticsReal m_statFile;
 
+    FPSLimiter m_fpsLimiter;
+
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
     mfxU32    GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params);
 #endif
@@ -413,7 +423,6 @@ protected:
     virtual mfxStatus InitVppFilters();
     virtual void FreeVppFilters();
 
-    virtual mfxStatus AllocateExtMVCBuffers();
     virtual void DeallocateExtMVCBuffers();
 
     virtual mfxStatus CreateAllocator();
@@ -440,6 +449,9 @@ protected:
     virtual MFXVideoENCODE* GetFirstEncoder(){return m_pmfxENC;}
 
     virtual mfxU32 FileFourCC2EncFourCC(mfxU32 fcc);
+
+    void InitExtMVCBuffers(mfxExtMVCSeqDesc *mvcBuffer) const;
+    mfxStatus ConfigTCBRCTest(mfxFrameSurface1* pSurf);
 };
 
 #endif // __PIPELINE_ENCODE_H__

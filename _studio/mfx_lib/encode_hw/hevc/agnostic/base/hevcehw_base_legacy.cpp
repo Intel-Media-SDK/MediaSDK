@@ -296,6 +296,16 @@ void Legacy::SetSupported(ParamSupport& blocks)
     });
 }
 
+bool Legacy::IsTCBRC(const mfxVideoParam& par, mfxU16 tcbrcSupport)
+{
+    const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+    const mfxExtCodingOption& CO = ExtBuffer::Get(par);
+    return (IsOn(CO3.LowDelayBRC) && tcbrcSupport && IsOff(CO.NalHrdConformance) &&
+           (par.mfx.RateControlMethod  ==  MFX_RATECONTROL_VBR  ||
+            par.mfx.RateControlMethod  ==  MFX_RATECONTROL_QVBR ||
+            par.mfx.RateControlMethod  ==  MFX_RATECONTROL_VCM ));
+}
+
 void Legacy::SetInherited(ParamInheritance& par)
 {
     par.m_mvpInheritDefault.emplace_back(
@@ -478,6 +488,7 @@ void Legacy::SetInherited(ParamInheritance& par)
             , mfxExtBuffer* pDst)
     {
         INIT_EB(mfxExtCodingOption3);
+        INHERIT_OPT(LowDelayBRC);
         INHERIT_OPT(IntRefCycleDist);
         INHERIT_OPT(PRefType);
         INHERIT_OPT(GPB);
@@ -971,6 +982,7 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         auto pReorderer = make_storable<Reorderer>();
 
         pReorderer->BufferSize = par.mfx.GopRefDist - 1;
+        pReorderer->MaxReorder = par.mfx.GopRefDist - 1;
         pReorderer->DPB        = &m_prevTask.DPB.After;
 
         pReorderer->Push(
@@ -1606,11 +1618,12 @@ void Legacy::PreReorderTask(const FeatureBlocks& /*blocks*/, TPushPreRT Push)
 
         if (par.mfx.EncodedOrder)
         {
-            auto MaxReorder     = Glob::Reorder::Get(global).BufferSize;
+            auto BufferSize     = Glob::Reorder::Get(global).BufferSize;
+            auto MaxReorder     = Glob::Reorder::Get(global).MaxReorder;
             bool bFrameFromPast = m_frameOrder && (m_frameOrder < m_prevTask.DisplayOrder);
 
             MFX_CHECK(!bFrameFromPast || ((m_prevTask.DisplayOrder - m_frameOrder) <= MaxReorder), MFX_ERR_UNDEFINED_BEHAVIOR);
-            MFX_CHECK(m_frameOrder <= (m_prevTask.EncodedOrder + 1 + MaxReorder), MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(m_frameOrder <= (m_prevTask.EncodedOrder + 1 + BufferSize), MFX_ERR_UNDEFINED_BEHAVIOR);
             MFX_CHECK(isValid(m_prevTask.DPB.After[0]) || IsIdr(task.FrameType), MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         task.DisplayOrder = m_frameOrder;
@@ -1710,7 +1723,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         }
 
         auto& core = Glob::VideoCore::Get(global);
-        bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1]);
+        bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1] && !task.b2ndField);
         auto  idx  = task.RefPicList[bL1][0];
 
         mfxFrameSurface1 surfSrc = {};
@@ -2290,7 +2303,7 @@ void Legacy::ConfigureTask(
     task.ctrl.MfxNalUnitType &= 0xffff * IsOn(CO3.EnableNalUnitType);
 
     const mfxExtMBQP *pMBQP = ExtBuffer::Get(task.ctrl);
-    task.bCUQPMap |= (pMBQP && pMBQP->NumQPAlloc > 0);
+    task.bCUQPMap |= (IsOn(CO3.EnableMBQP) && pMBQP && pMBQP->NumQPAlloc > 0);
 
     bool bUpdateIRState = task.TemporalID == 0 && CO2.IntRefType;
     if (bUpdateIRState)
@@ -2298,6 +2311,15 @@ void Legacy::ConfigureTask(
         m_baseLayerOrder *= !isI;
         task.IRState = GetIntraRefreshState(
             par, task.ctrl, m_baseLayerOrder++, dflts.caps.IntraRefreshBlockUnitSize);
+    }
+
+    if (IsTCBRC(par, dflts.caps.TCBRCSupport) && task.TCBRCTargetFrameSize == 0)
+    {
+        ThrowAssert(par.mfx.FrameInfo.FrameRateExtD == 0, "FrameRateExtD = 0");
+
+        mfxU32 AvgFrameSizeInBytes = mfxU32(1000.0 / 8.0*(par.mfx.TargetKbps) * std::max<mfxU32>(par.mfx.BRCParamMultiplier,1) /
+            (mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD));
+        task.TCBRCTargetFrameSize = AvgFrameSizeInBytes;
     }
 
     mfxU32 needRecoveryPointSei = (CO.RecoveryPointSEI == MFX_CODINGOPTION_ON
@@ -2375,6 +2397,22 @@ void Legacy::ConfigureTask(
 
     task.StatusReportId = std::max<mfxU32>(1, m_prevTask.StatusReportId + 1);
     task.bForceSync = !!(task.InsertHeaders & INSERT_BPSEI);
+
+    if (task.FrameType & MFX_FRAMETYPE_I)
+    {
+        task.m_minQP = CO2.MinQPI;
+        task.m_maxQP = CO2.MaxQPI;
+    }
+    else if (task.FrameType & MFX_FRAMETYPE_P)
+    {
+        task.m_minQP = CO2.MinQPP;
+        task.m_maxQP = CO2.MaxQPP;
+    }
+    else if (task.FrameType & MFX_FRAMETYPE_B)
+    {
+        task.m_minQP = CO2.MinQPB;
+        task.m_maxQP = CO2.MaxQPB;
+    }
 
     m_prevTask = task;
 }
@@ -3706,6 +3744,13 @@ mfxStatus Legacy::CheckIntraRefresh(
             || !CheckOrZero<mfxU16>(pCO3->IntRefCycleDist, 0)
             , sts, MFX_ERR_UNSUPPORTED);
 
+        // B-Frames should be disabled for intra refresh
+        if (pCO2->IntRefType && par.mfx.GopRefDist > 1)
+        {
+            pCO2->IntRefType = MFX_REFRESH_NO;
+            ++changed;
+        }
+
         // refresh cycle length shouldn't be greater or equal to GOP size
         bool bInvalidCycle =
             pCO2->IntRefCycleSize != 0
@@ -4130,7 +4175,7 @@ mfxStatus Legacy::CheckBRC(
 
         changed += !defPar.caps.SliceByteSizeCtrl && CheckOrZero<mfxU32, 0>(pCO2->MaxSliceSize);
 
-        bool bMinMaxQpAllowed = par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && IsSWBRC(par, pCO2);
+        bool bMinMaxQpAllowed = (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP) && (IsSWBRC(par, pCO2)||IsOn(par.mfx.LowPower));
 
         if (bMinMaxQpAllowed)
         {

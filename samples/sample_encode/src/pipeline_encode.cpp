@@ -342,15 +342,13 @@ mfxStatus sTask::Reset()
     return MFX_ERR_NONE;
 }
 
-mfxStatus CEncodingPipeline::AllocateExtMVCBuffers()
+void CEncodingPipeline::InitExtMVCBuffers(mfxExtMVCSeqDesc *mvcBuffer) const
 {
     // a simple example of mfxExtMVCSeqDesc structure filling
     // actually equal to the "Default dependency mode" - when the structure fields are left 0,
     // but we show how to properly allocate and fill the fields
 
     mfxU32 i;
-
-    auto mvcBuffer = m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
 
     // mfxMVCViewDependency array
     mvcBuffer->NumView = m_nNumView;
@@ -392,8 +390,6 @@ mfxStatus CEncodingPipeline::AllocateExtMVCBuffers()
         mvcBuffer->OP[i].NumTargetViews = (mfxU16) m_nNumView;
         mvcBuffer->OP[i].TargetViewId = mvcBuffer->ViewId; // points to mfxExtMVCSeqDesc::ViewId
     }
-
-    return MFX_ERR_NONE;
 }
 
 mfxStatus CEncodingPipeline::InitVppFilters()
@@ -412,7 +408,10 @@ mfxStatus CEncodingPipeline::InitVppFilters()
     vppExtParams->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP; // turn off processing amplified (on by default)
 
     if(MVC_ENABLED & m_MVCflags)
-        m_mfxVppParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+    {
+        auto mvcBuffer = m_mfxVppParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+        InitExtMVCBuffers(mvcBuffer);
+    }
 
     return MFX_ERR_NONE;
 
@@ -449,8 +448,8 @@ PreEncAuxBuffer*  CEncodingPipeline::GetFreePreEncAuxBuffer()
 
 mfxStatus CEncodingPipeline::InitMfxPreEncParams(sInputParams *pInParams)
 {
-    MSDK_CHECK_ERROR(pInParams->bEnableExtLA, false, MFX_ERR_INVALID_VIDEO_PARAM);
     MSDK_CHECK_POINTER(pInParams,  MFX_ERR_NULL_PTR);
+    MSDK_CHECK_ERROR(pInParams->bEnableExtLA, false, MFX_ERR_INVALID_VIDEO_PARAM);
 
     m_mfxPreEncParams.mfx = {};
     // Plugin needs AVC for init
@@ -476,6 +475,8 @@ mfxStatus CEncodingPipeline::InitMfxPreEncParams(sInputParams *pInParams)
 
 mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 {
+    MSDK_CHECK_POINTER(pInParams,  MFX_ERR_NULL_PTR);
+
     m_mfxEncParams.mfx.CodecId                 = pInParams->CodecId;
     m_mfxEncParams.mfx.TargetUsage             = pInParams->nTargetUsage; // trade-off between quality and speed
     m_mfxEncParams.mfx.RateControlMethod       = pInParams->nRateControlMethod;
@@ -528,6 +529,17 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     {
         mfxStatus sts = m_QPFileReader.Read(pInParams->strQPFilePath, pInParams->CodecId);
         MSDK_CHECK_STATUS(sts, m_QPFileReader.GetErrorMessage().c_str());
+    }
+    m_bTCBRCFileMode = pInParams->TCBRCFileMode;
+    if (m_bTCBRCFileMode)
+    {
+        mfxStatus sts = m_TCBRCFileReader.Read(pInParams->strTCBRCFilePath, pInParams->CodecId);
+        MSDK_CHECK_STATUS(sts, m_TCBRCFileReader.GetErrorMessage().c_str());
+        m_mfxEncParams.AsyncDepth = 1;
+        m_mfxEncParams.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
+        m_mfxEncParams.mfx.GopRefDist = 1;
+        pInParams->nNalHrdConformance = MFX_CODINGOPTION_OFF;
+        pInParams->LowDelayBRC = MFX_CODINGOPTION_ON;
     }
 
     // specify memory type
@@ -611,7 +623,9 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
             // Converting to byte-string if necessary
             msdk_tstring tstr(pInParams->uSEI+index);
-            msg = std::string(tstr.begin(), tstr.end());
+            std::transform(tstr.begin(), tstr.end(), std::back_inserter(msg), [](msdk_char c) {
+                return (char)c;
+            });
         }
         size = (mfxU16)uuid.size();
         size += (mfxU16)msg.length();
@@ -707,6 +721,9 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         || pInParams->nPRefType || pInParams->IntRefCycleDist || pInParams->nAdaptiveMaxFrameSize
         || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1
         || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality || pInParams->WinBRCSize
+#if (MFX_VERSION >= 1027)
+        || pInParams->TargetBitDepthLuma || pInParams->TargetBitDepthChroma
+#endif
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
         || pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset
 #endif
@@ -735,6 +752,11 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         codingOption3->QVBRQuality    = pInParams->QVBRQuality;
 #if (MFX_VERSION >= 1026)
         codingOption3->ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
+#endif
+
+#if (MFX_VERSION >= 1027)
+        codingOption3->TargetBitDepthLuma = pInParams->TargetBitDepthLuma;
+        codingOption3->TargetBitDepthChroma = pInParams->TargetBitDepthChroma;
 #endif
         codingOption3->WinBRCSize = pInParams->WinBRCSize;
         codingOption3->WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
@@ -1338,7 +1360,7 @@ CEncodingPipeline::CEncodingPipeline()
     m_bIsFieldSplitting = false;
 
     m_bQPFileMode = false;
-
+    m_bTCBRCFileMode = false;
     m_nEncSurfIdx = 0;
     m_nVppSurfIdx = 0;
 }
@@ -1609,8 +1631,11 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
 
     // If d3d11 surfaces are used ask the library to run acceleration through D3D11
     // feature may be unsupported due to OS or MSDK API version
-    if (D3D11_MEMORY == params.memType)
+    // prefer d3d11 by default
+#if D3D_SURFACES_SUPPORT
+    if (D3D9_MEMORY != params.memType)
         impl |= MFX_IMPL_VIA_D3D11;
+#endif
 
     return MFX_ERR_NONE;
 }
@@ -1734,8 +1759,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // or if different FourCC is set
     if (pParams->nWidth != pParams->nDstWidth ||
         pParams->nHeight != pParams->nDstHeight ||
-        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC )
-
+        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC)
     {
         bVpp = true;
         if (m_bIsFieldSplitting)
@@ -1804,6 +1828,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // set memory type
     m_memType = pParams->memType;
     m_nPerfOpt = pParams->nPerfOpt;
+    m_fpsLimiter.Reset(pParams->nMaxFPS);
 
     m_bSoftRobustFlag = pParams->bSoftRobustFlag;
 
@@ -1826,8 +1851,8 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // MVC specific options
     if (MVC_ENABLED & m_MVCflags)
     {
-        sts = AllocateExtMVCBuffers();
-        MSDK_CHECK_STATUS(sts, "AllocateExtMVCBuffers failed");
+        auto mvcBuffer = m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+        InitExtMVCBuffers(mvcBuffer);
     }
 
     sts = ResetMFXComponents(pParams);
@@ -2184,6 +2209,10 @@ mfxStatus CEncodingPipeline::GetFreeTask(sTask **ppTask)
     if (MFX_ERR_NOT_FOUND == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
+        if (MFX_ERR_NONE == sts)
+        {
+            m_fpsLimiter.Work();
+        }
         if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_TaskPool.ClearTasks();
@@ -2284,6 +2313,13 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
             InsertIDR(pTask->encCtrl, m_bInsertIDR);
         m_bInsertIDR = false;
 
+		if (m_bTCBRCFileMode &&  In.pSurface)
+		{
+            sts = ConfigTCBRCTest(In.pSurface);
+            MSDK_CHECK_STATUS(sts, "TCBRC reset failed");
+        }
+
+
         sts = InitEncFrameParams(pTask);
         MSDK_CHECK_STATUS(sts, "ENCODE: InitEncFrameParams failed");
 
@@ -2317,7 +2353,24 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
 
     return sts;
 }
-
+mfxStatus CEncodingPipeline::ConfigTCBRCTest(mfxFrameSurface1* pSurf)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    if (m_bTCBRCFileMode && pSurf)
+    {
+        mfxU32 targetFrameSize = m_TCBRCFileReader.GetTargetFrameSize(pSurf->Data.FrameOrder);
+        if (targetFrameSize)
+        {
+            mfxU32 newBitrate = targetFrameSize * 8 * m_mfxEncParams.mfx.FrameInfo.FrameRateExtN / (m_mfxEncParams.mfx.FrameInfo.FrameRateExtD * 1000);
+            if (m_mfxEncParams.mfx.TargetKbps != newBitrate)
+            {
+                m_mfxEncParams.mfx.TargetKbps = (mfxU16)newBitrate;
+                sts = m_pmfxENC->Reset(&m_mfxEncParams);
+            }
+        }
+    }
+    return sts;
+}
 mfxStatus CEncodingPipeline::Run()
 {
     m_statOverall.StartTimeMeasurement();
@@ -2362,7 +2415,7 @@ mfxStatus CEncodingPipeline::Run()
         }
 
 #if defined (ENABLE_V4L2_SUPPORT)
-        if (v4l2Pipeline.GetV4L2TerminationSignal() && isV4L2InputEnabled)
+        if (isV4L2InputEnabled && v4l2Pipeline.GetV4L2TerminationSignal())
         {
             break;
         }
@@ -2614,6 +2667,10 @@ mfxStatus CEncodingPipeline::Run()
     while (MFX_ERR_NONE == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
+        if (MFX_ERR_NONE == sts)
+        {
+            m_fpsLimiter.Work();
+        }
         if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_bInsertIDR = true;
@@ -2750,7 +2807,7 @@ void CEncodingPipeline::PrintInfo()
 #if defined(_WIN32) || defined(_WIN64)
         m_memType == D3D9_MEMORY  ? MSDK_STRING("d3d")
 #else
-        m_memType == D3D9_MEMORY  ? MSDK_STRING("vaapi")
+        m_memType == VAAPI_MEMORY  ? MSDK_STRING("vaapi")
 #endif
         : (m_memType == D3D11_MEMORY ? MSDK_STRING("d3d11")
         : MSDK_STRING("system"));

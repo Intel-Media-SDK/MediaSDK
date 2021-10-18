@@ -57,7 +57,7 @@ The following command-line switches are optional:
 |---|---|
 |[-nv12\|yuy2\|ayuv\|rgb4\|p010\|y210\|y410\|a2rgb10\|p016\|y216]| input color format (by default YUV420 is expected).|
 |[-msb10]| 10-bit color format is expected to have data in Most Significant Bits of words. (LSB data placement is expected by default). This option also disables data shifting during file reading.|
-| [-ec::p010] | force usage of P010 surfaces for encoder (conversion will be made if necessary). Use for 10 bit HEVC encoding|
+| [-ec::p010\|yuy2\|nv12\|rgb4\|ayuv\|uyvy\|y210\|y410\|p016\|y216] | force output color format for encoder (conversion will be made if necessary). Default value: input color format|
 |[-tff\|bff]| input stream is interlaced, top\|bottom field first, if not specified progressive is expected|
   | [-bref] | arrange B frames in B pyramid reference structure|
  |  [-nobref] |  do not use B-pyramid (by default the decision is made by library)|
@@ -127,12 +127,16 @@ The following command-line switches are optional:
    |[-timeout] | encoding in cycle not less than specific time in seconds|
   | [-uncut]  | do not cut output file in looped mode (in case of -timeout option)|
   | [-perf_opt n] | sets number of prefetched frames. In performance mode app preallocates buffer and loads first n frames |
+  | [-fps]| limits overall fps of pipeline|
  |  [-dump fileName] |dump MSDK components configuration to the file in text form|
+  | [-tcbrctestfile fileName] |file with target frame sizes in bytes. It can be defined for each frame in format: one value per line|
   | [-usei]| insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message) <br>the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled|
   | [-extbrc:<on,off,implicit>] | External BRC for AVC and HEVC encoders|
  |  [-ExtBrcAdaptiveLTR:<on,off>] | Set AdaptiveLTR for implicit extbrcExample: `./sample_encode h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7`|
   | [-vaapi] | work with vaapi surfaces <br>Example: `./sample_encode h264|mpeg2|mvc -i InputYUVFile -o OutputEncodedFile -w width -h height -angle 180 -g 300 -r 1`|
-  | [-viewoutput] | instruct the MVC encoder to output each view in separate bitstream buffer. Depending on the number of -o options behaves as follows:<br>1: two views are encoded in single file<br>2: two views are encoded in separate files<br>3: behaves like 2 -o opitons was used and then one -o<br>Example:<br>`./sample_encode mvc -i InputYUVFile_1 -i InputYUVFile_2 -o OutputEncodedFile_1 -o OutputEncodedFile_2 -viewoutput -w width -h height`
+  | [-viewoutput] | instruct the MVC encoder to output each view in separate bitstream buffer. Depending on the number of -o options behaves as follows:<br>1: two views are encoded in single file<br>2: two views are encoded in separate files<br>3: behaves like 2 -o opitons was used and then one -o<br>Example:<br>`./sample_encode mvc -i InputYUVFile_1 -i InputYUVFile_2 -o OutputEncodedFile_1 -o OutputEncodedFile_2 -viewoutput -w width -h height` |
+  | [-TargetBitDepthLuma] | Target encoding bit-depth for luma samples. May differ from source one. 0 mean default target bit-depth which is equal to source. <br>Example:<br>`./sample_encode h265 -i InputYUVFile_10_bit -o OutputEncodedFile_8_bit -w width -h height -lowpower:on -TargetBitDepthLuma 8 -TargetBitDepthChroma 8` |
+  | [-TargetBitDepthChroma] | Target encoding bit-depth for chroma samples. May differ from source one. 0 mean default target bit-depth which is equal to source. <br>Example:<br>`./sample_encode h265 -i InputYUVFile_10_bit -o OutputEncodedFile_8_bit -w width -h height -lowpower:on -TargetBitDepthLuma 8 -TargetBitDepthChroma 8` |
 
 User module options:
 

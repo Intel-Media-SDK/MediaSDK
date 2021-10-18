@@ -454,7 +454,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     umcVideoParams.lpMemoryAllocator = &m_MemoryAllocator;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
     umcVideoParams.m_ignore_level_constrain = par->mfx.IgnoreLevelConstrain;
 #endif
 
@@ -927,8 +927,10 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
         // need to substitute output format
         // number of surfaces is same
         request->Info.FourCC = videoProcessing->Out.FourCC;
-
         request->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
+        sts = UpdateCscOutputFormat(par, request);
+        MFX_CHECK_STS(sts);
+
         request->Info.Width = videoProcessing->Out.Width;
         request->Info.Height = videoProcessing->Out.Height;
         request->Info.CropX = videoProcessing->Out.CropX;
@@ -1079,12 +1081,8 @@ mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo* info, mfxU32 threadNumber)
 
         mfxI32 index = m_FrameAllocator->FindSurface(info->surface_out, m_isOpaq);
         pFrame = m_pH264VideoDecoder->FindSurface((UMC::FrameMemID)index);
+        MFX_CHECK(pFrame && pFrame->m_UID != -1, MFX_ERR_NOT_FOUND);
 
-        if (!pFrame || pFrame->m_UID == -1)
-        {
-            VM_ASSERT(false);
-            return MFX_ERR_NOT_FOUND;
-        }
 
         isDecoded = m_pH264VideoDecoder->CheckDecoding(pFrame);
     }
@@ -1191,9 +1189,20 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
+    bool isVideoProcCscEnabled = false;
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+    if (videoProcessing && videoProcessing->Out.FourCC != m_vPar.mfx.FrameInfo.FourCC)
+    {
+        isVideoProcCscEnabled = true;
+    }
+#endif
     sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_AVC);
-    if (sts != MFX_ERR_NONE)
+    //Decode CSC support more FourCC format, already checked in Init, skip the check return;
+    if(!isVideoProcCscEnabled && sts != MFX_ERR_NONE)
+    {
         return MFX_ERR_UNSUPPORTED;
+    }
 
     sts = CheckFrameData(surface_work);
     if (sts != MFX_ERR_NONE)
@@ -1213,16 +1222,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         m_va->GetProtectedVA()->SetBitstream(bs);
     }
-
-    if (m_va->GetVideoProcessingVA())
-    {
-        mfxHDL surfHDL;
-        if(!m_isOpaq)
-            m_core->GetExternalFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        else
-            m_core->GetFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        m_va->GetVideoProcessingVA()->SetOutputSurface(surfHDL);
-    }
 #endif
     //gpu session priority
     m_va->m_ContextPriority = m_core->GetSession()->m_priority;
@@ -1232,7 +1231,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         bool force = false;
 
         UMC::Status umcFrameRes = UMC::UMC_OK;
-        UMC::Status umcAddSourceRes = UMC::UMC_OK;
 
         MFXMediaDataAdapter src(bs);
 
@@ -1250,7 +1248,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         {
             umcRes = m_pH264VideoDecoder->AddSource(bs ? &src : 0);
 
-            umcAddSourceRes = umcFrameRes = umcRes;
+            umcFrameRes = umcRes;
 
             src.Save(bs);
 
@@ -1271,7 +1269,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                     }
                     else
                     {
-                        umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                        umcFrameRes = umcRes = UMC::UMC_OK;
                         m_isFirstRun = false;
                     }
                 }
@@ -1282,7 +1280,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
             if (umcRes == UMC::UMC_ERR_INVALID_STREAM)
             {
-                umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                umcFrameRes = umcRes = UMC::UMC_OK;
             }
 
             if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER || umcRes == UMC::UMC_WRN_INFO_NOT_READY || umcRes == UMC::UMC_ERR_NEED_FORCE_OUTPUT)
@@ -1597,11 +1595,7 @@ mfxStatus VideoDECODEH264::DecodeFrame(mfxFrameSurface1 *surface_out, UMC::H264D
     {
         index = m_FrameAllocator->FindSurface(surface_out, m_isOpaq);
         pFrame = m_pH264VideoDecoder->FindSurface((UMC::FrameMemID)index);
-        if (!pFrame)
-        {
-            VM_ASSERT(false);
-            return MFX_ERR_NOT_FOUND;
-        }
+        MFX_CHECK(pFrame, MFX_ERR_NOT_FOUND);        
     }
 
     int32_t const error = pFrame->GetError();

@@ -249,7 +249,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
         {
             MFX_CHECK(m_vPar.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE, MFX_ERR_UNSUPPORTED);
         }
-        MFX_CHECK(par->mfx.FrameInfo.FourCC == videoProcessing->Out.FourCC, MFX_ERR_UNSUPPORTED);//This is to avoid CSC cases, will remove once CSC is fully tested
+
 		bool is_fourcc_supported = false;
         if (m_core->GetHWType() < MFX_HW_TGL_LP)
         {
@@ -687,6 +687,23 @@ mfxStatus VideoDECODEH265::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
     umcRes = FillParam(core, &decoder, par, false);
     MFX_CHECK(umcRes == UMC::UMC_OK, ConvertUMCStatusToMfx(umcRes));
 
+    mfxExtCodingOptionVPS * extVps = (mfxExtCodingOptionVPS *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_VPS);
+    if (extVps)
+    {
+        RawHeader_H265 *vps = decoder.GetVPS();
+
+        if (vps->GetSize())
+        {
+            MFX_CHECK(extVps->VPSBufSize >= vps->GetSize(), MFX_ERR_NOT_ENOUGH_BUFFER);
+            extVps->VPSBufSize = (mfxU16)vps->GetSize();
+            std::copy(vps->GetPointer(), vps->GetPointer() + extVps->VPSBufSize, extVps->VPSBuffer);
+        }
+        else
+        {
+            extVps->VPSBufSize = 0;
+        }
+    }
+
     mfxExtCodingOptionSPSPPS * spsPps = (mfxExtCodingOptionSPSPPS *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_SPSPPS);
     if (spsPps)
     {
@@ -762,6 +779,9 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
         (params.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) : (params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
     mfxStatus sts = QueryIOSurfInternal(platform, type, &params, request);
+    MFX_CHECK_STS(sts);
+
+    sts = UpdateCscOutputFormat(&params, request);
     MFX_CHECK_STS(sts);
 
     if (isInternalManaging)
@@ -1064,18 +1084,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         MFX_CHECK(m_va->GetProtectedVA() && (bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNDEFINED_BEHAVIOR);
         m_va->GetProtectedVA()->SetBitstream(bs);
     }
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-    if (m_va->GetVideoProcessingVA() && m_core->GetVAType() == MFX_HW_VAAPI)
-    {
-        mfxHDL surfHDL = {};
-        if (!m_isOpaq)
-            sts = m_core->GetExternalFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        else
-            sts = m_core->GetFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        MFX_CHECK_STS(sts);
-        m_va->GetVideoProcessingVA()->SetOutputSurface(surfHDL);
-    }
-#endif // !MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+
     //gpu session priority
     m_va->m_ContextPriority = m_core->GetSession()->m_priority;
 
@@ -1084,9 +1093,18 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         bool force = false;
 
         UMC::Status umcFrameRes = UMC::UMC_OK;
-        UMC::Status umcAddSourceRes = UMC::UMC_OK;
 
         MFXMediaDataAdapter src(bs);
+
+#if (MFX_VERSION >= 1025)
+        mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+
+        if (extbuf)
+        {
+            reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
+            src.SetExtBuffer(extbuf);
+        }
+#endif
 
         for (;;)
         {
@@ -1099,7 +1117,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                     umcRes = m_pH265VideoDecoder->AddSource(bs ? &src : 0);
             }
 
-            umcAddSourceRes = umcFrameRes = umcRes;
+            umcFrameRes = umcRes;
 
             if (umcRes == UMC::UMC_NTF_NEW_RESOLUTION || umcRes == UMC::UMC_WRN_REPOSITION_INPROGRESS || umcRes == UMC::UMC_ERR_UNSUPPORTED)
             {
@@ -1114,14 +1132,14 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                 }
                 else
                 {
-                    umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                    umcFrameRes = umcRes = UMC::UMC_OK;
                     m_isFirstRun = false;
                 }
             }
 
             if (umcRes == UMC::UMC_ERR_INVALID_STREAM)
             {
-                umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                umcFrameRes = umcRes = UMC::UMC_OK;
 
             }
 
@@ -1382,11 +1400,7 @@ mfxStatus VideoDECODEH265::DecodeFrame(mfxFrameSurface1 *surface_out, H265Decode
     {
         index = m_FrameAllocator->FindSurface(surface_out, m_isOpaq);
         pFrame = m_pH265VideoDecoder->FindSurface((UMC::FrameMemID)index);
-        if (!pFrame)
-        {
-            VM_ASSERT(false);
-            MFX_RETURN(MFX_ERR_NOT_FOUND);
-        }
+        MFX_CHECK(pFrame, MFX_ERR_NOT_FOUND);
     }
 
     surface_out->Data.Corrupted = 0;

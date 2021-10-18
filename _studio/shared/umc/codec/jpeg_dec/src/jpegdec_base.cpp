@@ -914,7 +914,7 @@ JERRCODE CJPEGDecoderBase::ParseSOF0(void)
     if(JPEG_OK != jerr)
       return jerr;
 
-    if(curr_comp->m_hsampling <= 0 || curr_comp->m_vsampling <= 0)
+    if(curr_comp->m_hsampling <= 0 || curr_comp->m_vsampling <= 0 || curr_comp->m_q_selector >= MAX_QUANT_TABLES)
     {
       return JPEG_ERR_SOF_DATA;
     }
@@ -1080,7 +1080,12 @@ JERRCODE CJPEGDecoderBase::ParseSOS(JOPERATION op)
 comp_id_match:
 
     m_ccomp[ci].m_dc_selector = (huff_sel >> 4) & 0x0f;
+    if (m_ccomp[ci].m_dc_selector >= MAX_HUFF_TABLES)
+      return JPEG_ERR_SOS_DATA;
+
     m_ccomp[ci].m_ac_selector = (huff_sel     ) & 0x0f;
+    if (m_ccomp[ci].m_ac_selector >= MAX_HUFF_TABLES)
+      return JPEG_ERR_SOS_DATA;
   }
 
   // find greatest common divisor for sampling factors of components in scan
@@ -1394,8 +1399,6 @@ JERRCODE CJPEGDecoderBase::ReadHeader(
   JSS*    sampling,
   int*    precision)
 {
-  int      du_width;
-  int      du_height;
   JERRCODE jerr;
 
   // parse bitstream up to SOS marker
@@ -1409,10 +1412,6 @@ JERRCODE CJPEGDecoderBase::ReadHeader(
 
   if(JPEG_UNKNOWN == m_jpeg_mode)
     return JPEG_ERR_BAD_DATA;
-
-  // DU block dimensions (8x8 for DCT based modes and 1x1 for lossless mode)
-  du_width  = (JPEG_LOSSLESS == m_jpeg_mode) ? 1 : 8;
-  du_height = (JPEG_LOSSLESS == m_jpeg_mode) ? 1 : 8;
 
   *width     = m_jpeg_width;
   *height    = m_jpeg_height;

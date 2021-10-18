@@ -148,8 +148,16 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
             mfxU32 invalid = 0;
 
-            invalid += CheckOrZero<mfxU16, 12, 0>(pCO3->TargetBitDepthLuma);
-            invalid += CheckOrZero<mfxU16, 12, 0>(pCO3->TargetBitDepthChroma);
+            if (IsOn(par.mfx.LowPower))
+            {
+                invalid += CheckOrZero<mfxU16, 10, 0>(pCO3->TargetBitDepthLuma);
+                invalid += CheckOrZero<mfxU16, 10, 0>(pCO3->TargetBitDepthChroma);
+            }
+            else
+            {
+                invalid += CheckOrZero<mfxU16, 12, 0>(pCO3->TargetBitDepthLuma);
+                invalid += CheckOrZero<mfxU16, 12, 0>(pCO3->TargetBitDepthChroma);
+            }
 
             MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
             return MFX_ERR_NONE;

@@ -28,6 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "vaapi_utils_drm.h"
 #include <drm_fourcc.h>
+#include "i915_drm.h"
 
 constexpr mfxU32 MFX_DRI_MAX_NODES_NUM = 16;
 constexpr mfxU32 MFX_DRI_RENDER_START_INDEX = 128;
@@ -343,7 +344,8 @@ bool drmRenderer::getPlane()
         if (plane) {
             if (plane->possible_crtcs & (1 << m_crtcIndex)) {
                 for (uint32_t j = 0; j < plane->count_formats; ++j) {
-                    if (plane->formats[j] == DRM_FORMAT_XRGB8888) {
+                    if ((plane->formats[j] == DRM_FORMAT_XRGB8888)
+                        || (plane->formats[j] == DRM_FORMAT_NV12)) {
                         m_planeID = plane->plane_id;
                         m_drmlib.drmModeFreePlane(plane);
                         m_drmlib.drmModeFreePlaneResources(planes);
@@ -420,10 +422,44 @@ void* drmRenderer::acquire(mfxMemId mid)
         int ret = m_drmlib.drmIoctl(m_fd, DRM_IOCTL_GEM_OPEN, &flink_open);
         if (ret) return NULL;
 
-        ret = m_drmlib.drmModeAddFB(m_fd,
-              vmid->m_image.width, vmid->m_image.height,
-              24, 32, vmid->m_image.pitches[0],
-              flink_open.handle, &fbhandle);
+        uint32_t handles[4], pitches[4], offsets[4], pixel_format, flags = 0;
+        uint64_t modifiers[4];
+
+        memset(&handles, 0, sizeof(handles));
+        memset(&pitches, 0, sizeof(pitches));
+        memset(&offsets, 0, sizeof(offsets));
+        memset(&modifiers, 0, sizeof(modifiers));
+
+        handles[0] = flink_open.handle;
+        pitches[0] = vmid->m_image.pitches[0];
+        offsets[0] = vmid->m_image.offsets[0];
+
+        if (VA_FOURCC_NV12 == vmid->m_fourcc) {
+            struct drm_i915_gem_set_tiling set_tiling;
+
+            pixel_format = DRM_FORMAT_NV12;
+            memset(&set_tiling, 0, sizeof(set_tiling));
+            set_tiling.handle = flink_open.handle;
+            set_tiling.tiling_mode = I915_TILING_Y;
+            set_tiling.stride = vmid->m_image.pitches[0];
+            ret = m_drmlib.drmIoctl(m_fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling);
+            if (ret) {
+                msdk_printf(MSDK_STRING("DRM_IOCTL_I915_GEM_SET_TILING Failed ret = %d\n"),ret);
+                return NULL;
+            }
+
+            handles[1] = flink_open.handle;
+            pitches[1] = vmid->m_image.pitches[1];
+            offsets[1] = vmid->m_image.offsets[1];
+            modifiers[0] = modifiers[1] = I915_FORMAT_MOD_Y_TILED;
+            flags = 2; // DRM_MODE_FB_MODIFIERS   (1<<1) /* enables ->modifer[]
+       }
+       else {
+            pixel_format = DRM_FORMAT_XRGB8888;
+       }
+
+        ret = m_drmlib.drmModeAddFB2WithModifiers(m_fd, vmid->m_image.width, vmid->m_image.height,
+              pixel_format, handles, pitches, offsets, modifiers, &fbhandle, flags);
         if (ret) return NULL;
 
         MSDK_ZERO_MEMORY(flink_close);

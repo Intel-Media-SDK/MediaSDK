@@ -34,11 +34,6 @@ namespace ns_asc{
 const ASCMVector zero = {0,0};
 
 void MotionRangeDeliveryF(mfxI16 xLoc, mfxI16 yLoc, mfxI16 *limitXleft, mfxI16 *limitXright, mfxI16 *limitYup, mfxI16 *limitYdown, ASCImDetails dataIn) {
-    mfxI32
-        locX = 0,
-        locY = 0;
-    locY = yLoc / ((3 * (16 / dataIn.block_height)) / 2);
-    locX = xLoc / ((3 * (16 / dataIn.block_width)) / 2);
     *limitXleft     = (mfxI16)NMAX(-8, -(xLoc * dataIn.block_width) - dataIn.horizontal_pad);
     *limitXright    = (mfxI16)NMIN(7, dataIn.Extended_Width - (((xLoc + 1) * dataIn.block_width) + dataIn.horizontal_pad));
     *limitYup       = (mfxI16)NMAX(-8, -(yLoc * dataIn.block_height) - dataIn.vertical_pad);

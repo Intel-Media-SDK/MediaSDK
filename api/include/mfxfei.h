@@ -29,7 +29,7 @@ extern "C"
 #endif /* __cplusplus */
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    Qp;
@@ -61,7 +61,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc; /* size of allocated memory in number of macroblocks */
@@ -74,7 +74,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -87,7 +87,7 @@ MFX_PACK_END()
 /* PreENC output */
 /* Layout is exactly the same as mfxExtFeiEncMVs, this buffer may be removed in future */
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -100,7 +100,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -131,7 +131,7 @@ MFX_PACK_END()
 
 /* 1  ENC_PAK input */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    SearchPath;
@@ -160,7 +160,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -178,7 +178,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -222,7 +222,7 @@ For example, MV for right top 4x4 sub block is stored in 5-th element of the arr
 ========================
 */
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -235,7 +235,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -253,11 +253,13 @@ typedef struct {
 MFX_PACK_END()
 
 enum {
-    MFX_PAK_OBJECT_HEADER = 0x7149000A
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_PAK_OBJECT_HEADER) = 0x7149000A
 };
 
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_PAK_OBJECT_HEADER);
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     /* dword 0-2 */
     mfxU32    Header;  /* MFX_PAK_OBJECT_HEADER */
     mfxU32    MVDataLength;
@@ -330,7 +332,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -341,7 +343,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32      MaxFrameSize; /* in bytes */
     mfxU32      NumPasses;    /* up to 8 */
@@ -353,7 +355,7 @@ MFX_PACK_END()
 #if (MFX_VERSION >= 1025)
 /* FEI repack status */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32          NumPasses;
     mfxU16          reserved[58];
@@ -363,7 +365,7 @@ MFX_PACK_END()
 
 /* 1 decode stream out */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     /* dword 0 */
     mfxU32    InterMbMode         : 2;
     mfxU32    MBSkipFlag          : 1;
@@ -433,7 +435,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -447,7 +449,7 @@ MFX_PACK_END()
 
 /* SPS, PPS, Slice Header */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    SPSId;
@@ -459,7 +461,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    SPSId;
@@ -486,7 +488,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    NumSlice; /* actual number of slices in the picture */
@@ -521,7 +523,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16  DisableHME;  /* 0 - enable, any other value means disable */
@@ -534,40 +536,69 @@ MFX_PACK_END()
 
 /* 1 functions */
 typedef enum {
-    MFX_FEI_FUNCTION_PREENC     =1,
-    MFX_FEI_FUNCTION_ENCODE     =2,
-    MFX_FEI_FUNCTION_ENC        =3,
-    MFX_FEI_FUNCTION_PAK        =4,
-    MFX_FEI_FUNCTION_DEC        =5,
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_FEI_FUNCTION_PREENC)     =1,
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_FEI_FUNCTION_ENCODE)     =2,
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_FEI_FUNCTION_ENC)        =3,
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_FEI_FUNCTION_PAK)        =4,
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_FEI_FUNCTION_DEC)        =5,
 } mfxFeiFunction;
 
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_FEI_FUNCTION_PREENC);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_FEI_FUNCTION_ENCODE);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_FEI_FUNCTION_ENC);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_FEI_FUNCTION_PAK);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_FEI_FUNCTION_DEC);
+
 enum {
-    MFX_EXTBUFF_FEI_PARAM          = MFX_MAKEFOURCC('F','E','P','R'),
-    MFX_EXTBUFF_FEI_PREENC_CTRL    = MFX_MAKEFOURCC('F','P','C','T'),
-    MFX_EXTBUFF_FEI_PREENC_MV_PRED = MFX_MAKEFOURCC('F','P','M','P'),
-    MFX_EXTBUFF_FEI_PREENC_MV      = MFX_MAKEFOURCC('F','P','M','V'),
-    MFX_EXTBUFF_FEI_PREENC_MB      = MFX_MAKEFOURCC('F','P','M','B'),
-    MFX_EXTBUFF_FEI_ENC_CTRL       = MFX_MAKEFOURCC('F','E','C','T'),
-    MFX_EXTBUFF_FEI_ENC_MV_PRED    = MFX_MAKEFOURCC('F','E','M','P'),
-    MFX_EXTBUFF_FEI_ENC_QP         = MFX_MAKEFOURCC('F','E','Q','P'),
-    MFX_EXTBUFF_FEI_ENC_MV         = MFX_MAKEFOURCC('F','E','M','V'),
-    MFX_EXTBUFF_FEI_ENC_MB         = MFX_MAKEFOURCC('F','E','M','B'),
-    MFX_EXTBUFF_FEI_ENC_MB_STAT    = MFX_MAKEFOURCC('F','E','S','T'),
-    MFX_EXTBUFF_FEI_PAK_CTRL       = MFX_MAKEFOURCC('F','K','C','T'),
-    MFX_EXTBUFF_FEI_SPS            = MFX_MAKEFOURCC('F','S','P','S'),
-    MFX_EXTBUFF_FEI_PPS            = MFX_MAKEFOURCC('F','P','P','S'),
-    MFX_EXTBUFF_FEI_SLICE          = MFX_MAKEFOURCC('F','S','L','C'),
-    MFX_EXTBUFF_FEI_CODING_OPTION  = MFX_MAKEFOURCC('F','C','D','O'),
-    MFX_EXTBUFF_FEI_DEC_STREAM_OUT = MFX_MAKEFOURCC('F','D','S','O'),
-    MFX_EXTBUFF_FEI_REPACK_CTRL    = MFX_MAKEFOURCC('F','E','R','P'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_PARAM)          = MFX_MAKEFOURCC('F','E','P','R'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_PREENC_CTRL)    = MFX_MAKEFOURCC('F','P','C','T'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_PREENC_MV_PRED) = MFX_MAKEFOURCC('F','P','M','P'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_PREENC_MV)      = MFX_MAKEFOURCC('F','P','M','V'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_PREENC_MB)      = MFX_MAKEFOURCC('F','P','M','B'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_ENC_CTRL)       = MFX_MAKEFOURCC('F','E','C','T'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_ENC_MV_PRED)    = MFX_MAKEFOURCC('F','E','M','P'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_ENC_QP)         = MFX_MAKEFOURCC('F','E','Q','P'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_ENC_MV)         = MFX_MAKEFOURCC('F','E','M','V'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_ENC_MB)         = MFX_MAKEFOURCC('F','E','M','B'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_ENC_MB_STAT)    = MFX_MAKEFOURCC('F','E','S','T'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_PAK_CTRL)       = MFX_MAKEFOURCC('F','K','C','T'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_SPS)            = MFX_MAKEFOURCC('F','S','P','S'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_PPS)            = MFX_MAKEFOURCC('F','P','P','S'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_SLICE)          = MFX_MAKEFOURCC('F','S','L','C'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_CODING_OPTION)  = MFX_MAKEFOURCC('F','C','D','O'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_DEC_STREAM_OUT) = MFX_MAKEFOURCC('F','D','S','O'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_REPACK_CTRL)    = MFX_MAKEFOURCC('F','E','R','P'),
 #if (MFX_VERSION >= 1025)
-    MFX_EXTBUFF_FEI_REPACK_STAT    = MFX_MAKEFOURCC('F','E','R','S')
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_FEI_REPACK_STAT)    = MFX_MAKEFOURCC('F','E','R','S')
 #endif
 };
 
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_PARAM);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_PREENC_CTRL);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_PREENC_MV_PRED);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_PREENC_MV);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_PREENC_MB);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_ENC_CTRL);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_ENC_MV_PRED);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_ENC_QP);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_ENC_MV);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_ENC_MB);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_ENC_MB_STAT);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_PAK_CTRL);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_SPS);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_PPS);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_SLICE);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_CODING_OPTION);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_DEC_STREAM_OUT);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_REPACK_CTRL);
+
+#if (MFX_VERSION >= 1025)
+    MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_FEI_REPACK_STAT);
+#endif
+
 /* should be attached to mfxVideoParam during initialization to indicate FEI function */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxFeiFunction  Func;
     mfxU16  SingleFieldProcessing;

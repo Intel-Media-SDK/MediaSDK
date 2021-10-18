@@ -79,10 +79,9 @@ enum { MCTF_BITRATE_MULTIPLIER = 100000 };
 #include <cassert>
 #define CHROMABASE      80
 #define MAXCHROMA       100
-#define MCTFSTRENGTH    20
+#define MCTFSTRENGTH    3
 #define MCTFNOFILTER    0
 #define MCTFADAPTIVE    21
-#define MCTFCADENCE     8
 #define MCTFADAPTIVEVAL 1050
 #define MCTF_CHROMAOFF  0
 
@@ -254,9 +253,11 @@ struct frameData
 struct gpuFrameData
 {
     CmSurface2D
-        * frameData;
+        * frameData,
+        *fOut;
     SurfaceIndex
-        * fIdx;
+        * fIdx,
+        * fIdxOut;
     mfxFrameSurface1
         * mfxFrame;
     CmSurface2D
@@ -283,23 +284,27 @@ struct gpuFrameData
         frame_Rs,
         frame_Cs;
     bool
-        frame_added;
+        frame_added,
+        isSceneChange,
+        isIntra;
     IntMctfParams
         mfxMctfControl;
     gpuFrameData() :
         frameData(0)
+        , fOut(0)
         , fIdx(0)
+        , fIdxOut(0)
         , mfxFrame(0)
         , magData(0)
         , idxMag(0)
         , sc(0)
         , tc(0)
         , stc(0)
-        , scene_idx(0)
+        , scene_idx(0xffffffff)
         , frame_number(0)
         , frame_relative_position(0)
         , noise_count(0)
-        , filterStrength(MCTFSTRENGTH)
+        , filterStrength(MCTFNOFILTER)
         , noise_var(0.0)
         , noise_sad(0.0)
         , noise_sc(0.0)
@@ -307,7 +312,9 @@ struct gpuFrameData
         , frame_sc(0.0)
         , frame_Rs(0.0)
         , frame_Cs(0.0)
-        , frame_added(0)
+        , frame_added(false)
+        , isSceneChange(false)
+        , isIntra(false)
         , mfxMctfControl(IntMctfParams{})
     {
     }
@@ -886,25 +893,27 @@ public:
         CmSurface2D *p_surface,
         mfxU8       *p_data
     );
-    mfxU32 IM_SURF_PUT(
-        CmSurface2D *p_DstSurface,
-        CmSurface2D *p_SrcSurface
-    );
+
     void IntBufferUpdate(
-        bool isSceneChange
+        bool isSceneChange,
+        bool isIntraFrame,
+        bool doIntraFiltering
     );
     void BufferFilterAssignment(
         mfxU16 * filterStrength,
-        bool     doIntraFiltering
+        bool     doIntraFiltering,
+        bool     isAnchorFrame,
+        bool     isSceneChange
     );
-    bool MCTF_Check_Use(
-    );
+    bool MCTF_Check_Use();
     mfxStatus MCTF_PUT_FRAME(
-        void  *frameData,
-        bool    isCmSurface,
-        bool    sceneNumber,
-        mfxU16 *filterStrength,
-        bool    doIntraFiltering
+        void         * frameInData,
+        mfxHDLPair     frameOutHandle,
+        CmSurface2D ** frameOutData,
+        bool           isCmSurface,
+        mfxU16       * filterStrength,
+        bool           needsOutput,
+        bool           doIntraFiltering
     );
     mfxStatus MCTF_PUT_FRAME(
         IntMctfParams   * pMctfControl,
@@ -922,6 +931,7 @@ public:
     );
     mfxStatus MCTF_UpdateBufferCount();
     mfxStatus MCTF_DO_FILTERING_IN_AVC();
+    mfxU16    MCTF_QUERY_FILTER_STRENGTH();
     mfxStatus MCTF_DO_FILTERING();
     // returns (query) result of filtering to outFrame
     mfxStatus MCTF_GET_FRAME(
@@ -930,7 +940,9 @@ public:
     mfxStatus MCTF_GET_FRAME(
         mfxU8 * outFrame
     );
+    bool    MCTF_CHECK_FILTER_USE();
     mfxStatus MCTF_RELEASE_FRAME(
+        bool isCmUsed
     );
     // after MCTF_GET_FRAME is invoked, we need to update TimeStamp & FrameOrder
     // To cal this function with a surface that needs to be updated

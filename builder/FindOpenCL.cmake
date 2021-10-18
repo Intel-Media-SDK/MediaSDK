@@ -25,13 +25,11 @@ set( OCL_LIBS "" )
 
 if ( NOT OPENCL_INCLUDE MATCHES NOTFOUND )
     if ( NOT OPENCL_LIBRARY MATCHES NOTFOUND )
-        if ( EXISTS /etc/OpenCL/vendors/intel.icd )
-            set ( OPENCL_FOUND TRUE )
+        set ( OPENCL_FOUND TRUE )
 
-            get_filename_component( OPENCL_LIBRARY_PATH ${OPENCL_LIBRARY} PATH )
+        get_filename_component( OPENCL_LIBRARY_PATH ${OPENCL_LIBRARY} PATH )
 
-            list( APPEND OPENCL_LIBS OpenCL )
-        endif()
+        list( APPEND OPENCL_LIBS OpenCL )
     endif()
 endif()
 

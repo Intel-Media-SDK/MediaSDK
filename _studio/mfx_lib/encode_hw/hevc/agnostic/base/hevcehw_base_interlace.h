@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,6 +41,8 @@ namespace Base
     DECL_BLOCK(PatchRawInfo)\
     DECL_BLOCK(PrepareTask)\
     DECL_BLOCK(InsertPTSEI)\
+    DECL_BLOCK(SkipFrame)\
+    DECL_BLOCK(QueryTask)\
     DECL_BLOCK(PatchDDITask)\
     DECL_BLOCK(QueryIOSurf)
 #define DECL_FEATURE_NAME "Base_Interlace"
@@ -56,11 +58,13 @@ namespace Base
         virtual void QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push) override;
         virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
         virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
+        virtual void QueryTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
 
         static bool IsField(mfxU16 PicStruct) { return  !!(PicStruct & MFX_PICSTRUCT_FIELD_SINGLE); }
         static bool IsBFF(mfxU16 PicStruct) { return !!(PicStruct & MFX_PICSTRUCT_FIELD_BFF); }
 
         std::array<mfxU8, 32> m_buf;
+        bool m_b2ndFieldRecode = false;
     };
 
 } //Base

@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <type_traits>
 #include "mfx_dispatch_test_mocks.h"
+#include "device_ids.h"
 
 TEST_F(DispatcherLibsTest, ShouldSucceedForSeeminglyGoodMockLibrary)
 {
@@ -81,33 +82,47 @@ TEST_P(DispatcherLibsTestParametrized, ShouldEnumerateCorrectLibNames)
 #if defined(__i386__)
     const std::string LIBMFXSW("libmfxsw32.so.1");
     const std::string LIBMFXHW("libmfxhw32.so.1");
+    const std::string ONEVPLRT("libmfx-gen.so.1.2");
 #elif defined(__x86_64__)
     const std::string LIBMFXSW("libmfxsw64.so.1");
     const std::string LIBMFXHW("libmfxhw64.so.1");
+    const std::string ONEVPLRT("libmfx-gen.so.1.2");
 #endif
 
     std::string modules_dir(MFX_MODULES_DIR);
     mfxIMPL impl = GetParam();
     std::vector<std::string> libs;
 
-    if (MFX_IMPL_BASETYPE(impl) == MFX_IMPL_AUTO ||
-        MFX_IMPL_BASETYPE(impl) == MFX_IMPL_AUTO_ANY)
-    {
-        libs.emplace_back(LIBMFXHW);
-        libs.emplace_back(modules_dir + "/" + LIBMFXHW);
-        libs.emplace_back(LIBMFXSW);
-        libs.emplace_back(modules_dir + "/" + LIBMFXSW);
+    eMFXHWType platform = MFX_HW_UNKNOWN;
+    auto devices = get_devices();
+    if (devices.size()) {
+        platform = devices[0].platform;
     }
-    else if ((impl & MFX_IMPL_HARDWARE) ||
-             (impl & MFX_IMPL_HARDWARE_ANY))
-    {
-        libs.emplace_back(LIBMFXHW);
-        libs.emplace_back(modules_dir + "/" + LIBMFXHW);
+
+    if (platform != MFX_HW_UNKNOWN) {
+        if (MFX_IMPL_BASETYPE(impl) == MFX_IMPL_AUTO ||
+            MFX_IMPL_BASETYPE(impl) == MFX_IMPL_AUTO_ANY) {
+            libs.emplace_back(LIBMFXHW);
+            libs.emplace_back(modules_dir + "/" + LIBMFXHW);
+            libs.emplace_back(LIBMFXSW);
+            libs.emplace_back(modules_dir + "/" + LIBMFXSW);
+        }
+        else if ((impl & MFX_IMPL_HARDWARE) ||
+                (impl & MFX_IMPL_HARDWARE_ANY))
+        {
+            libs.emplace_back(LIBMFXHW);
+            libs.emplace_back(modules_dir + "/" + LIBMFXHW);
+        }
+        else if (impl & MFX_IMPL_SOFTWARE)
+        {
+            libs.emplace_back(LIBMFXSW);
+            libs.emplace_back(modules_dir + "/" + LIBMFXSW);
+        }
     }
-    else if (impl & MFX_IMPL_SOFTWARE)
+    else
     {
-        libs.emplace_back(LIBMFXSW);
-        libs.emplace_back(modules_dir + "/" + LIBMFXSW);
+        libs.emplace_back(ONEVPLRT);
+        libs.emplace_back(modules_dir + "/" + ONEVPLRT);
     }
 
     for (const std::string& lib : libs)

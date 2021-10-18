@@ -928,7 +928,7 @@ UMC::Status MFX_Utility::DecodeHeader(UMC::TaskSupplier * supplier, UMC::H264Vid
     if (!lpInfo->m_pData->GetDataSize())
         return UMC::UMC_ERR_NOT_ENOUGH_DATA;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
     lpInfo->m_ignore_level_constrain = out->mfx.IgnoreLevelConstrain;
 #endif
     umcRes = supplier->PreInit(lpInfo);
@@ -1087,7 +1087,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
 
         }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
         out->mfx.IgnoreLevelConstrain = in->mfx.IgnoreLevelConstrain;
 #endif
 
@@ -1111,7 +1111,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
         case MFX_LEVEL_AVC_5:
         case MFX_LEVEL_AVC_51:
         case MFX_LEVEL_AVC_52:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
         case MFX_LEVEL_AVC_6:
         case MFX_LEVEL_AVC_61:
         case MFX_LEVEL_AVC_62:
@@ -1339,7 +1339,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                     case MFX_LEVEL_AVC_5:
                     case MFX_LEVEL_AVC_51:
                     case MFX_LEVEL_AVC_52:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
                     case MFX_LEVEL_AVC_6:
                     case MFX_LEVEL_AVC_61:
                     case MFX_LEVEL_AVC_62:
@@ -1439,7 +1439,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                      (videoProcessingTargetIn->Out.CropY <= videoProcessingTargetIn->Out.CropH) &&
                      (videoProcessingTargetIn->Out.CropH <= videoProcessingTargetIn->Out.Height) &&
                      ((videoProcessingTargetIn->Out.CropY + videoProcessingTargetIn->Out.CropH )
-                                                         <= videoProcessingTargetIn->Out.Width) ))
+                                                         <= videoProcessingTargetIn->Out.Height) ))
                     sts = MFX_ERR_UNSUPPORTED;
                 if (MFX_ERR_UNSUPPORTED != sts)
                     *videoProcessingTargetOut = *videoProcessingTargetIn;

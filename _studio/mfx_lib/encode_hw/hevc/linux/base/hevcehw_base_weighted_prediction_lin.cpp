@@ -41,9 +41,15 @@ void Linux::Base::WeightPred::SubmitTask(const FeatureBlocks& /*blocks*/, TPushS
         MFX_CHECK(itPPS != std::end(ddiPar) && itPPS->In.pData, MFX_ERR_UNKNOWN);
 
         auto& ddiPPS    = *(VAEncPictureParameterBufferHEVC*)itPPS->In.pData;
+        const mfxExtCodingOption3& CO3 = ExtBuffer::Get(Glob::VideoParam::Get(global));
+
+        ddiPPS.pic_fields.bits.enable_gpu_weighted_prediction = IsOn(CO3.FadeDetection); // should be set for I as well
         bool bNeedPWT   = (esSlice.type != 2
             && (ddiPPS.pic_fields.bits.weighted_bipred_flag || ddiPPS.pic_fields.bits.weighted_pred_flag));
         MFX_CHECK(bNeedPWT, MFX_ERR_NONE);
+
+        auto& ph    = Glob::PackedHeaders::Get(global);
+        auto  itSSH = ph.SSH.begin();
 
         auto SetPWT = [&](VAEncSliceParameterBufferHEVC& slice)
         {
@@ -51,6 +57,8 @@ void Linux::Base::WeightPred::SubmitTask(const FeatureBlocks& /*blocks*/, TPushS
 
             slice.luma_log2_weight_denom         = (mfxU8)esSlice.luma_log2_weight_denom;
             slice.delta_chroma_log2_weight_denom = (mfxI8)(esSlice.chroma_log2_weight_denom - slice.luma_log2_weight_denom);
+            slice.pred_weight_table_bit_offset   = itSSH->PackInfo.at(PACK_PWTOffset);
+            slice.pred_weight_table_bit_length   = itSSH->PackInfo.at(PACK_PWTLength);
 
             mfxI16 wY = (1 << slice.luma_log2_weight_denom);
             mfxI16 wC = (1 << esSlice.chroma_log2_weight_denom);

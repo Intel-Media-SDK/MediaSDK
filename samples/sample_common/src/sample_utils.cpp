@@ -1497,6 +1497,62 @@ mfxU16 QPFile::Reader::GetCurrentFrameType() const    { return m_FrameVals.at(m_
 mfxU32 QPFile::Reader::GetFramesNum() const           { return m_nFrames; }
 void   QPFile::Reader::NextFrame()                    { ++m_CurFrameNum; }
 
+
+void TCBRCTestFile::Reader::ResetState(ReaderStatus set_sts)
+{
+    m_CurFrameNum = std::numeric_limits<mfxU32>::max();
+    m_ReaderSts = set_sts;
+    m_FrameVals.clear();
+}
+
+mfxStatus TCBRCTestFile::Reader::Read(const msdk_string& strFileName, mfxU32 codecid)
+{
+    m_ReaderSts = READER_ERR_NONE;
+    m_CurFrameNum = 0;
+
+    if (codecid != MFX_CODEC_AVC && codecid != MFX_CODEC_HEVC)
+    {
+        ResetState(READER_ERR_CODEC_UNSUPPORTED);
+        return MFX_ERR_NOT_INITIALIZED;
+    }
+
+    std::ifstream ifs(strFileName, msdk_fstream::in);
+    if (!ifs.is_open())
+    {
+        ResetState(READER_ERR_FILE_NOT_OPEN);
+        return MFX_ERR_NOT_INITIALIZED;
+    }
+
+    FrameInfo   frameInfo{};
+    std::string line;
+
+
+    mfxU32 n = 0;
+    while (TCBRCTestFile::get_line(ifs, line))
+    {
+        frameInfo.displayOrder = TCBRCTestFile::ReadDisplayOrder(line);
+        frameInfo.targetFrameSize = TCBRCTestFile::ReadTargetFrameSize(line);
+        if (frameInfo.displayOrder==0)
+            frameInfo.displayOrder  = n;
+        m_FrameVals.push_back(frameInfo);
+        n++;
+    }
+    return MFX_ERR_NONE;
+}
+std::string TCBRCTestFile::Reader::GetErrorMessage() const { return ReaderStatusToString(m_ReaderSts); }
+mfxU32 TCBRCTestFile::Reader::GetTargetFrameSize(mfxU32 displayOrder) const
+{ 
+    mfxU32 num = (mfxU32)m_FrameVals.size();
+    if (num == 0) return 0;
+    for (mfxU32 i = 0; i < num - 1; i++)
+    {
+        if (m_FrameVals.at(i + 1).displayOrder > displayOrder)
+            return m_FrameVals.at(i).targetFrameSize;
+
+    }
+    return m_FrameVals.at(num - 1).targetFrameSize;
+}
+
 mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* pnFrameRateExtD)
 {
     MSDK_CHECK_POINTER(pnFrameRateExtN, MFX_ERR_NULL_PTR);
@@ -2011,45 +2067,47 @@ mfxVersion getMinimalRequiredVersion(const APIChangeFeatures &features)
 
 bool CheckVersion(mfxVersion* version, msdkAPIFeature feature)
 {
-    if (!version->Major || (version->Major > 1)) {
+    if (!version) {
         return false;
     }
+
+    mfxU32 ver = MakeVersion(version->Major, version->Minor);
 
     switch (feature) {
     case MSDK_FEATURE_NONE:
         return true;
     case MSDK_FEATURE_MVC:
-        if ((version->Major == 1) && (version->Minor >= 3)) {
+        if (ver >= 1003) {
             return true;
         }
         break;
     case MSDK_FEATURE_JPEG_DECODE:
-        if ((version->Major == 1) && (version->Minor >= 3)) {
+        if (ver >= 1003) {
             return true;
         }
         break;
    case MSDK_FEATURE_LOW_LATENCY:
-        if ((version->Major == 1) && (version->Minor >= 3)) {
+        if (ver >= 1003) {
             return true;
         }
         break;
     case MSDK_FEATURE_MVC_VIEWOUTPUT:
-        if ((version->Major == 1) && (version->Minor >= 4)) {
+        if (ver >= 1004) {
             return true;
         }
         break;
     case MSDK_FEATURE_JPEG_ENCODE:
-        if ((version->Major == 1) && (version->Minor >= 6)) {
+        if (ver >= 1006) {
             return true;
         }
         break;
     case MSDK_FEATURE_LOOK_AHEAD:
-        if ((version->Major == 1) && (version->Minor >= 7)) {
+        if (ver >= 1007) {
             return true;
         }
         break;
     case MSDK_FEATURE_PLUGIN_API:
-        if ((version->Major == 1) && (version->Minor >= 8)) {
+        if (ver >= 1008) {
             return true;
         }
         break;

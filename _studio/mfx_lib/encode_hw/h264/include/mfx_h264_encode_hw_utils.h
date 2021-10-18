@@ -37,7 +37,7 @@
 #include "vm_time.h"
 #include "asc.h"
 
-#ifdef MXF_ENABLE_MCTF_IN_AVC
+#ifdef MFX_ENABLE_MCTF_IN_AVC
 #include "cmvm.h"
 #include "mctf_common.h"
 #endif
@@ -51,6 +51,16 @@
 
 #define bRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_EXT)||(RCMethod == MFX_RATECONTROL_LA_HRD))
 #define bIntRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_HRD))
+
+inline constexpr
+bool hasSupportVME(eMFXHWType platform)
+{
+    return
+           (platform <= MFX_HW_ADL_S
+        &&  platform != MFX_HW_JSL
+        &&  platform != MFX_HW_EHL
+        );
+}
 
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000
 
@@ -969,6 +979,11 @@ namespace MfxHwH264Encode
             , m_midRaw(MID_INVALID)
             , m_midRec(MID_INVALID)
             , m_midBit(mfxMemId(MID_INVALID))
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
+            , m_midMCTF(mfxMemId(MID_INVALID))
+            , m_idxMCTF(NO_INDEX)
+            , m_cmMCTF(0)
+#endif
             , m_cmRaw(0)
             , m_cmRawLa(0)
             , m_cmMb(0)
@@ -981,7 +996,6 @@ namespace MfxHwH264Encode
             , m_vmeData(0)
             , m_fwdRef(0)
             , m_bwdRef(0)
-            , m_cmRawForMCTF(0)
             , m_fieldPicFlag(0)
             , m_singleFieldMode(false)
             , m_fieldCounter(0)
@@ -1016,6 +1030,9 @@ namespace MfxHwH264Encode
             , m_hwType(MFX_HW_UNKNOWN)
             , m_TCBRCTargetFrameSize(0)
             , m_SceneChange(0)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
+            , m_doMCTFIntraFiltering(0)
+#endif
             , m_LowDelayPyramidLayer(0)
             , m_frameLtrOff(1)
             , m_frameLtrReassign(0)
@@ -1034,6 +1051,9 @@ namespace MfxHwH264Encode
             Zero(m_ctrl);
             Zero(m_internalListCtrl);
             Zero(m_handleRaw);
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
+            Zero(m_handleMCTF);
+#endif
             Zero(m_fid);
             Zero(m_pwt);
             Zero(m_brcFrameParams);
@@ -1207,7 +1227,12 @@ namespace MfxHwH264Encode
         mfxMemId        m_midRec;       // reconstruction
         Pair<mfxMemId>  m_midBit;       // output bitstream
         mfxHDLPair      m_handleRaw;    // native handle to raw surface (self-allocated or given by app)
-
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
+        mfxMemId        m_midMCTF;
+        mfxHDLPair      m_handleMCTF;   // Handle to MCTF denoised surface
+        mfxU32          m_idxMCTF;
+        CmSurface2D *   m_cmMCTF;
+#endif
         CmSurface2D *   m_cmRaw;        // CM surface made of m_handleRaw
         CmSurface2D *   m_cmRawLa;      // down-sized input surface for Lookahead
         CmBufferUP *    m_cmMb;         // macroblock data, VME kernel output
@@ -1220,8 +1245,6 @@ namespace MfxHwH264Encode
         VmeData *       m_vmeData;
         DdiTask const * m_fwdRef;
         DdiTask const * m_bwdRef;
-
-        CmSurface2D *   m_cmRawForMCTF; // CM surface made of m_handleRaw for MCTF
 
         mfxU8   m_fieldPicFlag;    // true for frames with interlaced content
         bool    m_singleFieldMode; // true for FEI single-field processing mode
@@ -1283,6 +1306,9 @@ namespace MfxHwH264Encode
 #endif
         mfxU32 m_TCBRCTargetFrameSize;
         mfxU32 m_SceneChange;
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
+        mfxU32 m_doMCTFIntraFiltering;
+#endif
         mfxU32 m_LowDelayPyramidLayer;
         mfxU32 m_frameLtrOff;
         mfxU32 m_frameLtrReassign;
@@ -2355,11 +2381,17 @@ public:
         par.DisplayOrder = dispOrder;
         std::vector<mfxExtBuffer*> extParams;
 
-        mfxEncToolsBRCQuantControl extFrameQP;
+        mfxEncToolsBRCQuantControl extFrameQP = {} ;
         extFrameQP.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_QUANT_CONTROL;
         extFrameQP.Header.BufferSz = sizeof(extFrameQP);
 
         extParams.push_back((mfxExtBuffer *)&extFrameQP);
+        
+        mfxEncToolsBRCHRDPos extHRDPos = {};
+        extHRDPos.Header.BufferId = MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS;
+        extHRDPos.Header.BufferSz = sizeof(extHRDPos);
+        extParams.push_back((mfxExtBuffer *)&extHRDPos);
+        
         par.ExtParam = &extParams[0];
         par.NumExtParam = (mfxU16)extParams.size();
 
@@ -2371,6 +2403,10 @@ public:
         frame_ctrl->MaxFrameSize = extFrameQP.MaxFrameSize;
         std::copy(extFrameQP.DeltaQP, extFrameQP.DeltaQP + 8, frame_ctrl->DeltaQP);
         frame_ctrl->MaxNumRepak = extFrameQP.NumDeltaQP;
+        
+        frame_ctrl->InitialCpbRemovalDelay = extHRDPos.InitialCpbRemovalDelay;
+        frame_ctrl->InitialCpbRemovalOffset = extHRDPos.InitialCpbRemovalDelayOffset;
+        
         return sts;
     }
 
@@ -2849,18 +2885,15 @@ private:
         }
 
     protected:
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
         std::shared_ptr<CMC>
             amtMctf;
 
         mfxStatus SubmitToMctf(
-            DdiTask * pTask,
-            bool      isSceneChange,
-            bool      doIntraFiltering
+            DdiTask * pTask
         );
         mfxStatus QueryFromMctf(
-            void *pParam,
-            bool bEoF
+            void *pParam
         );
 #endif
         ASC       amtScd;
@@ -2878,7 +2911,8 @@ private:
         mfxStatus BuildPPyr(
             DdiTask & task,
             mfxU32 pyrWidth,
-            bool bLastFrameUsing);
+            bool bLastFrameUsing,
+            bool bResetPyr);
         void setFrameInfo(DdiTask & task,
             mfxU32    fid);
         void      AssignDecodeTimeStamp(
@@ -3008,6 +3042,7 @@ private:
         mfxU32      m_frameOrderIdrInDisplayOrder;    // frame order of last IDR frame (in display order)
         mfxU32      m_frameOrderIntraInDisplayOrder;  // frame order of last I frame (in display order)
         mfxU32      m_frameOrderIPInDisplayOrder;  // frame order of last I or P frame (in display order)
+        mfxU32      m_frameOrderPyrStart;          // frame order of the first frame of pyramid
         mfxU32      m_miniGopCount;
         mfxU32      m_frameOrderStartTScalStructure; // starting point of temporal scalability structure
 
@@ -3030,6 +3065,9 @@ private:
 
         mfxU32 m_recNonRef[2];
 
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
+        MfxFrameAllocResponse   m_mctf;
+#endif
         MfxFrameAllocResponse   m_scd;
         MfxFrameAllocResponse   m_raw;
         MfxFrameAllocResponse   m_rawSkip;

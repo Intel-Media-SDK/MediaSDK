@@ -148,6 +148,16 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
             break;
         case MFX_FOURCC_RGBP:
             format = VA_RT_FORMAT_RGBP;
+            //  Enable this hint as required for creating RGBP surface for JPEG.
+            if ((memType & MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET)
+                    && (memType & MFX_MEMTYPE_FROM_DECODE))
+            {
+                attrib.resize(attrib.size()+1);
+                attrib[1].type            = VASurfaceAttribUsageHint;
+                attrib[1].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                attrib[1].value.type      = VAGenericValueTypeInteger;
+                attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;
+            }
             break;
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
@@ -568,7 +578,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         break;
 
-    case MFX_FOURCC_AYUV:
+    case VA_FOURCC_AYUV:
         if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
         {
@@ -593,7 +603,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         break;
 
-    case MFX_FOURCC_Y410:
+    case VA_FOURCC_Y410:
         if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
         {
@@ -616,13 +626,6 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 
 #endif
-    case MFX_FOURCC_VP8_SEGMAP:
-        if (mfx_fourcc == MFX_FOURCC_P8)
-        {
-            ptr->Y = p_buffer;
-        }
-        else return MFX_ERR_LOCK_MEMORY;
-        break;
 
     default:
         return MFX_ERR_LOCK_MEMORY;

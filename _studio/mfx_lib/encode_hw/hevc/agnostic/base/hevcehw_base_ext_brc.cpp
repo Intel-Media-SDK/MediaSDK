@@ -23,21 +23,19 @@
 
 #include "hevcehw_base_ext_brc.h"
 #include "mfx_brc_common.h"
-#include "mfx_h265_encode_hw_brc.h"
+#include "hevcehw_base_la_ext_brc.h"
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
 
-namespace VmeBrcWrapper
+namespace LAExtBrcWrapper
 {
-    //TODO: re-implement VMEBrc w/ proper interfaces (remove MfxVideoParam/Task dependencies)
-    using TBRC = MfxHwH265Encode::VMEBrc;
+    using TBRC = LAExtBrc;
 
     static mfxStatus Init(mfxHDL pthis, mfxVideoParam* par)
     {
         MFX_CHECK_NULL_PTR2(pthis, par);
-        MfxHwH265Encode::MfxVideoParam tmpPar(*par, MFX_HW_UNKNOWN);
-        return ((TBRC*)pthis)->Init(tmpPar);
+        return ((TBRC*)pthis)->Init(*par);
     }
     static mfxStatus Close(mfxHDL pthis)
     {
@@ -53,12 +51,7 @@ namespace VmeBrcWrapper
     {
         MFX_CHECK_NULL_PTR3(pthis, par, ctrl);
 
-        //only EncodedOrder is really used by VMEBrc::GetQP
-        MfxHwH265Encode::MfxVideoParam fakePar;
-        MfxHwH265Encode::Task task;
-        task.m_eo = par->EncodedOrder;
-
-        ctrl->QpY = ((TBRC*)pthis)->GetQP(fakePar, task);
+        ctrl->QpY = ((TBRC*)pthis)->GetQP(par->EncodedOrder);
 
         return MFX_ERR_NONE;
     }
@@ -312,12 +305,12 @@ void ExtBRC::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         if (par.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
         {
-            auto sts = VmeBrcWrapper::Create(m_brc);
+            auto sts = LAExtBrcWrapper::Create(m_brc);
             MFX_CHECK_STS(sts);
 
             m_destroy = [this]()
             {
-                VmeBrcWrapper::Destroy(m_brc);
+                LAExtBrcWrapper::Destroy(m_brc);
             };
 
             if (par.mfx.EncodedOrder)
@@ -335,7 +328,7 @@ void ExtBRC::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
                     ThrowIf(!pLAStat, MFX_ERR_NULL_PTR);
 
-                    auto sts = ((VmeBrcWrapper::TBRC*)m_brc.pthis)->SetFrameVMEData(
+                    auto sts = ((LAExtBrcWrapper::TBRC*)m_brc.pthis)->SetFrameVMEData(
                         pLAStat
                         , par.mvp.mfx.FrameInfo.Width
                         , par.mvp.mfx.FrameInfo.Height);

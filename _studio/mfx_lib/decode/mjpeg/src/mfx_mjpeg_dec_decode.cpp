@@ -410,7 +410,12 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
 {
     MFX_CHECK_NULL_PTR2(bs, par);
 
-    MFX_SAFE_CALL(CheckBitstream(bs));
+    mfxStatus sts = CheckBitstream(bs);
+    if (sts != MFX_ERR_NONE)
+    {
+        MFX_CHECK_INIT(sts == MFX_ERR_NULL_PTR);
+        MFX_RETURN(MFX_ERR_NULL_PTR);
+    }
 
     MFXMediaDataAdapter in(bs);
 
@@ -430,39 +435,29 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
     umcVideoParams.lpMemoryAllocator = &tempAllocator;
 
     UMC::Status umcRes = decoder.Init(&umcVideoParams);
-    if (umcRes != UMC::UMC_OK)
-    {
-        return ConvertUMCStatusToMfx(umcRes);
-    }
+    MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
     umcRes = decoder.DecodeHeader(&in);
 
     in.Save(bs);
 
-    if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_DATA)
-        return MFX_ERR_MORE_DATA;
-
-    if (umcRes != UMC::UMC_OK)
-        return ConvertUMCStatusToMfx(umcRes);
+    MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
     mfxVideoParam temp;
 
     umcRes = decoder.FillVideoParam(&temp, false);
-    if (umcRes != UMC::UMC_OK)
-        return ConvertUMCStatusToMfx(umcRes);
+    MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
     if(jpegQT)
     {
         umcRes = decoder.FillQuantTableExtBuf(jpegQT);
-        if (umcRes != UMC::UMC_OK)
-            return ConvertUMCStatusToMfx(umcRes);
+        MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
     }
 
     if(jpegHT)
     {
         umcRes = decoder.FillHuffmanTableExtBuf(jpegHT);
-        if (umcRes != UMC::UMC_OK)
-            return ConvertUMCStatusToMfx(umcRes);
+        MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
     }
 
     decoder.Close();
@@ -482,12 +477,6 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfx
     MFX_CHECK_NULL_PTR2(par, request);
 
     eMFXPlatform platform = MFX_JPEG_Utility::GetPlatform(core, par);
-
-    eMFXHWType type = MFX_HW_UNKNOWN;
-    if (platform == MFX_PLATFORM_HARDWARE)
-    {
-        type = core->GetHWType();
-    }
 
     mfxVideoParam params = *par;
     bool isNeedChangeVideoParamWarning = IsNeedChangeVideoParam(&params);
@@ -598,12 +587,6 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
     }
     else
     {
-        eMFXHWType type = MFX_HW_UNKNOWN;
-        if (platform == MFX_PLATFORM_HARDWARE)
-        {
-            type = core->GetHWType();
-        }
-
         bool needVpp = false;
         if(par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF ||
            par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF)
@@ -857,7 +840,21 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         m_isHeaderFound = false;
         m_isHeaderParsed = false;
 
-        MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
+        try
+        {
+            MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
+        }
+        catch(const UMC::eUMC_Status& sts)
+        {
+            if(sts == UMC::UMC_ERR_INVALID_STREAM)
+            {
+                continue;
+            }
+            else
+            {
+                return ConvertUMCStatusToMfx(sts);
+            }
+        }
     // make sure, that we collected BOTH fields
     } while (picToCollect > numPic);
 
@@ -1060,11 +1057,13 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
         switch (par->mfx.FrameInfo.FourCC)
         {
             case MFX_FOURCC_NV12:
-                if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
+                if  ((par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
                         (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420  ||
                          par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422H ||
                          par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422V ||
-                         par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 ))
+                         par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 )) ||
+                    (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
+                         par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444))
                     return false;
                 else
                     return true;
@@ -1335,8 +1334,7 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
             const short unsigned MHW_SFC_MAX_HEIGHT        = 4096;
             const short unsigned MHW_SFC_MAX_WIDTH         = 4096;
 
-            if ( (MFX_HW_VAAPI == (core->GetVAType())) &&
-                 (MFX_PICSTRUCT_PROGRESSIVE == in->mfx.FrameInfo.PicStruct) &&
+            if ( (MFX_PICSTRUCT_PROGRESSIVE == in->mfx.FrameInfo.PicStruct) &&
                  (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) &&
                  // FtrSFCPipe is not supported on BDW, and there is a known issue on SCL
                  (core->GetHWType() > MFX_HW_SCL) &&
@@ -1775,6 +1773,14 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, const
         default:
             VM_ASSERT(false);
             break;
+        }
+    }
+    else if(info->JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB)
+    {
+        if(info->JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 && info->Rotation == MFX_ROTATION_0)
+        {
+            requestFrameInfo->FourCC = MFX_FOURCC_RGBP;
+            *needVpp = true;
         }
     }
 }

@@ -107,6 +107,7 @@ public:
     mfxStatus ReportGopHints(mfxU32 dispOrder, mfxEncToolsHintPreEncodeGOP const & pGopHints);
     mfxStatus ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp);
     mfxStatus UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFrameSts);
+    mfxStatus GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos);
 
 
 protected:

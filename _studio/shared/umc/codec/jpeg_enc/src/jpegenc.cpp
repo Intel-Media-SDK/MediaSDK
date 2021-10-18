@@ -2112,6 +2112,7 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
 {
   int       cc_h;
   int       srcStep;
+  int       macropixelSize = JD_PIXEL == m_src.order ? m_src.nChannels : 1;
   int       convert = 0;
 
   uint8_t*    pSrc8u  = 0;
@@ -2126,15 +2127,15 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
     cc_h = m_mcuHeight - m_yPadding;
   }
 
-  roi.width  = (maxMCU - colMCU) * 8 * m_ccomp[0].m_hsampling/*m_src.width*/;
+  roi.width  = (maxMCU - colMCU) * m_mcuWidth * m_ccomp[0].m_hsampling/*m_src.width*/;
   roi.height = cc_h;
 
   srcStep = m_src.lineStep[0];
 
   if(m_src.precision <= 8)
-    pSrc8u  =                   m_src.p.Data8u[0]  + rowMCU * m_mcuHeight * srcStep + 8 * colMCU * m_ccomp[0].m_hsampling;
+    pSrc8u  =                       m_src.p.Data8u[0]  + rowMCU * m_mcuHeight * srcStep + m_mcuWidth * colMCU * m_ccomp[0].m_hsampling * macropixelSize;
   else
-    pSrc16u = (uint16_t*)((uint8_t*)m_src.p.Data16s[0] + rowMCU * m_mcuHeight * srcStep + 8 * colMCU * m_ccomp[0].m_hsampling);
+    pSrc16u = (uint16_t*)((uint8_t*)m_src.p.Data16s[0] + rowMCU * m_mcuHeight * srcStep + m_mcuWidth * colMCU * m_ccomp[0].m_hsampling * macropixelSize);
 
   if(m_jpeg_color == JC_UNKNOWN && m_src.color == JC_UNKNOWN)
   {

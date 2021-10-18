@@ -57,6 +57,7 @@ add_definitions( -DMFX_MODULES_DIR="${MFX_MODULES_DIR}" )
 message( STATUS "MFX_MODULES_DIR=${MFX_MODULES_DIR}" )
 
 add_definitions(-DUNIX)
+add_definitions(-DMFX_DEPRECATED_OFF)
 
 if( CMAKE_SYSTEM_NAME MATCHES Linux )
   add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)

@@ -37,7 +37,6 @@ namespace UMC_AV1_DECODER
         : allocator(nullptr)
         , sequence_header(nullptr)
         , counter(0)
-        , Poutput(new AV1DecoderFrame{})
         , Curr(new AV1DecoderFrame{})
         , Curr_temp(new AV1DecoderFrame{})
         , Repeat_show(0)
@@ -45,6 +44,7 @@ namespace UMC_AV1_DECODER
         , frame_order(0)
         , in_framerate(0)
     {
+        outputed_frames.clear();
     }
 
     AV1Decoder::~AV1Decoder()
@@ -52,6 +52,7 @@ namespace UMC_AV1_DECODER
         std::for_each(std::begin(dpb), std::end(dpb),
             std::default_delete<AV1DecoderFrame>()
         );
+        outputed_frames.clear();
     }
 
     inline bool CheckOBUType(AV1_OBU_TYPE type)
@@ -238,8 +239,17 @@ namespace UMC_AV1_DECODER
         if (fh.show_existing_frame)
         {
             pFrame = frameDPB[fh.frame_to_show_map_idx];
+            //Increase referernce here, and will be decreased when
+            //CompleteDecodedFrames not show_frame case.
             pFrame->IncrementReference();
             VM_ASSERT(pFrame);
+
+            //Add one more Reference, and add it into outputted frame list
+            //When QueryFrame finished and update status in outputted frame
+            //list, then it will be released in CompleteDecodedFrames.
+            pFrame->IncrementReference();
+            outputed_frames.push_back(pFrame);
+
             FrameHeader const& refFH = pFrame->GetFrameHeader();
 
             if (!refFH.showable_frame)
@@ -669,19 +679,31 @@ namespace UMC_AV1_DECODER
         if (pPrevFrame && Curr)
         {
             FrameHeader const& FH_OutTemp = Curr->GetFrameHeader();
-            if (Poutput->UID == -1)
+            if (outputed_frames.size() == 0)
             {
-               Poutput = pPrevFrame;
+                outputed_frames.push_back(pPrevFrame);
             }
             else
             {
                 if (Repeat_show || FH_OutTemp.show_frame)
                 {
-                    Poutput ->DecrementReference();
-                    Poutput = Curr;
+                    for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+                    {
+                        AV1DecoderFrame* temp = *iter;
+                        if(temp->Outputted() && temp->Displayed() && !temp->Decoded())
+                        {
+                            temp->DecrementReference();
+                            iter = outputed_frames.erase(iter);
+                        }
+                        else
+                            iter++;
+                    }
+                    outputed_frames.push_back(Curr);
                 }
                 else
                 {
+                    // For no display case, decrease reference here which is increased
+                    // in pFrame->IncrementReference() in show_existing_frame case.
                     Curr->DecrementReference();
                 }
             }

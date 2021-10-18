@@ -110,7 +110,9 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     SafetySurfaceBuffer* pBuffer = NULL;
     mfxU32 BufCounter = 0;
     mfxHDL hdl = NULL;
+    std::vector<mfxHDL> hdls;
     sInputParams    InputParams;
+    bool bNeedToCreateDevice = true;
 
     //parent transcode pipeline
     CTranscodingPipeline *pParentPipeline = NULL;
@@ -125,7 +127,6 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         // There's no error in parameters parsing, but we should not continue further. For instance, in case of -? option
         return sts;
     }
-
 
     // get parameters for each session from parser
     while(m_parser.GetNextSessionParams(InputParams))
@@ -149,146 +150,221 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     }
 #endif
 
+    for (i = 0; i < m_InputParamsArray.size(); i++)
+    {
+        /* In the case of joined sessions, need to create device only for a zero session
+         * In the case of a shared buffer, need to create device only for decode */
+        if ((m_InputParamsArray[i].bIsJoin && i != 0) || m_InputParamsArray[i].eMode == Source)
+            bNeedToCreateDevice = false;
+
 #if defined(_WIN32) || defined(_WIN64)
-    ForceImplForSession(0);
-    if (m_eDevType == MFX_HANDLE_D3D9_DEVICE_MANAGER)
-    {
-        m_pAllocParam.reset(new D3DAllocatorParams);
-        m_hwdev.reset(new CD3D9Device());
-        /* The last param set in vector always describe VPP+ENCODE or Only VPP
-         * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
-        if (m_InputParamsArray[m_InputParamsArray.size() -1].eModeExt == VppCompOnly)
+        ForceImplForSession(i);
+
+        if (m_eDevType == MFX_HANDLE_D3D9_DEVICE_MANAGER)
         {
-            /* Rendering case */
-            sts = m_hwdev->Init(NULL, 1,
-                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
-            m_InputParamsArray[m_InputParamsArray.size() -1].m_hwdev = m_hwdev.get();
+            if (bNeedToCreateDevice)
+            {
+                mfxAllocatorParams* pAllocParam(new D3DAllocatorParams());
+                D3DAllocatorParams* pD3DParams = dynamic_cast<D3DAllocatorParams*>(pAllocParam);
+                std::unique_ptr<CHWDevice> hwdev(new CD3D9Device());
+
+                /* The last param set in vector always describe VPP+ENCODE or Only VPP
+                 * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
+                if (m_InputParamsArray[m_InputParamsArray.size() - 1].eModeExt == VppCompOnly)
+                {
+                    /* Rendering case */
+                    sts = hwdev->Init(NULL, 1,
+                        MSDKAdapter::GetNumber(0, MFX_IMPL_VIA_D3D9 | MFX_IMPL_BASETYPE(m_InputParamsArray[i].libType)));
+                    m_InputParamsArray[m_InputParamsArray.size() - 1].m_hwdev = hwdev.get();
+                }
+                else /* NO RENDERING */
+                {
+                    sts = hwdev->Init(NULL, 0,
+                        MSDKAdapter::GetNumber(0, MFX_IMPL_VIA_D3D9 | MFX_IMPL_BASETYPE(m_InputParamsArray[i].libType)));
+                }
+                MSDK_CHECK_STATUS(sts, "hwdev->Init failed");
+                sts = hwdev->GetHandle(MFX_HANDLE_D3D9_DEVICE_MANAGER, (mfxHDL*)&hdl);
+                MSDK_CHECK_STATUS(sts, "hwdev->GetHandle failed");
+                // set Device Manager to external dx9 allocator
+                pD3DParams->pManager = (IDirect3DDeviceManager9*)hdl;
+
+                m_pAllocParams.push_back(std::shared_ptr<mfxAllocatorParams>(pAllocParam));
+                m_hwdevs.push_back(std::move(hwdev));
+                hdls.push_back(hdl);
+            }
+            else
+            {
+                if (!m_pAllocParams.empty() && !hdls.empty())
+                {
+                    m_pAllocParams.push_back(m_pAllocParams.back());
+                    hdls.push_back(hdls.back());
+                }
+                else
+                {
+                    msdk_printf(MSDK_STRING("error: failed to initialize alloc parameters\n"));
+                    return MFX_ERR_MEMORY_ALLOC;
+                }
+            }
         }
-        else /* NO RENDERING*/
-        {
-            sts = m_hwdev->Init(NULL, 0,
-                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
-        }
-        MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
-        sts = m_hwdev->GetHandle(MFX_HANDLE_D3D9_DEVICE_MANAGER, (mfxHDL*)&hdl);
-        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-        // set Device Manager to external dx9 allocator
-        D3DAllocatorParams *pD3DParams = dynamic_cast<D3DAllocatorParams*>(m_pAllocParam.get());
-        pD3DParams->pManager =(IDirect3DDeviceManager9*)hdl;
-    }
 #if MFX_D3D11_SUPPORT
-    else if (m_eDevType == MFX_HANDLE_D3D11_DEVICE)
-    {
-
-        m_pAllocParam.reset(new D3D11AllocatorParams);
-        m_hwdev.reset(new CD3D11Device());
-        /* The last param set in vector always describe VPP+ENCODE or Only VPP
-         * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
-        if (m_InputParamsArray[m_InputParamsArray.size() -1].eModeExt == VppCompOnly)
+        else if (m_eDevType == MFX_HANDLE_D3D11_DEVICE)
         {
-            /* Rendering case */
-            sts = m_hwdev->Init(NULL, 1,
-                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
-            m_InputParamsArray[m_InputParamsArray.size() -1].m_hwdev = m_hwdev.get();
-        }
-        else /* NO RENDERING*/
-        {
-            sts = m_hwdev->Init(NULL, 0,
-                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
-        }
-        MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
-        sts = m_hwdev->GetHandle(MFX_HANDLE_D3D11_DEVICE, (mfxHDL*)&hdl);
-        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-        // set Device to external dx11 allocator
-        D3D11AllocatorParams *pD3D11Params = dynamic_cast<D3D11AllocatorParams*>(m_pAllocParam.get());
-        pD3D11Params->pDevice =(ID3D11Device*)hdl;
+            if (bNeedToCreateDevice)
+            {
+                mfxAllocatorParams* pAllocParam(new D3D11AllocatorParams());
+                D3D11AllocatorParams* pD3D11Params = dynamic_cast<D3D11AllocatorParams*>(pAllocParam);
+                std::unique_ptr<CHWDevice> hwdev(new CD3D11Device());
 
-        // All sessions use same allocator parameters, so we'll take settings for the 0 session and use it for all
-        // (bSingleTexture is set for all sessions of for no one in VerifyCrossSessionsOptions())
-        pD3D11Params->bUseSingleTexture = m_InputParamsArray[0].bSingleTexture;
+                /* The last param set in vector always describe VPP+ENCODE or Only VPP
+                 * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
+                if (m_InputParamsArray[m_InputParamsArray.size() - 1].eModeExt == VppCompOnly)
+                {
+                    /* Rendering case */
+                    sts = hwdev->Init(NULL, 1,
+                        MSDKAdapter::GetNumber(0, MFX_IMPL_VIA_D3D11 | MFX_IMPL_BASETYPE(m_InputParamsArray[i].libType)));
+                    m_InputParamsArray[m_InputParamsArray.size() - 1].m_hwdev = hwdev.get();
+                }
+                else /* NO RENDERING */
+                {
+                    sts = hwdev->Init(NULL, 0,
+                        MSDKAdapter::GetNumber(0, MFX_IMPL_VIA_D3D11 | MFX_IMPL_BASETYPE(m_InputParamsArray[i].libType)));
+                }
+                MSDK_CHECK_STATUS(sts, "hwdev->Init failed");
+                sts = hwdev->GetHandle(MFX_HANDLE_D3D11_DEVICE, (mfxHDL*)&hdl);
+                MSDK_CHECK_STATUS(sts, "hwdev->GetHandle failed");
 
-    }
+                pD3D11Params->bUseSingleTexture = m_InputParamsArray[i].bSingleTexture;
+                // set Device to external dx11 allocator
+                pD3D11Params->pDevice = (ID3D11Device*)hdl;
+
+                m_pAllocParams.push_back(std::shared_ptr<mfxAllocatorParams>(pAllocParam));
+                m_hwdevs.push_back(std::move(hwdev));
+                hdls.push_back(hdl);
+            }
+            else
+            {
+                if (!m_pAllocParams.empty() && !hdls.empty())
+                {
+                    m_pAllocParams.push_back(m_pAllocParams.back());
+                    hdls.push_back(hdls.back());
+                }
+                else
+                {
+                    msdk_printf(MSDK_STRING("error: failed to initialize alloc parameters\n"));
+                    return MFX_ERR_MEMORY_ALLOC;
+                }
+            }
+        }
 #endif
 #elif defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT) || defined(ANDROID)
-    if (m_eDevType == MFX_HANDLE_VA_DISPLAY)
-    {
-        mfxI32  libvaBackend = 0;
-
-        m_pAllocParam.reset(new vaapiAllocatorParams);
-        vaapiAllocatorParams *pVAAPIParams = dynamic_cast<vaapiAllocatorParams*>(m_pAllocParam.get());
-        /* The last param set in vector always describe VPP+ENCODE or Only VPP
-         * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
-        if (m_InputParamsArray[m_InputParamsArray.size() -1].eModeExt == VppCompOnly)
+        if (m_eDevType == MFX_HANDLE_VA_DISPLAY)
         {
-            sInputParams& params = m_InputParamsArray[m_InputParamsArray.size() -1];
-            libvaBackend = params.libvaBackend;
-
-            /* Rendering case */
-            m_hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath, params.libvaBackend));
-            if(!m_hwdev.get()) {
-                msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
-                return MFX_ERR_DEVICE_FAILED;
-            }
-            sts = m_hwdev->Init(&params.monitorType, 1, MSDKAdapter::GetNumber(0) );
-#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT)
-            if (params.libvaBackend == MFX_LIBVA_DRM_MODESET) {
-                CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(m_hwdev.get());
-                pVAAPIParams->m_export_mode = vaapiAllocatorParams::CUSTOM_FLINK;
-                pVAAPIParams->m_exporter = dynamic_cast<vaapiAllocatorParams::Exporter*>(drmdev->getRenderer());
-
-            }
-            else if (params.libvaBackend == MFX_LIBVA_X11)
+            if (bNeedToCreateDevice)
             {
-                pVAAPIParams->m_export_mode = vaapiAllocatorParams::PRIME;
-            }
+                mfxI32  libvaBackend = 0;
+                mfxAllocatorParams* pAllocParam(new vaapiAllocatorParams);
+                std::unique_ptr<CHWDevice> hwdev;
+
+                vaapiAllocatorParams* pVAAPIParams = dynamic_cast<vaapiAllocatorParams*>(pAllocParam);
+                /* The last param set in vector always describe VPP+ENCODE or Only VPP
+                 * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
+                if (m_InputParamsArray[m_InputParamsArray.size() - 1].eModeExt == VppCompOnly)
+                {
+                    sInputParams& params = m_InputParamsArray[m_InputParamsArray.size() - 1];
+                    libvaBackend = params.libvaBackend;
+
+                    /* Rendering case */
+                    hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath, params.libvaBackend));
+                    if (!hwdev.get()) {
+                        msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
+                        return MFX_ERR_DEVICE_FAILED;
+                    }
+                    sts = hwdev->Init(&params.monitorType, 1, MSDKAdapter::GetNumber(0));
+#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT)
+                    if (params.libvaBackend == MFX_LIBVA_DRM_MODESET) {
+                        CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(hwdev.get());
+                        pVAAPIParams->m_export_mode = vaapiAllocatorParams::CUSTOM_FLINK;
+                        pVAAPIParams->m_exporter = dynamic_cast<vaapiAllocatorParams::Exporter*>(drmdev->getRenderer());
+                    }
+                    else if (params.libvaBackend == MFX_LIBVA_X11)
+                    {
+                        pVAAPIParams->m_export_mode = vaapiAllocatorParams::PRIME;
+                    }
 #endif
 #if defined(LIBVA_WAYLAND_SUPPORT)
-            else if (params.libvaBackend == MFX_LIBVA_WAYLAND) {
-                VADisplay va_dpy = NULL;
-                sts = m_hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL *)&va_dpy);
-                MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-                hdl = pVAAPIParams->m_dpy =(VADisplay)va_dpy;
+                    else if (params.libvaBackend == MFX_LIBVA_WAYLAND) {
+                        VADisplay va_dpy = NULL;
+                        sts = hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL*)&va_dpy);
+                        MSDK_CHECK_STATUS(sts, "hwdev->GetHandle failed");
+                        hdl = pVAAPIParams->m_dpy = (VADisplay)va_dpy;
 
-                CVAAPIDeviceWayland* w_dev = dynamic_cast<CVAAPIDeviceWayland*>(m_hwdev.get());
-                if (!w_dev)
-                {
-                    MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
-                }
-                Wayland *wld = w_dev->GetWaylandHandle();
-                if (!wld)
-                {
-                    MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
-                }
+                        CVAAPIDeviceWayland* w_dev = dynamic_cast<CVAAPIDeviceWayland*>(hwdev.get());
+                        if (!w_dev)
+                        {
+                            MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+                        }
+                        Wayland* wld = w_dev->GetWaylandHandle();
+                        if (!wld)
+                        {
+                            MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+                        }
 
-                wld->SetRenderWinPos(params.nRenderWinX, params.nRenderWinY);
-                wld->SetPerfMode(params.bPerfMode);
+                        wld->SetRenderWinPos(params.nRenderWinX, params.nRenderWinY);
+                        wld->SetPerfMode(params.bPerfMode);
 
-                pVAAPIParams->m_export_mode = vaapiAllocatorParams::PRIME;
-            }
+                        pVAAPIParams->m_export_mode = vaapiAllocatorParams::PRIME;
+                    }
 #endif // LIBVA_WAYLAND_SUPPORT
-            params.m_hwdev = m_hwdev.get();
-        }
-        else /* NO RENDERING*/
-        {
-            m_hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath));
-            if(!m_hwdev.get()) {
-                msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
-                return MFX_ERR_DEVICE_FAILED;
+                    params.m_hwdev = hwdev.get();
+                }
+                else /* NO RENDERING*/
+                {
+                    hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath));
+
+                    if (!hwdev.get()) {
+                        msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
+                        return MFX_ERR_DEVICE_FAILED;
+                    }
+                    sts = hwdev->Init(NULL, 0, MSDKAdapter::GetNumber(0));
+                }
+                if (libvaBackend != MFX_LIBVA_WAYLAND) {
+                    MSDK_CHECK_STATUS(sts, "hwdev->Init failed");
+                    sts = hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL*)&hdl);
+                    MSDK_CHECK_STATUS(sts, "hwdev->GetHandle failed");
+                    // set Device to external vaapi allocator
+                    pVAAPIParams->m_dpy = (VADisplay)hdl;
+                }
+
+                m_pAllocParams.push_back(std::shared_ptr<mfxAllocatorParams>(pAllocParam));
+                m_hwdevs.push_back(std::move(hwdev));
+                hdls.push_back(hdl);
             }
-            sts = m_hwdev->Init(NULL, 0, MSDKAdapter::GetNumber(0));
+            else
+            {
+                if (!m_pAllocParams.empty() && !hdls.empty())
+                {
+                    m_pAllocParams.push_back(m_pAllocParams.back());
+                    hdls.push_back(hdls.back());
+                }
+                else
+                {
+                    msdk_printf(MSDK_STRING("error: failed to initialize alloc parameters\n"));
+                    return MFX_ERR_MEMORY_ALLOC;
+                }
+            }
         }
-        if (libvaBackend != MFX_LIBVA_WAYLAND) {
-        MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
-        sts = m_hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL*)&hdl);
-        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-        // set Device to external vaapi allocator
-        pVAAPIParams->m_dpy =(VADisplay)hdl;
-    }
-    }
 #endif
-    if (!m_pAllocParam.get())
+    }
+    if (m_pAllocParams.empty())
     {
-        m_pAllocParam.reset(new SysMemAllocatorParams);
+        m_pAllocParams.push_back(std::shared_ptr<mfxAllocatorParams>(new SysMemAllocatorParams));
+        hdls.push_back(NULL);
+
+        for (i = 1; i < m_InputParamsArray.size(); i++)
+        {
+            m_pAllocParams.push_back(m_pAllocParams.back());
+            hdls.push_back(NULL);
+        }
     }
 
     // each pair of source and sink has own safety buffer
@@ -318,7 +394,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     {
         msdk_printf(MSDK_STRING("Session %d:\n"), i);
         std::unique_ptr<GeneralAllocator> pAllocator(new GeneralAllocator);
-        sts = pAllocator->Init(m_pAllocParam.get());
+        sts = pAllocator->Init(m_pAllocParams[i].get());
         MSDK_CHECK_STATUS(sts, "pAllocator->Init failed");
 
         m_pAllocArray.push_back(std::move(pAllocator));
@@ -371,11 +447,14 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetReader failed");
         }
 
-        std::unique_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
-        sts = writer->Init(m_InputParamsArray[i].strDstFile);
+        if (msdk_strncmp(MSDK_STRING("null"), m_InputParamsArray[i].strDstFile, msdk_strlen(MSDK_STRING("null"))))
+        {
+            std::unique_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
+            sts = writer->Init(m_InputParamsArray[i].strDstFile);
 
-        sts = m_pExtBSProcArray.back()->SetWriter(writer);
-        MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetWriter failed");
+            sts = m_pExtBSProcArray.back()->SetWriter(writer);
+            MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetWriter failed");
+        }
 
         if (Sink == m_InputParamsArray[i].eMode)
         {
@@ -430,7 +509,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
 #endif
             sts = pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
                                                    m_pAllocArray[i].get(),
-                                                   hdl,
+                                                   hdls[i],
                                                    pSinkPipeline,
                                                    pBuffer,
                                                    m_pExtBSProcArray.back().get());
@@ -445,7 +524,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
 #endif
             sts =  pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
                                                     m_pAllocArray[i].get(),
-                                                    hdl,
+                                                    hdls[i],
                                                     pParentPipeline,
                                                     pBuffer,
                                                     m_pExtBSProcArray.back().get());
@@ -1140,6 +1219,8 @@ void Launcher::Close()
     m_pAllocArray.clear();
     m_pBufferArray.clear();
     m_pExtBSProcArray.clear();
+    m_pAllocParams.clear();
+    m_hwdevs.clear();
 
 } // void Launcher::Close()
 

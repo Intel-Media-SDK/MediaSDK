@@ -98,6 +98,8 @@ void handle_done(void *data, struct wl_callback *callback, uint32_t time)
 
 void buffer_release(void *data, struct wl_buffer *buffer)
 {
+    Wayland *wayland = static_cast<Wayland*>(data);
+    wayland->RemoveBufferFromList(buffer);
     wl_buffer_destroy(buffer);
     buffer = NULL;
 }

@@ -17,7 +17,7 @@ The sample is able to work with **HEVC Decoder & Encoder** \(hereinafter referre
 
 |Format type| |
 |---|---|
-| input \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, VC-1, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\), VP8 |
+| input \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, VC-1, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\), VP8, AV1 |
 | output \(uncompressed\) | YUV420 |
 
 **Note 2: Decoding Sample** renders the decoded video stream to a file in YUV 4:2:0 sampling format, with the color planes Y, U and V in that order.
@@ -42,7 +42,7 @@ The executable file requires the following command-line switches to function pro
 
 | Option | Description |
 |---|---|
-| h265\|h264\|mpeg2\|vc1\|vp8\|mvc\|jpeg |Input video type. This is an elementary video stream. The use of option h265 is possible only if corresponding plugins are installed. |
+| h265\|h264\|mpeg2\|vc1\|vp8\|mvc\|jpeg\|av1 |Input video type. This is an elementary video stream. The use of option h265 is possible only if corresponding plugins are installed. |
 | -i <InputFile\> | Input \(compressed\) video file, name and path. |
 | -o <Output\> | Specifies output \(YUV\) video file\(s\), name and path. With MVC, specify the file name without extension to use as a pattern. The sample creates several output files with names such as “filename\_N.yuv” according to the number of views in the MVC stream. |
 
@@ -55,13 +55,15 @@ The following command-line switches are optional:
  | [-sw] | use software implementation, if not specified platform specific SDK implementation is used|
    |[-p plugin] | decoder plugin. Supported values: hevcd_sw, hevcd_hw, vp8d_hw, vp9d_hw, camera_hw, capture_hw|
   | [-path path]| path to plugin (valid only in pair with -p option) (optional for Media SDK in-box plugins, required for user-decoder ones)|
- |  [-f]| rendering framerate|
+  | [-fps]| limits overall fps of pipeline|
   | [-w]| output width|
   | [-h]| output height|
-   |[-di bob/adi] | enable deinterlacing BOB/ADI|
- |  [-d]| enable decode error report|
+  | [-di bob/adi] | enable deinterlacing BOB/ADI|
+  | [-scaling_mode]| specify scaling mode (lowpower/quality) for VPP|
+  | [-d] | enable decode error report|
    |[-jpeg_rgb] |RGB Chroma Type|
    |[-device /path/to/device]| set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
+  | [-ignore_level_constrain] | ignore level constrain (AVC) |
 |Output format parameters:||
  |  [-i420] | pipeline output format: NV12, output file format: I420|
   | [-nv12] | pipeline output format: NV12, output file format: NV12|

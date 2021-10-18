@@ -107,7 +107,6 @@ typedef struct {
     { 0x0D06, MFX_HW_HSW, MFX_GT1 },   /* CRW GT1 mobile */
     { 0x0D16, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 mobile */
     { 0x0D26, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 mobile */
-    /* this dev IDs added per HSD 5264859 request  */
     { 0x040B, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_B_GT1 *//* Reserved */
     { 0x041B, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_B_GT2*/
     { 0x042B, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_B_GT3*/
@@ -387,6 +386,17 @@ typedef struct {
     { 0x4C8B, MFX_HW_RKL, MFX_GT1 },
     { 0x4C90, MFX_HW_RKL, MFX_GT1 },
     { 0x4C9A, MFX_HW_RKL, MFX_GT1 },
+
+    /* ADL */
+    { 0x4600, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4680, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4681, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4683, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4690, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4691, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4693, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4698, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4699, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
 };
 
 /* END: IOCTLs definitions */
@@ -548,7 +558,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             * to get device ID and find out platform type
             */
             const auto devItem = getDeviceItem(m_Display);
-            MFX_CHECK_WITH_ASSERT(MFX_HW_UNKNOWN != devItem.platform, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(MFX_HW_UNKNOWN != devItem.platform, MFX_ERR_DEVICE_FAILED);
 
             m_HWType         = devItem.platform;
             m_GTConfig       = devItem.config;

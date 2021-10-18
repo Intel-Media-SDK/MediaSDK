@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2020-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -139,6 +139,11 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
     std::unique_lock<std::mutex> closeGuard(m_closeMtx);
     auto pBs = GetBS(inTask);
     MFX_CHECK(pBs, MFX_ERR_NONE);
+    if (m_bPostponeQuery) // wait for the subsequent task to restore parallel submission
+    {
+        m_bPostponeQuery = false;
+        return MFX_ERR_NONE;
+    }
 
     StorageRW* pTask        = nullptr;
     StorageRW* pPrevRecode  = nullptr;
@@ -208,6 +213,11 @@ mfxStatus TaskManager::TaskQuery(StorageW& inTask)
 
     MoveTask(Stage(S_QUERY), Stage(S_NEW), FixedTask(*pTask));
 
+    if (m_nRecodeTasks) // when some task is left in submit stage w/o being moved to the next stage
+    {
+        m_bPostponeQuery = true; // repeat async cycle w/ same parameters except query stage to resubmit the task
+        return MFX_TASK_WORKING;
+    }
     return MFX_ERR_NONE;
 }
 

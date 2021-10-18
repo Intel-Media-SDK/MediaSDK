@@ -384,12 +384,10 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
         }
         else
         {
-            bool isDefaultPlugin = false;
             if (AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
             {
                 mfxIMPL impl = pParams->bUseHWLib ? MFX_IMPL_HARDWARE : MFX_IMPL_SOFTWARE;
                 pParams->pluginParams.pluginGuid = msdkGetPluginUID(impl, MSDK_VENCODE, pParams->CodecId);
-                isDefaultPlugin = true;
             }
             if (!AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
             {
@@ -417,8 +415,8 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
     // MVC specific options
     if (MVC_ENABLED & m_MVCflags)
     {
-        sts = AllocateExtMVCBuffers();
-        MSDK_CHECK_STATUS(sts, "AllocAndInitMVCSeqDesc failed");
+        auto mvcBuffer = m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+        InitExtMVCBuffers(mvcBuffer);
     }
 
     // create encoder

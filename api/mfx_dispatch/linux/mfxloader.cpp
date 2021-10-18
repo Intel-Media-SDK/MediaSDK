@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,8 @@
 
 #include "mfxloader.h"
 
+#include "device_ids.h"
+
 namespace MFX {
 
 #if defined(__i386__)
@@ -44,6 +46,7 @@ namespace MFX {
     #else
         #define LIBMFXSW "libmfxsw32.so.1"
         #define LIBMFXHW "libmfxhw32.so.1"
+        #define ONEVPLRT "libmfx-gen.so.1.2"
     #endif
 #elif defined(__x86_64__)
     #ifdef ANDROID
@@ -52,6 +55,7 @@ namespace MFX {
     #else
         #define LIBMFXSW "libmfxsw64.so.1"
         #define LIBMFXHW "libmfxhw64.so.1"
+        #define ONEVPLRT "libmfx-gen.so.1.2"
     #endif
 #else
     #error Unsupported architecture
@@ -177,23 +181,38 @@ mfxStatus LoaderCtx::Init(mfxInitParam& par)
     return MFX_ERR_UNSUPPORTED;
   }
 
+  eMFXHWType platform = MFX_HW_UNKNOWN;
+  auto devices = get_devices();
+  if (devices.size()) {
+    platform = devices[devices.size() - 1].platform;
+  }
+
   std::vector<std::string> libs;
 
-  if (MFX_IMPL_BASETYPE(par.Implementation) == MFX_IMPL_AUTO ||
-      MFX_IMPL_BASETYPE(par.Implementation) == MFX_IMPL_AUTO_ANY) {
-    libs.emplace_back(LIBMFXHW);
-    libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXHW);
-    libs.emplace_back(LIBMFXSW);
-    libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXSW);
-  } else if (par.Implementation & MFX_IMPL_HARDWARE ||
-             par.Implementation & MFX_IMPL_HARDWARE_ANY) {
-    libs.emplace_back(LIBMFXHW);
-    libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXHW);
-  } else if (par.Implementation & MFX_IMPL_SOFTWARE) {
-    libs.emplace_back(LIBMFXSW);
-    libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXSW);
+  const char *selected_runtime = getenv("INTEL_MEDIA_RUNTIME");
+  if (selected_runtime && strcmp(selected_runtime, "ONEVPL") == 0) {
+    libs.emplace_back(ONEVPLRT);
+    libs.emplace_back(MFX_MODULES_DIR "/" ONEVPLRT);
+  } else if ((selected_runtime && strcmp(selected_runtime, "MSDK") == 0) || (platform != MFX_HW_UNKNOWN)) {
+    if (MFX_IMPL_BASETYPE(par.Implementation) == MFX_IMPL_AUTO ||
+        MFX_IMPL_BASETYPE(par.Implementation) == MFX_IMPL_AUTO_ANY) {
+      libs.emplace_back(LIBMFXHW);
+      libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXHW);
+      libs.emplace_back(LIBMFXSW);
+      libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXSW);
+    } else if (par.Implementation & MFX_IMPL_HARDWARE ||
+              par.Implementation & MFX_IMPL_HARDWARE_ANY) {
+      libs.emplace_back(LIBMFXHW);
+      libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXHW);
+    } else if (par.Implementation & MFX_IMPL_SOFTWARE) {
+      libs.emplace_back(LIBMFXSW);
+      libs.emplace_back(MFX_MODULES_DIR "/" LIBMFXSW);
+    } else {
+      return MFX_ERR_UNSUPPORTED;
+    }
   } else {
-    return MFX_ERR_UNSUPPORTED;
+    libs.emplace_back(ONEVPLRT);
+    libs.emplace_back(MFX_MODULES_DIR "/" ONEVPLRT);
   }
 
   mfxStatus mfx_res = MFX_ERR_UNSUPPORTED;
@@ -429,10 +448,24 @@ mfxStatus MFXClose(mfxSession session)
   }
 }
 
+static inline bool IsEmbeddedPlugin(const mfxPluginUID *uid)
+{
+  return (
+    *uid == MFX_PLUGINID_HEVCD_HW ||
+    *uid == MFX_PLUGINID_HEVCE_HW ||
+    *uid == MFX_PLUGINID_VP8D_HW ||
+    *uid == MFX_PLUGINID_VP8E_HW ||
+    *uid == MFX_PLUGINID_VP9D_HW ||
+    *uid == MFX_PLUGINID_VP9E_HW);
+}
+
 mfxStatus MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 version)
 {
   if (!session) return MFX_ERR_INVALID_HANDLE;
   if (!uid) return MFX_ERR_NULL_PTR;
+  if (IsEmbeddedPlugin(uid)) {
+    return MFX_ERR_NONE;
+  }
 
   try {
     MFX::LoaderCtx* loader = (MFX::LoaderCtx*)session;
@@ -474,6 +507,9 @@ mfxStatus MFXVideoUSER_LoadByPath(mfxSession session, const mfxPluginUID *uid, m
 {
   if (!session) return MFX_ERR_INVALID_HANDLE;
   if (!uid) return MFX_ERR_NULL_PTR;
+  if (IsEmbeddedPlugin(uid)) {
+    return MFX_ERR_NONE;
+  }
 
   try {
     MFX::LoaderCtx* loader = (MFX::LoaderCtx*)session;
@@ -487,6 +523,9 @@ mfxStatus MFXVideoUSER_UnLoad(mfxSession session, const mfxPluginUID *uid)
 {
   if (!session) return MFX_ERR_INVALID_HANDLE;
   if (!uid) return MFX_ERR_NULL_PTR;
+  if (IsEmbeddedPlugin(uid)) {
+    return MFX_ERR_NONE;
+  }
 
   try {
     MFX::LoaderCtx* loader = (MFX::LoaderCtx*)session;

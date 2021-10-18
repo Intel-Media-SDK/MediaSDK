@@ -53,7 +53,6 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         caps.BlockSize                  = 2;
         caps.MbQpDataSupport            = 1;
         caps.TUSupport                  = 73;
-        caps.SliceStructure             = 4;
         caps.ParallelBRC                = bLP ? 0 : 1;
 
         caps.MaxEncodedBitDepth |= (!caps.BitDepth8Only);
@@ -253,6 +252,7 @@ void AddVaMiscHRD(
 void AddVaMiscRC(
     const Glob::VideoParam::TRef& par
     , const Glob::PPS::TRef& bs_pps
+    , const Task::Common::TRef & task
     , std::list<std::vector<mfxU8>>& buf
     , bool bResetBRC = false)
 {
@@ -281,12 +281,29 @@ void AddVaMiscRC(
         && (CO2.BRefType == MFX_B_REF_PYRAMID);
 #endif //PARALLEL_BRC_support
 
-    rc.ICQ_quality_factor = uint32_t((!IsOn(par.mfx.LowPower)) * (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ) * par.mfx.ICQQuality);
+    rc.ICQ_quality_factor = uint32_t((par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ) * par.mfx.ICQQuality);
     rc.initial_qp = bs_pps.init_qp_minus26 + 26;
 
     //  MBBRC control
     // Control VA_RC_MB 0: default, 1: enable, 2: disable, other: reserved
     rc.rc_flags.bits.mb_rate_control = IsOn(CO2.MBBRC) + IsOff(CO2.MBBRC) * 2;
+
+    // TCBRC control
+#if VA_CHECK_VERSION(1, 10, 0)
+    rc.target_frame_size = task.TCBRCTargetFrameSize;
+#endif
+
+    if (IsOn(par.mfx.LowPower) && (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP))
+    {
+        const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+        rc.min_qp = task.m_minQP - 6*(CO3.TargetBitDepthLuma - 8);
+        if ((rc.min_qp < 0) || (rc.min_qp > 51))
+            rc.min_qp = 1;
+
+        rc.max_qp = task.m_maxQP - 6*(CO3.TargetBitDepthLuma - 8);
+        if ((rc.max_qp < 0) || (rc.max_qp > 51))
+            rc.max_qp = 51;
+    }
 
 #ifdef MFX_ENABLE_QVBR
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
@@ -373,6 +390,16 @@ void AddVaMiscQualityParams(
     quality_param.PanicModeDisable = IsOff(CO3.BRCPanicMode);
 }
 
+void AddVaMiscMaxSliceSize(
+    const Glob::VideoParam::TRef& par
+    , std::list<std::vector<mfxU8>>& buf)
+{
+    const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
+    auto& maxSliceSize_param = AddVaMisc<VAEncMiscParameterMaxSliceSize>(VAEncMiscParameterTypeMaxSliceSize, buf);
+
+    maxSliceSize_param.max_slice_size = CO2.MaxSliceSize;
+}
+
 void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize)
 {
     mfxU32 blkSz   = 8 << blockSize;
@@ -446,6 +473,7 @@ void UpdatePPS(
     pps.decoded_curr_pic.picture_id     = rec.at(task.Rec.Idx);
     pps.decoded_curr_pic.pic_order_cnt  = task.POC;
     pps.decoded_curr_pic.flags          = 0;
+    pps.nal_unit_type                   = task.SliceNUT;
 
     auto pDpbBegin = task.DPB.Active;
     auto pDpbEnd   = task.DPB.Active + Size(task.DPB.Active);
@@ -513,6 +541,7 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         const auto& par     = Glob::VideoParam::Get(strg);
         const auto& bs_pps  = Glob::PPS::Get(strg);
+        const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
 
         auto& cc = CC::GetOrConstruct(strg);
         cc.InitSPS(strg, m_sps);
@@ -532,15 +561,6 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
                 return true;
             });
         }
-        cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_pps](
-            VAPacker::CallChains::TAddMiscData::TExt
-            , const StorageR& strg
-            , const StorageR& local
-            , std::list<std::vector<mfxU8>>& data)
-        {
-            AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData);
-            return true;
-        });
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeParallelBRC].Push([this, &par](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
@@ -577,6 +597,18 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
             return true;
         });
+        if (CO2.MaxSliceSize)
+        {
+	        cc.AddPerSeqMiscData[VAEncMiscParameterTypeMaxSliceSize].Push([this, &par](
+		    VAPacker::CallChains::TAddMiscData::TExt
+		    , const StorageR&
+		    , const StorageR&
+		    , std::list<std::vector<mfxU8>>& data)
+	        {
+		        AddVaMiscMaxSliceSize(par, m_vaPerSeqMiscData);
+		        return true;
+	        });
+        }
 
         auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
         auto& bsInfo    = Glob::AllocBS::Get(strg);
@@ -659,6 +691,40 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
             return false;
         });
+	cc.AddPerPicMiscData[VAEncMiscParameterTypeRateControl].Push([this](
+            CallChains::TAddMiscData::TExt
+            , const StorageR& global
+            , const StorageR& s_task
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            const auto& par    = Glob::VideoParam::Get(global);
+            const auto& bs_pps = Glob::PPS::Get(global);
+            auto& task = Task::Common::Get(s_task);
+
+            AddVaMiscRC(par, bs_pps, task, data, !!(m_resetHintFlags & RF_BRC_RESET));
+            return true;
+        });
+	cc.AddPerPicMiscData[VAEncMiscParameterTypeRIR].Push([](
+                VAPacker::CallChains::TAddMiscData::TExt
+                , const StorageR&
+                , const StorageR& s_task
+                , std::list<std::vector<mfxU8>>& data)
+        {
+
+	     auto& task = Task::Common::Get(s_task);
+
+	     if (task.IRState.refrType)
+	     {
+                 auto& vaRIR = AddVaMisc<VAEncMiscParameterRIR>(VAEncMiscParameterTypeRIR, data);
+                 vaRIR.rir_flags.value = task.IRState.refrType;
+                 vaRIR.intra_insertion_location = task.IRState.IntraLocation;
+                 vaRIR.intra_insert_size = task.IRState.IntraSize;
+                 vaRIR.qp_delta_for_inserted_intra = mfxU8(task.IRState.IntRefQPDelta);
+                 return true;
+	     }
+
+	     return false;
+        });
 
         return MFX_ERR_NONE;
     });
@@ -671,9 +737,13 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
     {
         const auto& par = Glob::VideoParam::Get(strg);
         const auto& bs_pps = Glob::PPS::Get(strg);
+        const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
 
         auto& cc = CC::GetOrConstruct(strg);
         cc.InitSPS(strg, m_sps);
+
+        const auto& reset_hint = Glob::ResetHint::Get(strg);
+        m_resetHintFlags = reset_hint.Flags;
 
         InitPPS(par, bs_pps, m_pps);
         InitSSH(par, Glob::SliceInfo::Get(strg), m_slices);
@@ -692,15 +762,6 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
                 return true;
             });
         }
-        cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_pps](
-            VAPacker::CallChains::TAddMiscData::TExt
-            , const StorageR& strg
-            , const StorageR& local
-            , std::list<std::vector<mfxU8>>& data)
-        {
-            AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData, !!(Glob::ResetHint::Get(strg).Flags & RF_BRC_RESET));
-            return true;
-        });
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeParallelBRC].Push([this, &par](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
@@ -737,6 +798,18 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
             AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
             return true;
         });
+        if (CO2.MaxSliceSize)
+        {
+	        cc.AddPerSeqMiscData[VAEncMiscParameterTypeMaxSliceSize].Push([this, &par](
+		    VAPacker::CallChains::TAddMiscData::TExt
+		    , const StorageR&
+		    , const StorageR&
+		    , std::list<std::vector<mfxU8>>& data)
+	        {
+		        AddVaMiscMaxSliceSize(par, m_vaPerSeqMiscData);
+		        return true;
+	        });
+        }
 
         auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
         vaInitPar.clear();
@@ -901,27 +974,6 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         {
             AddPackedHeaderIf(true, pd, par, VAEncPackedHeaderHEVC_Slice);
         });
-
-        if (task.IRState.refrType)
-        {
-            cc.AddPerPicMiscData[VAEncMiscParameterTypeRIR].Push([](
-                VAPacker::CallChains::TAddMiscData::TExt
-                , const StorageR&
-                , const StorageR& s_task
-                , std::list<std::vector<mfxU8>>& data)
-            {
-                auto& vaRIR = AddVaMisc<VAEncMiscParameterRIR>(VAEncMiscParameterTypeRIR, data);
-
-                auto& task = Task::Common::Get(s_task);
-
-                vaRIR.rir_flags.value = task.IRState.refrType;
-                vaRIR.intra_insertion_location = task.IRState.IntraLocation;
-                vaRIR.intra_insert_size = task.IRState.IntraSize;
-                vaRIR.qp_delta_for_inserted_intra = mfxU8(task.IRState.IntRefQPDelta);
-
-                return true;
-            });
-        }
 
         for (auto& AddMisc : cc.AddPerPicMiscData)
         {

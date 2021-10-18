@@ -34,6 +34,7 @@ VP9MfxVideoParam::VP9MfxVideoParam()
     , m_initialDelayInKb(0)
     , m_segBufPassed(false)
     , m_tempLayersBufPassed(false)
+    , m_webRTCMode(false)
     , m_numLayers(0)
 {
     Zero(m_layerParam);
@@ -208,6 +209,10 @@ void VP9MfxVideoParam::Construct(mfxVideoParam const & par)
         m_tempLayersBufPassed = true;
     }
 
+    m_webRTCMode = false;
+    if (m_tempLayersBufPassed && m_extOpt3.ScenarioInfo == MFX_SCENARIO_VIDEO_CONFERENCE)
+        m_webRTCMode = true;
+	
     m_extParam[0] = &m_extPar.Header;
     m_extParam[1] = &m_extOpaque.Header;
     m_extParam[2] = &m_extOpt2.Header;
@@ -315,7 +320,7 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
     frameParam.qIndexDeltaChromaAC = static_cast<mfxI8>(extPar.QIndexDeltaChromaAC);
     frameParam.qIndexDeltaChromaDC = static_cast<mfxI8>(extPar.QIndexDeltaChromaDC);
 
-    frameParam.errorResilentMode = 0;
+    frameParam.errorResilentMode = par.m_webRTCMode ? 1 : 0;
 
     mfxExtCodingOption2 const & opt2 = GetExtBufferRef(par);
     if (IsOn(opt2.MBBRC))
@@ -386,7 +391,8 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
     frameParam.nextTemporalLayer = CalcTemporalLayerIndex(par, task.m_frameOrderInGop + 1);
 
     if (!IsOff(extDdi.SuperFrameForTS) && par.m_numLayers &&
-        frameParam.temporalLayer != frameParam.nextTemporalLayer)
+        frameParam.temporalLayer != frameParam.nextTemporalLayer
+        && !par.m_webRTCMode)
     {
         frameParam.showFrame = 0;
     }
@@ -526,6 +532,26 @@ mfxStatus DecideOnRefListAndDPBRefresh(
         for (mfxU32 i = 0; i <= frameParam.temporalLayer && i <= lastRefLayer; i++)
         {
             FOs.emplace(dpb[i]->frameOrder, i);
+        }
+
+        if (par.m_webRTCMode)
+        {
+            // limit Picture Group to 8 frames
+            static mfxU32 zeroLevelCounter = 0;
+            if (frameParam.temporalLayer == 0) zeroLevelCounter++; // each time we get frame with TL id = 0, zeroLevelCounter increases
+
+            // To limit PG to 8 frames (means 9 and next frames could not reffer to frames previous to 8 frame), we need to delete last reference that comes after 8's frame
+            // For 3 TL case, TL pattern for first 8 frames would be 0212 0212. Zero-level is present here 2 times -> multiplier = 2.
+            // For 2 TL case, TL pattern for first 8 frames would be 0101 0101. Zero-level is present here 4 times -> multiplier = 4.
+            // Getting zeroLevelCounter divided by specific multiplier, we could make a decision that PG is ended and now we can erase reference: 
+
+            mfxU8 multiplier = par.m_numLayers == 3 ? 2 : 4;
+
+            if (zeroLevelCounter % multiplier == 0)
+            {
+                auto it = FOs.begin();
+                FOs.erase(it);
+            }
         }
 
         std::map<mfxU32, mfxU32>::reverse_iterator closest = FOs.rbegin();
@@ -832,23 +858,16 @@ mfxStatus CopyRawSurfaceToVideoMemory(
         mfxFrameSurface1 *pDd3dSurf = task.m_pRawLocalFrame->pSurface;
         mfxFrameSurface1 *pSysSurface = 0;
         mfxStatus sts = GetRealSurface(pCore, par, task, pSysSurface);
-
-        mfxFrameSurface1 lockedSurf = {};
-        lockedSurf.Info = par.mfx.FrameInfo;
-
-        if (LumaIsNull(pSysSurface))
-        {
-            pCore->LockFrame(pSysSurface->Data.MemId, &lockedSurf.Data);
-            pSysSurface = &lockedSurf;
-        }
-
-        sts = pCore->CopyFrame(pDd3dSurf, pSysSurface);
         MFX_CHECK_STS(sts);
 
-        if (pSysSurface == &lockedSurf)
-        {
-            pCore->UnlockFrame(pSysSurface->Data.MemId, &lockedSurf.Data);
-        }
+        mfxFrameSurface1 sysSurf = *pSysSurface;
+
+        sts = pCore->DoFastCopyWrapper(
+            pDd3dSurf,
+            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
+            &sysSurf,
+            MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+        MFX_CHECK_STS(sts);
     }
 
     return MFX_ERR_NONE;

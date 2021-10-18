@@ -244,11 +244,6 @@ namespace
             ;
     }
 
-    bool hasSupportVME(eMFXHWType platform)
-    {
-        return platform <= MFX_HW_DG1;
-    }
-
     inline mfxU16 GetMaxSupportedLevel()
     {
         return MFX_LEVEL_AVC_52;
@@ -993,7 +988,8 @@ namespace
         return mfxU32((mfxU64)info.FrameRateExtD * 1000000 / info.FrameRateExtN);
     }
 #endif
-    mfxU16 GetDefaultMaxNumRefActivePL0(mfxU32 targetUsage,
+
+    mfxU16 GetMaxNumRefActivePL0(mfxU32 targetUsage,
                                         eMFXHWType platform,
                                         bool isLowPower,
                                         const mfxFrameInfo& info)
@@ -1029,25 +1025,41 @@ namespace
         }
     }
 
-    mfxU16 GetDefaultMaxNumRefActiveBL0(mfxU32 targetUsage, eMFXHWType platform)
+    mfxU16 GetDefaultNumRefActivePL0(const mfxInfoMFX& mfx, eMFXHWType platform)
     {
-        if (platform <= MFX_HW_IVB || platform == MFX_HW_VLV)
+        return GetMaxNumRefActivePL0(mfx.TargetUsage, platform, IsOn(mfx.LowPower), mfx.FrameInfo);
+    }
+
+    mfxU16 GetMaxNumRefActiveBL0(mfxU32 targetUsage,
+                                        eMFXHWType platform,
+                                        bool isLowPower)
+    {
+        if ((platform >= MFX_HW_HSW && platform != MFX_HW_VLV) && !isLowPower)
+        {
+            constexpr mfxU16 DEFAULT_BY_TU[][8] = {
+                { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
+                { 0, 4, 4, 2, 2, 2, 1, 1 }
+            };
+            return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
+        }
+        else
         {
             return 1;
         }
-        constexpr mfxU16 DEFAULT_BY_TU[][8] = {
-            { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
-            { 0, 4, 4, 2, 2, 2, 1, 1 }
-        };
-        return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
     }
 
-    mfxU16 GetDefaultNumRefActiveBL1(const mfxU32 targetUsage,
-                                     const eMFXHWType platform,
-                                     const mfxU16 picStruct)
+    mfxU16 GetDefaultNumRefActiveBL0(const mfxInfoMFX& mfx, eMFXHWType platform)
+    {
+        return GetMaxNumRefActiveBL0(mfx.TargetUsage, platform, IsOn(mfx.LowPower));
+    }
+
+    mfxU16 GetMaxNumRefActiveBL1(mfxU32 targetUsage,
+                                     eMFXHWType platform,
+                                     mfxU16 picStruct,
+                                     bool isLowPower)
     {
         if ((platform >= MFX_HW_HSW && platform != MFX_HW_VLV) &&
-            picStruct != MFX_PICSTRUCT_PROGRESSIVE)
+            picStruct != MFX_PICSTRUCT_PROGRESSIVE && !isLowPower)
         {
             constexpr mfxU16 DEFAULT_BY_TU[] = { 0, 2, 2, 2, 2, 2, 1, 1 };
             return DEFAULT_BY_TU[targetUsage];
@@ -1056,6 +1068,11 @@ namespace
         {
             return 1;
         }
+    }
+
+    mfxU16 GetDefaultNumRefActiveBL1(const mfxInfoMFX& mfx, eMFXHWType platform)
+    {
+        return GetMaxNumRefActiveBL0(mfx.TargetUsage, platform, IsOn(mfx.LowPower));
     }
 
     mfxU16 GetDefaultIntraPredBlockSize(
@@ -1414,7 +1431,7 @@ bool MfxHwH264Encode::IsMctfSupported(
     (void)video;
     bool
         isSupported = false;
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
     isSupported = (IsOn(extOpt2.ExtBRC) &&
         IsExtBrcSceneChangeSupported(video) &&
@@ -1474,28 +1491,25 @@ mfxU8 MfxHwH264Encode::DetermineQueryMode(mfxVideoParam * in)
 /*
 Setting default value for LowPower option.
 By default LowPower is OFF (using DualPipe)
-For LKF: use LowPower by default i.e. if LowPower is Unknown then LowPower is ON
+For platforms that hasn't VME: use LowPower by default i.e. if LowPower is Unknown then LowPower is ON
 
 Return value:
 MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
 MFX_ERR_NONE - if no errors
 */
-mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platfrom)
+mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platform)
 {
-    mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
-    (void)platfrom; // fix wrn for non Gen11 build
-#if (MFX_VERSION >= 1031)
-    if ((platfrom == MFX_HW_JSL || platfrom == MFX_HW_EHL)
-        && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
-    {
+    mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) ? MFX_ERR_NONE : MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+
+    if (!hasSupportVME(platform))
+    {   // DualPipe (aka VME) is not available
         par.mfx.LowPower = MFX_CODINGOPTION_ON;
         return sts;
     }
-#endif
 
-    if (par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
-        par.mfx.LowPower = MFX_CODINGOPTION_OFF;
-
+    // By default, platforms with 2 encoders (VDEnc & VME) will use VME
+    // Therefore, garbage & UNKNOWN values will be overridden to OFF
+    SetDefaultOff(par.mfx.LowPower);
     return sts;
 }
 
@@ -2586,8 +2600,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
         if (IsOn(extOpt3->FadeDetection))
         {
-            changed = true;
-            extOpt3->FadeDetection = MFX_CODINGOPTION_OFF;
+            unsupported = true;
+            extOpt3->FadeDetection = 0;
         }
     }
 
@@ -4297,6 +4311,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         unsupported = true;
     }
 
+    if (!hasSupportVME(platform) &&
+        (extOpt2->IntRefType > MFX_REFRESH_HORIZONTAL))
+    {
+        extOpt2->IntRefType = MFX_REFRESH_HORIZONTAL;
+        changed = true;
+    }
+
     if (extOpt2->IntRefType && par.mfx.GopRefDist > 1)
     {
         extOpt2->IntRefType = 0;
@@ -5297,6 +5318,7 @@ void MfxHwH264Encode::InheritDefaultValues(
 
     InheritOption(extOptInit.NalHrdConformance,         extOptReset.NalHrdConformance);
     InheritOption(extOpt3Init.LowDelayBRC,              extOpt3Reset.LowDelayBRC);
+    InheritOption(extOpt3Init.AdaptiveMaxFrameSize,     extOpt3Reset.AdaptiveMaxFrameSize);
     InheritOption(parInit.mfx.RateControlMethod,        parReset.mfx.RateControlMethod);
     InheritOption(parInit.mfx.FrameInfo.FrameRateExtN,  parReset.mfx.FrameInfo.FrameRateExtN);
     InheritOption(parInit.mfx.FrameInfo.FrameRateExtD,  parReset.mfx.FrameInfo.FrameRateExtD);
@@ -5636,6 +5658,23 @@ void MfxHwH264Encode::SetDefaults(
     if (par.mfx.RateControlMethod == 0)
         par.mfx.RateControlMethod = MFX_RATECONTROL_CBR;
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP &&
+        par.calcParam.cqpHrdMode == 0)
+    {
+        mfxU16 maxQP = 51;
+        mfxU16 minQP = IsOn(par.mfx.LowPower) ? 10 : 1;   // 10 is min QP for VDENC
+        if (!par.mfx.QPI)
+            par.mfx.QPI = mfxU16(std::max<mfxI32>(par.mfx.QPP - 1, minQP) * !!par.mfx.QPP);
+        if (!par.mfx.QPI)
+            par.mfx.QPI = mfxU16(std::max<mfxI32>(par.mfx.QPB - 2, minQP) * !!par.mfx.QPB);
+        if (!par.mfx.QPI)
+            par.mfx.QPI = std::max<mfxU16>(minQP, (maxQP + 1) / 2);
+        if (!par.mfx.QPP)
+            par.mfx.QPP = std::min<mfxU16>(par.mfx.QPI + 1, maxQP);
+        if (!par.mfx.QPB)
+            par.mfx.QPB = std::min<mfxU16>(par.mfx.QPP + 1, maxQP);
+    }
+
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
         if (par.mfx.Accuracy == 0)
@@ -5737,7 +5776,9 @@ void MfxHwH264Encode::SetDefaults(
         }
         else
         {
-            extDdi->NumActiveRefP = GetDefaultMaxNumRefActivePL0(par.mfx.TargetUsage, platform, IsOn(par.mfx.LowPower), par.mfx.FrameInfo);
+            mfxU16 maxNumActivePL0 = GetMaxNumRefActivePL0(par.mfx.TargetUsage, platform, IsOn(par.mfx.LowPower), par.mfx.FrameInfo);
+            extDdi->NumActiveRefP = extOpt3->NumRefActiveP[0] ? std::min(maxNumActivePL0, extOpt3->NumRefActiveP[0])
+                : GetDefaultNumRefActivePL0(par.mfx, platform);
         }
     }
 
@@ -5757,7 +5798,9 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
-                extDdi->NumActiveRefBL0 = GetDefaultMaxNumRefActiveBL0(par.mfx.TargetUsage, platform);
+                mfxU16 maxNumActiveBL0 = GetMaxNumRefActiveBL0(par.mfx.TargetUsage, platform, IsOn(par.mfx.LowPower));
+                extDdi->NumActiveRefBL0 = extOpt3->NumRefActiveBL0[0] ? std::min(maxNumActiveBL0, extOpt3->NumRefActiveBL0[0])
+                    : GetDefaultNumRefActiveBL0(par.mfx, platform);
             }
         } /* if (extDdi->NumActiveRefBL0 == 0) */
 
@@ -5776,7 +5819,9 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
-                extDdi->NumActiveRefBL1 = GetDefaultNumRefActiveBL1(par.mfx.TargetUsage, platform, par.mfx.FrameInfo.PicStruct);
+                mfxU16 maxNumActiveBL1 = GetMaxNumRefActiveBL1(par.mfx.TargetUsage, platform, par.mfx.FrameInfo.PicStruct, IsOn(par.mfx.LowPower));
+                extDdi->NumActiveRefBL1 = extOpt3->NumRefActiveBL1[0] ? std::min(maxNumActiveBL1, extOpt3->NumRefActiveBL1[0])
+                    : GetDefaultNumRefActiveBL1(par.mfx, platform);
             }
         } /* if (extDdi->NumActiveRefBL1 == 0) */
     }
@@ -5898,9 +5943,6 @@ void MfxHwH264Encode::SetDefaults(
 
     if (extOpt->SingleSeiNalUnit == MFX_CODINGOPTION_UNKNOWN)
         extOpt->SingleSeiNalUnit = MFX_CODINGOPTION_ON;
-
-    if (extOpt->NalHrdConformance == MFX_CODINGOPTION_UNKNOWN)
-        extOpt->NalHrdConformance = MFX_CODINGOPTION_ON;
 
     if (extDdi->MEInterpolationMethod == ENC_INTERPOLATION_TYPE_NONE)
         extDdi->MEInterpolationMethod = ENC_INTERPOLATION_TYPE_AVC6TAP;
@@ -6051,7 +6093,7 @@ void MfxHwH264Encode::SetDefaults(
         else
             par.mfx.NumRefFrame = std::min({nrfDefault, nrfMaxByLevel, nrfMaxByCaps});
 
-        if (IsOn(par.mfx.LowPower))
+        if (IsOn(par.mfx.LowPower) && (extOpt3->PRefType != MFX_P_REF_PYRAMID))
         {
             par.mfx.NumRefFrame = std::min<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference, par.mfx.NumRefFrame);
         }
@@ -6360,8 +6402,10 @@ void MfxHwH264Encode::SetDefaults(
     }
 
 #if MFX_VERSION >= 1023
-    if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN)
-        extOpt3->AdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
+    if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN )
+        extOpt3->AdaptiveMaxFrameSize = 
+            ((platform >= MFX_HW_ICL) && IsOn(par.mfx.LowPower) && hwCaps.AdaptiveMaxFrameSizeSupport)
+            ? mfxU16(MFX_CODINGOPTION_ON) : mfxU16(MFX_CODINGOPTION_OFF);
 #endif
 
 #ifdef MFX_ENABLE_H264_REPARTITION_CHECK
@@ -8322,6 +8366,7 @@ void MfxHwH264Encode::ReadSpsHeader(
     InputBitstreamCheckedRange reader(is);
 
     mfxU32 unused                                           = reader.GetBit(); // forbiddenZeroBit
+    std::ignore = unused;
 
     sps.nalRefIdc                                           = reader.GetBits(2);
     if (sps.nalRefIdc == 0)
@@ -8506,6 +8551,7 @@ void MfxHwH264Encode::ReadPpsHeader(
     InputBitstreamCheckedRange reader(is);
 
     mfxU32 unused                                               = reader.GetBit(); // forbiddenZeroBit
+    std::ignore = unused;
 
     pps.nalRefIdc                                               = reader.GetBits(2);
     if (pps.nalRefIdc == 0)
@@ -8911,7 +8957,6 @@ void MfxHwH264Encode::WriteScalingList(
     int32_t j;
 
     int16_t delta_scale;
-    int8_t delta_code;
     const int32_t* scan;
 
     lastScale=nextScale=8;
@@ -8924,7 +8969,6 @@ void MfxHwH264Encode::WriteScalingList(
     for( j = 0; j<sizeOfScalingList; j++ ){
          if( nextScale != 0 ){
             delta_scale = (int16_t)(scalingList[scan[j]]-lastScale);
-            delta_code = (int8_t)(delta_scale);
             writer.PutSe(delta_scale);
             nextScale = scalingList[scan[j]];
          }

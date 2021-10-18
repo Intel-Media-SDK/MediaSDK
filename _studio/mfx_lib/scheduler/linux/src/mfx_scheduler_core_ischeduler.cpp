@@ -95,8 +95,6 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 
         try
         {
-            // set number of free tasks
-            m_freeTasksCount = MFX_MAX_NUMBER_TASK;
             // allocate thread contexts
             m_pThreadCtx = new MFX_SCHEDULER_THREAD_CONTEXT[m_param.numberOfThreads];
 
