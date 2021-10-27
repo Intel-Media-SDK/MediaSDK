@@ -4567,23 +4567,13 @@ mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper* pB
     MSDK_CHECK_STATUS(sts, "m_pmfxENC->GetVideoParam failed");
 
     mfxU32 new_size = 0;
-
-    // if encoder provided us information about buffer size
-    if (0 != par.mfx.BufferSizeInKB)
+    if (par.mfx.CodecId == MFX_CODEC_JPEG)
     {
-        //--- If value calculated basing on par.mfx.BufferSizeInKB is too low, just double the buffer size
-        new_size = par.mfx.BufferSizeInKB * 1000u > pBS->MaxLength ?
-            par.mfx.BufferSizeInKB * 1000u :
-            pBS->MaxLength*2;
+        new_size = 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023);
     }
     else
     {
-        // trying to guess the size (e.g. for JPEG encoder)
-        new_size = (0 == pBS->MaxLength)
-            // some heuristic init value
-            ? 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023)
-            // double existing size
-            : 2 * pBS->MaxLength;
+        new_size = par.mfx.BufferSizeInKB * par.mfx.BRCParamMultiplier * 1000u;
     }
 
     pBS->Extend(new_size);

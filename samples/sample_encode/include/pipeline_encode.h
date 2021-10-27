@@ -434,6 +434,7 @@ protected:
     virtual mfxStatus AllocFrames();
     virtual void DeleteFrames();
 
+    virtual mfxU32 GetSufficientBufferSize();
     virtual mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper& bs);
     virtual mfxStatus FillBuffers();
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurf);
