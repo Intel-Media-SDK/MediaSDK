@@ -2705,6 +2705,11 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_mfxEncParams.mfx.InitialDelayInKB = pInParams->InitialDelayInKB;
     }
 
+    if (pInParams->nBitRateMultiplier)
+    {
+        m_mfxEncParams.mfx.BRCParamMultiplier = pInParams->nBitRateMultiplier;
+    }
+
     return MFX_ERR_NONE;
 }// mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
 

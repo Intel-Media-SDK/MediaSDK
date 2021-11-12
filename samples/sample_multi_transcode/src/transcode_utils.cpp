@@ -2979,6 +2979,42 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     }
 #endif
 
+    mfxU16 mfxU16Limit = std::numeric_limits<mfxU16>::max();
+    if ((InputParams.MaxKbps && InputParams.MaxKbps > mfxU16Limit) ||
+        (InputParams.nBitRate && InputParams.nBitRate > mfxU16Limit) ||
+        (InputParams.InitialDelayInKB && InputParams.InitialDelayInKB > mfxU16Limit) ||
+        (InputParams.BufferSizeInKB && InputParams.BufferSizeInKB > mfxU16Limit))
+    {
+        mfxU32 maxVal = std::max<mfxU32>({InputParams.MaxKbps, InputParams.nBitRate, InputParams.InitialDelayInKB, InputParams.BufferSizeInKB});
+        mfxU32 newMaxKb = maxVal;
+        mfxU32 newBitRateMultiplier = 1;
+        while (newMaxKb > mfxU16Limit)
+        {
+            newMaxKb = maxVal;
+            newBitRateMultiplier += 1;
+            newMaxKb /= newBitRateMultiplier; 
+        }
+
+        InputParams.nBitRateMultiplier += newBitRateMultiplier;
+        msdk_printf(MSDK_STRING("WARNING: BitRateMultiplier(-bm) was updated, new value: %d. \n"), InputParams.nBitRateMultiplier);
+
+        auto recalculate = [mfxU16Limit, newBitRateMultiplier] (mfxU32 &param, std::string paramName) 
+        { 
+            if (param)
+            {
+                if (param > mfxU16Limit)
+                    msdk_printf(MSDK_STRING("WARNING: %s (%d) > allow limit (%d). \n"), paramName.c_str(), param, mfxU16Limit);
+                param = param / newBitRateMultiplier;
+                msdk_printf(MSDK_STRING("WARNING: %s was updated, new value: %d. \n"), paramName.c_str(), param);
+            }
+        };
+
+        recalculate(InputParams.MaxKbps, "MaxKbps");
+        recalculate(InputParams.nBitRate, "nBitRate(-b)");
+        recalculate(InputParams.InitialDelayInKB, "InitialDelayInKB");
+        recalculate(InputParams.BufferSizeInKB, "BufferSizeInKB");
+    }
+
     return MFX_ERR_NONE;
 } //mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputParams &InputParams)
 

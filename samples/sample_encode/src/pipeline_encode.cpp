@@ -489,6 +489,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.InitialDelayInKB        = pInParams->InitialDelayInKB;
     m_mfxEncParams.mfx.GopOptFlag              = pInParams->GopOptFlag;
     m_mfxEncParams.mfx.BufferSizeInKB          = pInParams->BufferSizeInKB;
+    m_mfxEncParams.mfx.BRCParamMultiplier      = pInParams->nBitRateMultiplier;
 
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
