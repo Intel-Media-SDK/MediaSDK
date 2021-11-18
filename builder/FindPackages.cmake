@@ -534,10 +534,9 @@ if( Linux )
       pkg_get_variable(WAYLAND_SCANNER_BIN_PATH wayland-scanner bindir)
       pkg_get_variable(WAYLAND_SCANNER_BIN wayland-scanner wayland_scanner)
       if ( WAYLAND_SCANNER_BIN_PATH AND WAYLAND_SCANNER_BIN )
-        find_file(
+        find_program(
             WAYLAND_SCANNER_BINARY_PATH ${WAYLAND_SCANNER_BIN}
-            PATHS ${WAYLAND_SCANNER_BIN_PATH}
-            NO_DEFAULT_PATH)
+            PATHS ${WAYLAND_SCANNER_BIN_PATH})
       endif()
     endif()
   endif()
