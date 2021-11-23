@@ -1999,37 +1999,40 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWr
         return MFX_ERR_MORE_DATA;
     }
 
-    if(pSurf->Syncp)
+    if (pSurf->Syncp)
     {
         sts = m_pmfxSession->SyncOperation(pSurf->Syncp, MSDK_WAIT_INTERVAL);
         HandlePossibleGpuHang(sts);
         MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "SyncOperation failed");
-        pSurf->Syncp=0;
+        pSurf->Syncp = 0;
 
-        //--- Copying data from surface to bitstream
-        sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
-        MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
-
-        switch(fourCC)
+        if (!m_pBSProcessor->IsNulOutput())
         {
-        case 0: // Default value is MFX_FOURCC_I420
-        case MFX_FOURCC_I420:
-            sts = NV12asI420toBS(pSurf->pSurface, pBS);
-            break;
-        case MFX_FOURCC_NV12:
-            sts=NV12toBS(pSurf->pSurface,pBS);
-            break;
-        case MFX_FOURCC_RGB4:
-            sts=RGB4toBS(pSurf->pSurface,pBS);
-            break;
-        case MFX_FOURCC_YUY2:
-            sts=YUY2toBS(pSurf->pSurface,pBS);
-            break;
-        }
-        MSDK_CHECK_STATUS(sts, "<FourCC>toBS failed");
+            //--- Copying data from surface to bitstream
+            sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis, pSurf->pSurface->Data.MemId, &pSurf->pSurface->Data);
+            MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
 
-        sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
-        MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+            switch(fourCC)
+            {
+            case 0: // Default value is MFX_FOURCC_I420
+            case MFX_FOURCC_I420:
+                sts = NV12asI420toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_NV12:
+                sts=NV12toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_RGB4:
+                sts=RGB4toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_YUY2:
+                sts=YUY2toBS(pSurf->pSurface, pBS);
+                break;
+            }
+            MSDK_CHECK_STATUS(sts, "<FourCC>toBS failed");
+
+            sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis, pSurf->pSurface->Data.MemId, &pSurf->pSurface->Data);
+            MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+        }
     }
 
     return sts;
@@ -2709,6 +2712,11 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     if (pInParams->InitialDelayInKB)
     {
         m_mfxEncParams.mfx.InitialDelayInKB = pInParams->InitialDelayInKB;
+    }
+
+    if (pInParams->nBitRateMultiplier)
+    {
+        m_mfxEncParams.mfx.BRCParamMultiplier = pInParams->nBitRateMultiplier;
     }
 
     return MFX_ERR_NONE;
@@ -4564,23 +4572,13 @@ mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper* pB
     MSDK_CHECK_STATUS(sts, "m_pmfxENC->GetVideoParam failed");
 
     mfxU32 new_size = 0;
-
-    // if encoder provided us information about buffer size
-    if (0 != par.mfx.BufferSizeInKB)
+    if (par.mfx.CodecId == MFX_CODEC_JPEG)
     {
-        //--- If value calculated basing on par.mfx.BufferSizeInKB is too low, just double the buffer size
-        new_size = par.mfx.BufferSizeInKB * 1000u > pBS->MaxLength ?
-            par.mfx.BufferSizeInKB * 1000u :
-            pBS->MaxLength*2;
+        new_size = 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023);
     }
     else
     {
-        // trying to guess the size (e.g. for JPEG encoder)
-        new_size = (0 == pBS->MaxLength)
-            // some heuristic init value
-            ? 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023)
-            // double existing size
-            : 2 * pBS->MaxLength;
+        new_size = par.mfx.BufferSizeInKB * par.mfx.BRCParamMultiplier * 1000u;
     }
 
     pBS->Extend(new_size);
@@ -4859,6 +4857,11 @@ mfxStatus FileBitstreamProcessor::ResetOutput()
         m_pFileWriter->Reset();
     }
     return MFX_ERR_NONE;
+}
+
+bool FileBitstreamProcessor::IsNulOutput()
+{
+    return !m_pFileWriter.get();
 }
 
 void CTranscodingPipeline::ModifyParamsUsingPresets(sInputParams& params, mfxF64 fps, mfxU32 width, mfxU32 height)

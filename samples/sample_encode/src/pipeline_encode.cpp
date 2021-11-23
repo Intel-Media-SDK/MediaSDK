@@ -491,6 +491,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.InitialDelayInKB        = pInParams->InitialDelayInKB;
     m_mfxEncParams.mfx.GopOptFlag              = pInParams->GopOptFlag;
     m_mfxEncParams.mfx.BufferSizeInKB          = pInParams->BufferSizeInKB;
+    m_mfxEncParams.mfx.BRCParamMultiplier      = pInParams->nBitRateMultiplier;
 
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
@@ -2132,7 +2133,10 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
         MSDK_CHECK_STATUS(sts, "m_pmfxVPP->Init failed");
     }
 
-    mfxU32 nEncodedDataBufferSize = m_mfxEncParams.mfx.FrameInfo.Width * m_mfxEncParams.mfx.FrameInfo.Height * 4;
+    mfxU32 nEncodedDataBufferSize = GetSufficientBufferSize();
+    if (nEncodedDataBufferSize == 0)
+        MSDK_CHECK_STATUS(MFX_ERR_UNKNOWN, "ERROR: GetSufficientBufferSize failed");
+
     sts = m_TaskPool.Init(&m_mfxSession, m_FileWriters.first, m_mfxEncParams.AsyncDepth, nEncodedDataBufferSize, m_FileWriters.second);
     MSDK_CHECK_STATUS(sts, "m_TaskPool.Init failed");
 
@@ -2170,18 +2174,41 @@ mfxStatus CEncodingPipeline::OpenRoundingOffsetFile(sInputParams *pInParams)
 
     return MFX_ERR_NONE;
 }
-mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper& bs)
+
+mfxU32 CEncodingPipeline::GetSufficientBufferSize()
 {
-    MSDK_CHECK_POINTER(GetFirstEncoder(), MFX_ERR_NOT_INITIALIZED);
+    if (!GetFirstEncoder())
+        return 0;
 
     mfxVideoParam par;
     MSDK_ZERO_MEMORY(par);
 
     // find out the required buffer size
     mfxStatus sts = GetFirstEncoder()->GetVideoParam(&par);
-    MSDK_CHECK_STATUS(sts, "GetFirstEncoder failed");
+    if (sts != MFX_ERR_NONE)
+        return 0;
 
-    bs.Extend(par.mfx.BufferSizeInKB * 1000);
+    mfxU32 new_size = 0;
+    if (par.mfx.CodecId == MFX_CODEC_JPEG)
+    {
+        new_size = 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023);
+    }
+    else
+    {
+        new_size = par.mfx.BufferSizeInKB * par.mfx.BRCParamMultiplier * 1000u;
+    }
+
+    return new_size;
+}
+
+mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper& bs)
+{
+
+    mfxU32 new_size = GetSufficientBufferSize();
+    if (new_size == 0)
+        MSDK_CHECK_STATUS(MFX_ERR_UNKNOWN, "ERROR: GetSufficientBufferSize failed");
+
+    bs.Extend(new_size);
 
     return MFX_ERR_NONE;
 }

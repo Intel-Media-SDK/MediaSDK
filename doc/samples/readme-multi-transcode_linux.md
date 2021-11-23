@@ -68,10 +68,10 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 
 |Option|Description|
 |---|---|
- |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9\|av1 <file-name>| Set input file and decoder type|
+ |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9\|av1 \<file-name\>| Set input file and decoder type|
  |-i::i420\|nv12 <file-name>| Set raw input file and color format|
   |-i::rgb4_frame | Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).|
- | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|vp9\|raw <file-name>|  Set output file and encoder type|
+ | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|vp9\|raw \<file-name\>\|null |  Set output file and encoder type. \'null\' keyword as file-name disables output file writing|
  | -sw\|-hw\|-hw_d3d11\|-hw_d3d9 SDK implementation to use:<br>-hw - platform-specific on default display adapter (default)<br>-hw_d3d11 - platform-specific via d3d11 <br>-hw_d3d9 - platform-specific via d3d9<br>-sw - software|
  | -mfe_frames| <N> maximum number of frames to be combined in multi-frame encode pipeline               0 - default for platform will be used|
   |-mfe_mode 0\|1\|2\|3| multi-frame encode operation mode - should be the same for all sessions<br>0, MFE operates as DEFAULT mode, decided by SDK if MFE enabled<br>1, MFE is disabled<br>2, MFE operates as AUTO mode<br>3, MFE operates as MANUAL mode|

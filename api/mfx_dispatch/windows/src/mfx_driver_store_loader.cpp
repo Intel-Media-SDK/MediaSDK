@@ -58,7 +58,14 @@ inline bool ExctractDeviceID(const wchar_t* descrString, mfxU32& deviceID)
     return true;
 }
 
-
+inline bool GetGuidString(const GUID guid, wchar_t * string, size_t size)
+{
+    return swprintf_s(string, size,
+        L"{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+        guid.Data1, guid.Data2, guid.Data3,
+        guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
+        guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
+}
 
 DriverStoreLoader::DriverStoreLoader(void)
     : m_moduleCfgMgr(NULL)
@@ -94,7 +101,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfx
         return false;
     }
 
-    if (StringFromGUID2(GUID_DEVCLASS_DISPLAY, DisplayGUID, sizeof(DisplayGUID)) == 0)
+    if (!GetGuidString(GUID_DEVCLASS_DISPLAY, DisplayGUID, sizeof(DisplayGUID) / sizeof(DisplayGUID[0])))
     {
         DISPATCHER_LOG_WRN(("Couldn't prepare string from GUID\n"));
         return false;
@@ -157,7 +164,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfx
 
             DWORD pathSize = dwPathSize;
 
-            nError = RegQueryValueExW(hKey_sw, L"DriverStorePathForMediaSDK", 0, NULL, (LPBYTE)path, &pathSize);
+            nError = RegGetValueW(hKey_sw, NULL, L"DriverStorePathForMediaSDK", RRF_RT_REG_SZ, NULL, (LPBYTE)path, &pathSize);
 
             RegCloseKey(hKey_sw);
 
@@ -165,7 +172,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfx
             {
                 if (path[wcslen(path) - 1] != '/' && path[wcslen(path) - 1] != '\\')
                 {
-                    wcscat_s(path, MFX_MAX_DLL_PATH, L"\\");
+                    wcscat_s(path, dwPathSize / sizeof(path[0]), L"\\");
                 }
                 DISPATCHER_LOG_INFO(("DriverStore path is found\n"));
                 return true;
