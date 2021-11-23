@@ -5622,7 +5622,7 @@ void MfxHwH264Encode::SetDefaults(
     }
     if (mfeControl)
     {
-        if (!mfeControl->Timeout)
+        if (!mfeControl->Timeout && mfeParam->MFMode == MFX_MF_AUTO)
         {
             mfeControl->Timeout = calculateMfeTimeout(par.mfx.FrameInfo);
         }
