@@ -3012,7 +3012,7 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
         InputParams.nBitRateMultiplier = (mfxU16)std::ceil(static_cast<double>(maxVal) / mfxU16Limit);
         msdk_printf(MSDK_STRING("WARNING: BitRateMultiplier(-bm) was updated, new value: %d. \n"), InputParams.nBitRateMultiplier);
 
-        auto recalculate = [mfxU16Limit, InputParams] (mfxU32 &param, std::string paramName) 
+        auto recalculate = [mfxU16Limit, InputParams] (mfxU32 &param, msdk_tstring paramName)
         { 
             if (param)
             {
@@ -3023,10 +3023,10 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
             }
         };
 
-        recalculate(InputParams.MaxKbps, "MaxKbps");
-        recalculate(InputParams.nBitRate, "nBitRate(-b)");
-        recalculate(InputParams.InitialDelayInKB, "InitialDelayInKB");
-        recalculate(InputParams.BufferSizeInKB, "BufferSizeInKB");
+        recalculate(InputParams.MaxKbps, MSDK_STRING("MaxKbps"));
+        recalculate(InputParams.nBitRate, MSDK_STRING("nBitRate(-b)"));
+        recalculate(InputParams.InitialDelayInKB, MSDK_STRING("InitialDelayInKB"));
+        recalculate(InputParams.BufferSizeInKB, MSDK_STRING("BufferSizeInKB"));
     }
 
     return MFX_ERR_NONE;
