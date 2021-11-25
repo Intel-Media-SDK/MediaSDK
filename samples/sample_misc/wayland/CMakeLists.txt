@@ -20,8 +20,7 @@ if (WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
       RESULT_VARIABLE WAYLAND_SCANNER_RESULT)
   if (WAYLAND_SCANNER_RESULT)
-    message(ERROR "Failed to generate linux-dmabuf-unstable-v1.h")
-    return()
+    message(FATAL_ERROR "Failed to generate linux-dmabuf-unstable-v1.h")
   endif()
 
   execute_process(
@@ -31,8 +30,7 @@ if (WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
       RESULT_VARIABLE WAYLAND_SCANNER_RESULT)
   if (WAYLAND_SCANNER_RESULT)
-    message(ERROR "Failed to generate linux-dmabuf-unstable-v1.c")
-    return()
+    message(FATAL_ERROR "Failed to generate linux-dmabuf-unstable-v1.c")
   endif()
 
   include_directories(
