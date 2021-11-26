@@ -2442,7 +2442,7 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
                 pInParams->nTargetUsage, m_mfxEncParams.mfx.FrameInfo.Width, m_mfxEncParams.mfx.FrameInfo.Height,
                 1.0 * m_mfxEncParams.mfx.FrameInfo.FrameRateExtN / m_mfxEncParams.mfx.FrameInfo.FrameRateExtD);
         }
-        m_mfxEncParams.mfx.TargetKbps = pInParams->nBitRate; // in Kbps
+        m_mfxEncParams.mfx.TargetKbps = (mfxU16)pInParams->nBitRate; // in Kbps
         m_mfxEncParams.mfx.BRCParamMultiplier = pInParams->nBitRateMultiplier;
     }
 
@@ -2667,7 +2667,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     //--- Settings HRD buffer size
     if (pInParams->BufferSizeInKB)
     {
-        m_mfxEncParams.mfx.BufferSizeInKB = pInParams->BufferSizeInKB;
+        m_mfxEncParams.mfx.BufferSizeInKB = (mfxU16)pInParams->BufferSizeInKB;
     }
 
     //--- Force setting fourcc type if required
@@ -2706,12 +2706,12 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
 
     if (pInParams->MaxKbps)
     {
-        m_mfxEncParams.mfx.MaxKbps = pInParams->MaxKbps;
+        m_mfxEncParams.mfx.MaxKbps = (mfxU16)pInParams->MaxKbps;
     }
 
     if (pInParams->InitialDelayInKB)
     {
-        m_mfxEncParams.mfx.InitialDelayInKB = pInParams->InitialDelayInKB;
+        m_mfxEncParams.mfx.InitialDelayInKB = (mfxU16)pInParams->InitialDelayInKB;
     }
 
     if (pInParams->nBitRateMultiplier)
@@ -4914,7 +4914,7 @@ void CTranscodingPipeline::ModifyParamsUsingPresets(sInputParams& params, mfxF64
     {
         MODIFY_AND_PRINT_PARAM(params.MaxKbps, MaxKbps, params.shouldPrintPresets);
         MODIFY_AND_PRINT_PARAM(params.nBitRate, TargetKbps, params.shouldPrintPresets);
-        presetParams.BufferSizeInKB = params.nBitRate; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
+        presetParams.BufferSizeInKB = (mfxU16)params.nBitRate; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
         MODIFY_AND_PRINT_PARAM(params.BufferSizeInKB, BufferSizeInKB, params.shouldPrintPresets);
     }
 

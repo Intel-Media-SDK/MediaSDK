@@ -487,10 +487,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     m_mfxEncParams.mfx.CodecProfile            = pInParams->CodecProfile;
     m_mfxEncParams.mfx.CodecLevel              = pInParams->CodecLevel;
-    m_mfxEncParams.mfx.MaxKbps                 = pInParams->MaxKbps;
-    m_mfxEncParams.mfx.InitialDelayInKB        = pInParams->InitialDelayInKB;
+    m_mfxEncParams.mfx.MaxKbps                 = (mfxU16)pInParams->MaxKbps;
+    m_mfxEncParams.mfx.InitialDelayInKB        = (mfxU16)pInParams->InitialDelayInKB;
     m_mfxEncParams.mfx.GopOptFlag              = pInParams->GopOptFlag;
-    m_mfxEncParams.mfx.BufferSizeInKB          = pInParams->BufferSizeInKB;
+    m_mfxEncParams.mfx.BufferSizeInKB          = (mfxU16)pInParams->BufferSizeInKB;
     m_mfxEncParams.mfx.BRCParamMultiplier      = pInParams->nBitRateMultiplier;
 
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
@@ -507,12 +507,12 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     else if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
         m_mfxEncParams.mfx.Accuracy    = pInParams->Accuracy;
-        m_mfxEncParams.mfx.TargetKbps  = pInParams->nBitRate;
+        m_mfxEncParams.mfx.TargetKbps  = (mfxU16)pInParams->nBitRate;
         m_mfxEncParams.mfx.Convergence = pInParams->Convergence;
     }
     else
     {
-        m_mfxEncParams.mfx.TargetKbps = pInParams->nBitRate; // in Kbps
+        m_mfxEncParams.mfx.TargetKbps = (mfxU16)pInParams->nBitRate; // in Kbps
     }
 
     if(pInParams->enableQSVFF)

@@ -1673,7 +1673,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         pParams->nBitRateMultiplier = (mfxU16)std::ceil(static_cast<double>(maxVal) / mfxU16Limit);
         msdk_printf(MSDK_STRING("WARNING: BitRateMultiplier(-bm) was updated, new value - %d. \n"), pParams->nBitRateMultiplier);
 
-        auto recalculate = [mfxU16Limit, pParams] (mfxU32 &param, std::string paramName)
+        auto recalculate = [mfxU16Limit, pParams] (mfxU32 &param, msdk_string paramName)
         { 
             if (param)
             {
@@ -1684,10 +1684,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             }
         };
 
-        recalculate(pParams->MaxKbps, "MaxKbps");
-        recalculate(pParams->nBitRate, "nBitRate(-b)");
-        recalculate(pParams->InitialDelayInKB, "InitialDelayInKB");
-        recalculate(pParams->BufferSizeInKB, "BufferSizeInKB");
+        recalculate(pParams->MaxKbps, MSDK_STRING("MaxKbps"));
+        recalculate(pParams->nBitRate, MSDK_STRING("nBitRate(-b)"));
+        recalculate(pParams->InitialDelayInKB, MSDK_STRING("InitialDelayInKB"));
+        recalculate(pParams->BufferSizeInKB, MSDK_STRING("BufferSizeInKB"));
     }
 
     return MFX_ERR_NONE;
@@ -1726,7 +1726,7 @@ void ModifyParamsUsingPresets(sInputParams& params)
     {
         MODIFY_AND_PRINT_PARAM(params.nBitRate, TargetKbps, params.shouldPrintPresets);
         MODIFY_AND_PRINT_PARAM(params.MaxKbps, MaxKbps, params.shouldPrintPresets);
-        presetParams.BufferSizeInKB = params.nBitRate / 8; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
+        presetParams.BufferSizeInKB = (mfxU16)params.nBitRate / 8; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
         MODIFY_AND_PRINT_PARAM(params.BufferSizeInKB, BufferSizeInKB, params.shouldPrintPresets);
     }
 
