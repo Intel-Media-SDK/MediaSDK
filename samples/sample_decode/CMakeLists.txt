@@ -4,6 +4,12 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+if (WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
+  include_directories(
+    ${CMAKE_BINARY_DIR}/samples/sample_misc/wayland
+  )
+endif()
+
 list( APPEND LIBS_VARIANT sample_common )
 
 set(DEPENDENCIES libmfx dl pthread)

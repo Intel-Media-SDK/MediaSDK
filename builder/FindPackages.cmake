@@ -191,7 +191,11 @@ endfunction()
 function(configure_wayland_target target)
   configure_target(${ARGV0} "${PKG_WAYLAND_CLIENT_CFLAGS}" "${PKG_WAYLAND_CLIENT_LIBRARY_DIRS}")
 
-  set(SCOPE_CFLAGS "${SCOPE_CFLAGS} -DLIBVA_SUPPORT -DLIBVA_WAYLAND_SUPPORT" PARENT_SCOPE)
+  set(SCOPE_CFLAGS "${SCOPE_CFLAGS} -DLIBVA_SUPPORT -DLIBVA_WAYLAND_SUPPORT")
+  if(WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
+    set(SCOPE_CFLAGS "${SCOPE_CFLAGS} -DWAYLAND_LINUX_DMABUF_SUPPORT")
+  endif()
+  set(SCOPE_CFLAGS "${SCOPE_CFLAGS}" PARENT_SCOPE)
   set(SCOPE_LINKFLAGS ${SCOPE_LINKFLAGS} PARENT_SCOPE)
   set(SCOPE_LIBS ${SCOPE_LIBS} drm_intel drm wayland-client PARENT_SCOPE)
 endfunction()
@@ -254,6 +258,9 @@ function(configure_universal_target target)
   if (PKG_WAYLAND_CLIENT_FOUND)
     configure_target(${ARGV0} "${PKG_WAYLAND_CLIENT_CFLAGS}" "${PKG_WAYLAND_CLIENT_LIBRARY_DIRS}")
     set(LOCAL_CFLAGS "${LOCAL_CFLAGS} -DLIBVA_WAYLAND_SUPPORT")
+    if(WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
+      set(LOCAL_CFLAGS "${LOCAL_CFLAGS} -DWAYLAND_LINUX_DMABUF_SUPPORT")
+    endif()
   endif()
 
   set(SCOPE_CFLAGS "${SCOPE_CFLAGS} ${LOCAL_CFLAGS}" PARENT_SCOPE)
@@ -511,6 +518,27 @@ if( Linux )
   if( ENABLE_WAYLAND )
     pkg_check_modules(PKG_DRM_INTEL      REQUIRED libdrm_intel)
     pkg_check_modules(PKG_WAYLAND_CLIENT REQUIRED wayland-client)
+
+    pkg_check_modules(PKG_WAYLAND_SCANNER "wayland-scanner>=1.15")
+    pkg_check_modules(PKG_WAYLAND_PROTCOLS "wayland-protocols>=1.15")
+
+    if ( PKG_WAYLAND_SCANNER_FOUND AND PKG_WAYLAND_PROTCOLS_FOUND )
+      pkg_get_variable(WAYLAND_PROTOCOLS_PATH wayland-protocols pkgdatadir)
+      if(WAYLAND_PROTOCOLS_PATH)
+        find_file(
+            WAYLAND_LINUX_DMABUF_XML_PATH linux-dmabuf-unstable-v1.xml
+            PATHS ${WAYLAND_PROTOCOLS_PATH}/unstable/linux-dmabuf
+            NO_DEFAULT_PATH)
+      endif()
+
+      pkg_get_variable(WAYLAND_SCANNER_BIN_PATH wayland-scanner bindir)
+      pkg_get_variable(WAYLAND_SCANNER_BIN wayland-scanner wayland_scanner)
+      if ( WAYLAND_SCANNER_BIN_PATH AND WAYLAND_SCANNER_BIN )
+        find_program(
+            WAYLAND_SCANNER_BINARY_PATH ${WAYLAND_SCANNER_BIN}
+            PATHS ${WAYLAND_SCANNER_BIN_PATH})
+      endif()
+    endif()
   endif()
 endif()
 
