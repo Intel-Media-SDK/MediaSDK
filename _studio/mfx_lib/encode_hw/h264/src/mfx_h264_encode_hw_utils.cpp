@@ -2665,7 +2665,10 @@ void MfxHwH264Encode::PrepareSeiMessage(
         // following calculation assumes that for multiple temporal layers last layer is always non-reference
         msg.recovery_frame_cnt = (extOpt2.IntRefCycleSize - 1) << (numTL > 2 ? (numTL >> 1) : 0);
     else
-        msg.recovery_frame_cnt = par.mfx.GopPicSize;
+        if (par.mfx.GopOptFlag != MFX_GOP_CLOSED)
+            msg.recovery_frame_cnt = 0;
+        else
+            msg.recovery_frame_cnt = par.mfx.GopPicSize;
     msg.exact_match_flag = 1;
     msg.broken_link_flag = 0;
     msg.changing_slice_group_idc = 0;
