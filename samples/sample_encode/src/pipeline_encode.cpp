@@ -773,15 +773,12 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     if (pInParams->nAvcTemp)
     {
-        if (pInParams->CodecId == MFX_CODEC_HEVC)
-        {
-            auto avcTemporalLayers = m_mfxEncParams.AddExtBuffer<mfxExtAvcTemporalLayers>();
+        auto avcTemporalLayers = m_mfxEncParams.AddExtBuffer<mfxExtAvcTemporalLayers>();
 
-            avcTemporalLayers->BaseLayerPID = pInParams->nBaseLayerPID;
-            for (int i = 0; i < 8; i++)
-            {
-                avcTemporalLayers->Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
-            }
+        avcTemporalLayers->BaseLayerPID = pInParams->nBaseLayerPID;
+        for (int i = 0; i < 8; i++)
+        {
+            avcTemporalLayers->Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
         }
     }
 
