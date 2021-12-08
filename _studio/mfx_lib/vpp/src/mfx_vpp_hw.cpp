@@ -3584,9 +3584,6 @@ int RunGpu(
     res = device->CreateThreadSpace(tsWidth, tsHeight, threadSpace);
     CHECK_CM_ERR(res);
 
-    res = threadSpace->SelectThreadDependencyPattern(CM_NONE_DEPENDENCY);
-    CHECK_CM_ERR(res);
-
     SurfaceIndex *idxInput = 0;
     SurfaceIndex *idxOutput = 0;
     res = input->GetIndex(idxInput);
