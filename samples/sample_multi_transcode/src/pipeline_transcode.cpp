@@ -2349,6 +2349,7 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.CodecId                 = pInParams->EncodeId;
     m_mfxEncParams.mfx.TargetUsage             = pInParams->nTargetUsage; // trade-off between quality and speed
     m_mfxEncParams.AsyncDepth                  = m_AsyncDepth;
+    m_mfxEncParams.mfx.FrameInfo.Shift = m_shouldUseShifted10BitEnc;
 
     if (pInParams->nTransferCharacteristics)
     {
@@ -2902,7 +2903,7 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
     {
         m_mfxVppParams.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY|MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
     }
-    else if (pInParams->bForceSysMem || (MFX_IMPL_SOFTWARE == pInParams->libType))
+    else if (pInParams->bForceSysMem || (MFX_IMPL_SOFTWARE == pInParams->libType) || m_rawInput)
     {
         m_mfxVppParams.IOPattern = (mfxU16)(InPatternFromParent|MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
     }
@@ -2910,6 +2911,11 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
     {
         m_mfxVppParams.IOPattern = (mfxU16)(InPatternFromParent|MFX_IOPATTERN_OUT_VIDEO_MEMORY);
     }
+
+    // Fill Shift bit
+    m_mfxVppParams.vpp.In.Shift = m_shouldUseShifted10BitVPP;
+    m_mfxVppParams.vpp.Out.Shift =
+        m_shouldUseShifted10BitEnc; // This output should correspond to Encoder settings
 
     // input frame info
     m_mfxVppParams.vpp.In = GetFrameInfo(m_mfxDecParams);
@@ -3878,6 +3884,21 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     else
     {
         m_mfxDecParams.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+        if (MFX_CODEC_I420 == pParams->DecodeId || MFX_CODEC_NV12 == pParams->DecodeId || MFX_CODEC_P010 == pParams->DecodeId)
+        {
+            m_mfxDecParams.mfx.FrameInfo.FourCC = FileFourCC2EncFourCC(pParams->DecodeId);
+            m_mfxDecParams.mfx.FrameInfo.ChromaFormat = FourCCToChroma(pParams->DecoderFourCC);
+        }
+        else if (pParams->DecoderFourCC)
+        {
+            m_mfxDecParams.mfx.FrameInfo.FourCC = pParams->DecoderFourCC;
+        }
+    }
+
+    if (pParams->IsSourceMSB)
+    {
+        m_shouldUseShifted10BitVPP = true;
+        m_shouldUseShifted10BitEnc = true;
     }
 
     // VPP component initialization
