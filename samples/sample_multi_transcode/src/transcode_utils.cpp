@@ -131,9 +131,11 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("Pipeline description (general options):\n"));
     msdk_printf(MSDK_STRING("  -i::h265|h264|mpeg2|vc1|mvc|jpeg|vp9|av1 <file-name>\n"));
     msdk_printf(MSDK_STRING("                 Set input file and decoder type\n"));
-    msdk_printf(MSDK_STRING("  -i::i420|nv12 <file-name>\n"));
+    msdk_printf(MSDK_STRING("  -i::i420|nv12|p010 <file-name>\n"));
     msdk_printf(MSDK_STRING("                 Set raw input file and color format\n"));
     msdk_printf(MSDK_STRING("  -i::rgb4_frame Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).\n"));
+    msdk_printf(MSDK_STRING("  -msb10 - 10-bit color format is expected to have data in Most Significant Bits of words.\n"));
+    msdk_printf(MSDK_STRING("                LSB data placement is expected by default.\n"));
     msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>|null\n"));
     msdk_printf(MSDK_STRING("                Set output file and encoder type\n"));
     msdk_printf(MSDK_STRING("                \'null\' keyword as file-name disables output file writing \n"));
@@ -1365,6 +1367,9 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
             PrintError(MSDK_STRING("Maximum quantizer is invalid"));
             return MFX_ERR_UNSUPPORTED;
         }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-msb10"))) {
+        InputParams.IsSourceMSB = true;
     }
     else
     {
@@ -2804,6 +2809,7 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
        MFX_CODEC_RGB4 != InputParams.DecodeId &&
        MFX_CODEC_NV12 != InputParams.DecodeId &&
        MFX_CODEC_I420 != InputParams.DecodeId &&
+       MFX_CODEC_P010 != InputParams.DecodeId &&
        InputParams.eMode != Source)
     {
         PrintError(MSDK_STRING("Unknown decoder\n"));
@@ -2811,7 +2817,8 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     }
 
     if (MFX_CODEC_I420 == InputParams.DecodeId ||
-        MFX_CODEC_NV12 == InputParams.DecodeId)
+        MFX_CODEC_NV12 == InputParams.DecodeId ||
+        MFX_CODEC_P010 == InputParams.DecodeId)
     {
         InputParams.rawInput = true;
     }

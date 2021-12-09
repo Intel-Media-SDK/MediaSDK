@@ -373,6 +373,7 @@ namespace TranscodingSample
         bool shouldPrintPresets;
 
         bool rawInput;
+        bool IsSourceMSB = false;
     };
 
     struct sInputParams: public __sInputParams
@@ -883,6 +884,8 @@ namespace TranscodingSample
         bool m_bInsertIDR;
 
         bool m_rawInput;
+        bool m_shouldUseShifted10BitVPP = false;
+        bool m_shouldUseShifted10BitEnc = false;
 
         std::unique_ptr<ExtendedBSStore>        m_pBSStore;
 
