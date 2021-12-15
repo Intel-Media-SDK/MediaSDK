@@ -721,7 +721,8 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
 
         if(!bistreamData)
             return UMC_ERR_DEVICE_FAILED;
-
+        if(obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
+            return UMC_ERR_INVALID_STREAM;
         std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
     }
 
