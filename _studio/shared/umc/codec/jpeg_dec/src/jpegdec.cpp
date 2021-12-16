@@ -3267,6 +3267,8 @@ JERRCODE CJPEGDecoder::DecodeScanBaseline(void)
         maxMCU = numxMCU;
         if (m_curr_scan->jpeg_restart_interval)
         {
+            if(numxMCU == 0)
+              return JPEG_ERR_PARAMS;
             rowMCU = m_mcu_decoded / numxMCU;
             colMCU = m_mcu_decoded % numxMCU;
             maxMCU = (numxMCU < colMCU + m_mcu_to_decode) ?
