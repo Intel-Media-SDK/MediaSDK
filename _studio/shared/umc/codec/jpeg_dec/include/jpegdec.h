@@ -139,6 +139,7 @@ public:
   int      m_init_done;
 
   int16_t*  m_block_buffer;
+  int       m_block_buffer_size;
   int      m_num_threads;
   int      m_sof_find;
 
