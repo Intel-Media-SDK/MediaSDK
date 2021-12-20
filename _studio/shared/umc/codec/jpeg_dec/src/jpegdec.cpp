@@ -2371,6 +2371,10 @@ JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, 
 
     for(n = m_curr_scan->first_comp; n < m_curr_scan->first_comp + m_curr_scan->ncomps; n++)
     {
+      if(m_curr_scan->ncomps < 1 || m_curr_scan->ncomps > MAX_COMPS_PER_SCAN)
+      {
+        return JPEG_ERR_SOS_DATA;
+      }
       int16_t*                lastDC = &m_ccomp[n].m_lastDC;
       if (m_ccomp[n].m_dc_selector >= MAX_HUFF_TABLES)
       {
