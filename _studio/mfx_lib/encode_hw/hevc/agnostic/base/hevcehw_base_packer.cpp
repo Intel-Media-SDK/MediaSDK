@@ -463,8 +463,6 @@ void Packer::PackNALU(BitstreamWriter& bs, NALU const & h)
         || h.nal_unit_type == PPS_NUT
         || h.nal_unit_type == AUD_NUT
         || h.nal_unit_type == PREFIX_SEI_NUT
-        || h.nal_unit_type == IDR_W_RADL
-        || h.nal_unit_type == IDR_N_LP
         || h.long_start_code;
 
     if (bLongSC)
