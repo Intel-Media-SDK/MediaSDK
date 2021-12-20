@@ -2057,6 +2057,8 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
 
             // set the pointer to source buffer
             pSrc = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU;
+            if(pSrc == nullptr)
+              return JPEG_ERR_BUFF;
             // set the pointer to temporary buffer
             std::unique_ptr<uint8_t[]> pTmp( new uint8_t[tmpStep * m_curr_scan->mcuHeight / 2] );
             // set the pointer to destination buffer
