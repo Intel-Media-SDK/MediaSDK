@@ -119,7 +119,7 @@ namespace Base
         VideoCORE& m_core;
         TFeatureList m_features;
         StorageRW m_storage;
-        mfxStatus m_runtimeErr;
+        mfxStatus m_runtimeErr = MFX_ERR_NONE;
 
         mfxStatus Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a);
         mfxStatus FreeResources(mfxThreadTask task, mfxStatus sts);
