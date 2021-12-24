@@ -210,7 +210,7 @@ Status MJPEGVideoDecoderBaseMFX::FillVideoParam(mfxVideoParam *par, bool /*full*
 
     par->mfx.CodecId = MFX_CODEC_JPEG;
 
-    par->mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
+    par->mfx.FrameInfo.FourCC = MFX_FOURCC_YUV444;//MFX_FOURCC_NV12;
 
     mfxSize size = m_frameDims;
     AdjustFrameSize(size);
@@ -227,7 +227,7 @@ Status MJPEGVideoDecoderBaseMFX::FillVideoParam(mfxVideoParam *par, bool /*full*
     par->mfx.FrameInfo.CropH = mfx::align2_value(par->mfx.FrameInfo.CropH, 2);
 
     par->mfx.FrameInfo.PicStruct = (mfxU8)(m_interleaved ? MFX_PICSTRUCT_FIELD_TFF : MFX_PICSTRUCT_PROGRESSIVE);
-    par->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+    par->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
 
     par->mfx.FrameInfo.AspectRatioW = 0;
     par->mfx.FrameInfo.AspectRatioH = 0;

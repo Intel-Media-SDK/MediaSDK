@@ -62,6 +62,8 @@ static inline unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_YV12;
     case MFX_FOURCC_AYUV:
         return VA_FOURCC_AYUV;
+    case MFX_FOURCC_YUV444:
+        return VA_FOURCC_444P;
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:
         return VA_FOURCC_RGB565;
@@ -159,6 +161,19 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
                 attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;
             }
             break;
+        case MFX_FOURCC_YUV444:
+            format = VA_RT_FORMAT_YUV444;
+            //  Enable this hint as required for creating RGBP surface for JPEG.
+            if ((memType & MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET)
+                    && (memType & MFX_MEMTYPE_FROM_DECODE))
+            {
+                attrib.resize(attrib.size()+1);
+                attrib[1].type            = VASurfaceAttribUsageHint;
+                attrib[1].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                attrib[1].value.type      = VAGenericValueTypeInteger;
+                attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;
+            }
+            break;
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
             format = VA_RT_FORMAT_RGB32;
@@ -196,6 +211,7 @@ static inline bool isFourCCSupported(unsigned int va_fourcc)
         case VA_FOURCC_P208:
         case VA_FOURCC_P010:
         case VA_FOURCC_AYUV:
+        case VA_FOURCC_444P:
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case VA_FOURCC_RGB565:
 #endif
@@ -586,6 +602,15 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
             ptr->U = ptr->V + 1;
             ptr->Y = ptr->V + 2;
             ptr->A = ptr->V + 3;
+        }
+        break;
+    case VA_FOURCC_444P:
+        if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
+
+        {
+            ptr->V = p_buffer + va_image.offsets[0];
+            ptr->U = ptr->V + 1;
+            ptr->Y = ptr->V + 2;
         }
         break;
 

@@ -110,6 +110,13 @@ mfxStatus SysMemFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         ptr->PitchHigh = 0;
         ptr->PitchLow = (mfxU16)MSDK_ALIGN32(fs->info.Width);
         break;
+    case MFX_FOURCC_YUV444:
+        ptr->V = ptr->B;
+        ptr->U = ptr->V + 1;
+        ptr->Y = ptr->V + 2;
+        ptr->PitchHigh = (mfxU16)((4 * MSDK_ALIGN32(fs->info.Width)) / (1 << 16));
+        ptr->PitchLow = (mfxU16)((4 * MSDK_ALIGN32(fs->info.Width)) % (1 << 16));
+        break;
     case MFX_FOURCC_NV16:
         ptr->U = ptr->Y + Width2 * Height2;
         ptr->V = ptr->U + 1;
@@ -306,6 +313,9 @@ static mfxU32 GetSurfaceSize(mfxU32 FourCC, mfxU32 Width2, mfxU32 Height2)
         nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2;
         break;
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_YUV444:
+        nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2;
+        break;            
     case MFX_FOURCC_AYUV:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:

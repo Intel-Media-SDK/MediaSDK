@@ -1043,6 +1043,7 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
 #if defined (MFX_VA_LINUX)
     if (par->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12 &&
         par->mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4 &&
+        par->mfx.FrameInfo.FourCC != MFX_FOURCC_YUV444 &&
         par->mfx.FrameInfo.FourCC != MFX_FOURCC_YUY2)
         return true;
 
@@ -1084,7 +1085,7 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
                 else
                     return false;
             default:
-                return true;
+                return false;
         }
     }
     else if (core->GetHWType() == MFX_HW_BDW || core->GetHWType() == MFX_HW_SCL)
@@ -1204,6 +1205,7 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
             (fourCC == MFX_FOURCC_NV12 && chromaFormat == MFX_CHROMAFORMAT_MONOCHROME) ||
             (fourCC == MFX_FOURCC_NV12 && chromaFormat == MFX_CHROMAFORMAT_YUV420) ||
             (fourCC == MFX_FOURCC_RGB4 && chromaFormat == MFX_CHROMAFORMAT_YUV444) ||
+            (fourCC == MFX_FOURCC_YUV444 && chromaFormat == MFX_CHROMAFORMAT_YUV444) ||
             (fourCC == MFX_FOURCC_YUY2 && chromaFormat == MFX_CHROMAFORMAT_YUV422H))
         {
             out->mfx.FrameInfo.FourCC = in->mfx.FrameInfo.FourCC;
@@ -1451,6 +1453,7 @@ bool MFX_JPEG_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType )
     if ((fourCC != MFX_FOURCC_NV12 || chromaFormat != MFX_CHROMAFORMAT_MONOCHROME) &&
         (fourCC != MFX_FOURCC_NV12 || chromaFormat != MFX_CHROMAFORMAT_YUV420) &&
         (fourCC != MFX_FOURCC_RGB4 || chromaFormat != MFX_CHROMAFORMAT_YUV444) &&
+        (fourCC != MFX_FOURCC_YUV444 || chromaFormat != MFX_CHROMAFORMAT_YUV444) &&
         (fourCC != MFX_FOURCC_YUY2 || chromaFormat != MFX_CHROMAFORMAT_YUV422H))
            return false;
 #else
