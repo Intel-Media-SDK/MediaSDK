@@ -478,7 +478,7 @@ CmdProcessor::CmdProcessor()
     shouldUseGreedyFormula=false;
     bRobustFlag = false;
     bSoftRobustFlag = false;
-    bLatencyMeasurement = false;
+    bLatencyMeasurement = true;
 
 } //CmdProcessor::CmdProcessor()
 

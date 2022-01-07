@@ -167,7 +167,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_nReqFrameTime(0),
     m_nOutputFramesNum(0),
     shouldUseGreedyFormula(false),
-    m_bLatencyMeasurement(false),
+    m_bLatencyMeasurement(true),
     m_nRotationAngle(0)
 {
     MSDK_ZERO_MEMORY(m_RotateParam);
