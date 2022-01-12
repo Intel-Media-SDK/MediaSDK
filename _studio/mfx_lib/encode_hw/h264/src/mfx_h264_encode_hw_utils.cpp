@@ -2658,7 +2658,7 @@ void MfxHwH264Encode::PrepareSeiMessage(
 void MfxHwH264Encode::PrepareSeiMessage(
     MfxVideoParam const &   par,
     mfxExtAvcSeiRecPoint &  msg, 
-    mfxU16 rec_frame_cnt)
+    mfxU16 recovery_frame_cnt)
 {
     mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
     mfxU32 numTL = par.calcParam.numTemporalLayer;
@@ -2666,10 +2666,7 @@ void MfxHwH264Encode::PrepareSeiMessage(
         // following calculation assumes that for multiple temporal layers last layer is always non-reference
         msg.recovery_frame_cnt = (extOpt2.IntRefCycleSize - 1) << (numTL > 2 ? (numTL >> 1) : 0);
     else
-        if (par.mfx.GopOptFlag == MFX_GOP_CLOSED)
-            msg.recovery_frame_cnt = 0;
-        else
-            msg.recovery_frame_cnt = rec_frame_cnt;
+        msg.recovery_frame_cnt = recovery_frame_cnt;
     msg.exact_match_flag = 1;
     msg.broken_link_flag = 0;
     msg.changing_slice_group_idc = 0;
@@ -5658,7 +5655,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     DdiTask const &       task,
     mfxU32                fieldId,
     PreAllocatedVector &  sei,
-    mfxU16 rec_frame_cnt)
+    mfxU16 recovery_frame_cnt)
 {
     mfxExtCodingOption const     & extOpt  = GetExtBufferRef(video);
     mfxExtSpsHeader const        & extSps  = GetExtBufferRef(video);
@@ -5784,7 +5781,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     if (needRecoveryPointSei)
     {
         mfxExtAvcSeiRecPoint msgPicTiming;
-        PrepareSeiMessage(video, msgPicTiming, rec_frame_cnt);
+        PrepareSeiMessage(video, msgPicTiming, recovery_frame_cnt);
         if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
         PutSeiMessage(writer, msgPicTiming);
