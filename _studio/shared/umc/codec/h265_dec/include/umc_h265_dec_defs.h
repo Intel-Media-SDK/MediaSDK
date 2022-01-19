@@ -665,6 +665,7 @@ public:
     H265HRD* getHrdParameters   ( unsigned i )             { return &m_hrdParameters[ i ]; }
     H265ProfileTierLevel* getPTL() { return &m_pcPTL; }
     H265TimingInfo* getTimingInfo() { return &m_timingInfo; }
+    const H265TimingInfo* getTimingInfo() const { return &m_timingInfo; }
 };
 
 typedef uint32_t IntraType;
