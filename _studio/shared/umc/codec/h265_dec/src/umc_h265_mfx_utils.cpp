@@ -389,11 +389,6 @@ UMC::Status FillVideoParam(const H265SeqParamSet * seq, mfxVideoParam *par, bool
         par->mfx.FrameInfo.FrameRateExtD = seq->getTimingInfo()->vps_num_units_in_tick;
         par->mfx.FrameInfo.FrameRateExtN = seq->getTimingInfo()->vps_time_scale;
     }
-    else
-    {
-        par->mfx.FrameInfo.FrameRateExtD = 0;
-        par->mfx.FrameInfo.FrameRateExtN = 0;
-    }
 
     par->mfx.CodecProfile = (mfxU16)seq->m_pcPTL.GetGeneralPTL()->profile_idc;
     par->mfx.CodecLevel = (mfxU16)seq->m_pcPTL.GetGeneralPTL()->level_idc;
