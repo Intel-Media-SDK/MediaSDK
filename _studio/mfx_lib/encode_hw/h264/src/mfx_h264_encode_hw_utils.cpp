@@ -5674,7 +5674,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
 
     mfxU32 needRecoveryPointSei = (extOpt.RecoveryPointSEI == MFX_CODINGOPTION_ON &&
         ((extOpt2.IntRefType && task.m_IRState.firstFrameInCycle && task.m_IRState.IntraLocation == 0) ||
-        (extOpt2.IntRefType == 0 && isIPicture)));
+        (extOpt2.IntRefType == 0 && isIPicture && !idrPicFlag)));
 
     mfxU32 needCpbRemovalDelay = idrPicFlag || recoveryPoint || needRecoveryPointSei ||
         (isIPicture && extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME);
