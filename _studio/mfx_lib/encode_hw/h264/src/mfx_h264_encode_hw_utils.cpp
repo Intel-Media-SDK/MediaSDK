@@ -5636,9 +5636,10 @@ namespace
 {
     mfxExtPictureTimingSEI const * SelectPicTimingSei(
         MfxVideoParam const & video,
-        DdiTask const &       task)
+        DdiTask const &       task,
+        mfxU32                fieldId)
     {
-        if (mfxExtPictureTimingSEI const * extPt = GetExtBuffer(task.m_ctrl))
+        if (mfxExtPictureTimingSEI const * extPt = reinterpret_cast<mfxExtPictureTimingSEI*>(GetExtBuffer(task.m_ctrl.ExtParam, task.m_ctrl.NumExtParam, MFX_EXTBUFF_PICTURE_TIMING_SEI, fieldId)))
         {
             return extPt;
         }
@@ -5660,7 +5661,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     mfxExtCodingOption const     & extOpt  = GetExtBufferRef(video);
     mfxExtSpsHeader const        & extSps  = GetExtBufferRef(video);
     mfxExtCodingOption2 const    & extOpt2 = GetExtBufferRef(video);
-    mfxExtPictureTimingSEI const * extPt   = SelectPicTimingSei(video, task);
+    mfxExtPictureTimingSEI const * extPt   = SelectPicTimingSei(video, task, fieldId);
 
     mfxU32 fillerSize         = task.m_fillerSize[fieldId];
     mfxU32 fieldPicFlag       = (task.GetPicStructForEncode() != MFX_PICSTRUCT_PROGRESSIVE);
@@ -5822,7 +5823,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
 {
     mfxExtCodingOption const     & extOpt = GetExtBufferRef(video);
     mfxExtSpsHeader const        & extSps = GetExtBufferRef(video);
-    mfxExtPictureTimingSEI const * extPt  = SelectPicTimingSei(video, task);
+    mfxExtPictureTimingSEI const * extPt  = SelectPicTimingSei(video, task, fieldId);
 
     mfxU32 fillerSize         = task.m_fillerSize[fieldId];
     mfxU32 fieldPicFlag       = (task.GetPicStructForEncode() != MFX_PICSTRUCT_PROGRESSIVE);

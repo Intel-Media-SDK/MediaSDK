@@ -6861,29 +6861,32 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
         checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
 
     // check timestamp from mfxExtPictureTimingSEI
-    mfxExtPictureTimingSEI const * extPt   = GetExtBuffer(*ctrl);
-
-    if (extPt)
+    for (mfxU16 fieldId = 0; fieldId < NumFields; fieldId++)
     {
-        for (mfxU32 i = 0; i < 3; i++)
+        mfxExtPictureTimingSEI const* extPt = reinterpret_cast<mfxExtPictureTimingSEI*>(GetExtBuffer(ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_PICTURE_TIMING_SEI, fieldId));
+
+        if (extPt)
         {
-            // return warning if there is any 0xffff template except for CtType
-            if (extPt->TimeStamp[i].CountingType       == 0xffff ||
-                extPt->TimeStamp[i].NFrames            == 0xffff ||
-                extPt->TimeStamp[i].SecondsValue       == 0xffff ||
-                extPt->TimeStamp[i].MinutesValue       == 0xffff ||
-                extPt->TimeStamp[i].HoursValue         == 0xffff ||
-                extPt->TimeStamp[i].TimeOffset         == 0xffff ||
-                extPt->TimeStamp[i].ClockTimestampFlag == 0xffff ||
-                extPt->TimeStamp[i].NuitFieldBasedFlag == 0xffff ||
-                extPt->TimeStamp[i].FullTimestampFlag  == 0xffff ||
-                extPt->TimeStamp[i].DiscontinuityFlag  == 0xffff ||
-                extPt->TimeStamp[i].CntDroppedFlag     == 0xffff ||
-                extPt->TimeStamp[i].SecondsFlag        == 0xffff ||
-                extPt->TimeStamp[i].MinutesFlag        == 0xffff ||
-                extPt->TimeStamp[i].HoursFlag          == 0xffff)
+            for (mfxU32 i = 0; i < 3; i++)
             {
-                checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+                // return warning if there is any 0xffff template except for CtType
+                if (extPt->TimeStamp[i].CountingType       == 0xffff ||
+                    extPt->TimeStamp[i].NFrames            == 0xffff ||
+                    extPt->TimeStamp[i].SecondsValue       == 0xffff ||
+                    extPt->TimeStamp[i].MinutesValue       == 0xffff ||
+                    extPt->TimeStamp[i].HoursValue         == 0xffff ||
+                    extPt->TimeStamp[i].TimeOffset         == 0xffff ||
+                    extPt->TimeStamp[i].ClockTimestampFlag == 0xffff ||
+                    extPt->TimeStamp[i].NuitFieldBasedFlag == 0xffff ||
+                    extPt->TimeStamp[i].FullTimestampFlag  == 0xffff ||
+                    extPt->TimeStamp[i].DiscontinuityFlag  == 0xffff ||
+                    extPt->TimeStamp[i].CntDroppedFlag     == 0xffff ||
+                    extPt->TimeStamp[i].SecondsFlag        == 0xffff ||
+                    extPt->TimeStamp[i].MinutesFlag        == 0xffff ||
+                    extPt->TimeStamp[i].HoursFlag          == 0xffff)
+                {
+                    checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+                }
             }
         }
     }
