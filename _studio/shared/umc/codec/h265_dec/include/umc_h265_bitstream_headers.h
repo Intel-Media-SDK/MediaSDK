@@ -351,6 +351,10 @@ protected:
     int32_t pic_timing(const HeaderSet<H265SeqParamSet> & sps, int32_t current_sps, H265SEIPayLoad *spl);
     // Parse recovery point SEI data
     int32_t recovery_point(const HeaderSet<H265SeqParamSet> & sps, int32_t current_sps, H265SEIPayLoad *spl);
+    // Parse mastering display colour volume SEI data
+    int32_t mastering_display_colour_volume(const HeaderSet<H265SeqParamSet>& sps, int32_t current_sps, H265SEIPayLoad* spl);
+    // Parse content light level info SEI data
+    int32_t content_light_level_info(const HeaderSet<H265SeqParamSet>& sps, int32_t current_sps, H265SEIPayLoad* spl);
 
     // Skip unrecognized SEI message payload
     int32_t reserved_sei_message(const HeaderSet<H265SeqParamSet> & sps, int32_t current_sps, H265SEIPayLoad *spl);

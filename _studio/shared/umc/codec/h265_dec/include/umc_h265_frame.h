@@ -102,6 +102,8 @@ public:
     H265DecoderFrame *m_pFutureFrame;
 
     H265SEIPayLoad m_UserData;
+    H265SEIPayLoad m_mastering_display;
+    H265SEIPayLoad m_content_light_level_info;
 
     double           m_dFrameTime;
     bool             m_isOriginalPTS;

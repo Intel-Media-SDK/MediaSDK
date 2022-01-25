@@ -328,6 +328,7 @@ typedef enum
     SEI_KNEE_FUNCTION_INFO                          = 141,
     SEI_COLOUR_REMAPPING_INFO                       = 142,
     SEI_DEINTERLACED_FIELD_IDENTIFICATION           = 143,
+    SEI_CONTENT_LIGHT_LEVEL_INFO                    = 144,
 
     SEI_LAYERS_NOT_PRESENT                          = 160,
     SEI_INTER_LAYER_CONSTRAINED_TILE_SETS           = 161,
@@ -1294,6 +1295,19 @@ struct H265SEIPayLoadBase
             uint8_t exact_match_flag;
             uint8_t broken_link_flag;
         }recovery_point;
+
+        struct MasteringDisplay
+        {
+            uint16_t display_primaries[3][2];
+            uint16_t white_point[2];
+            uint32_t max_luminance;
+            uint32_t min_luminance;
+        }mastering_display;
+
+        struct ContentLightLevelInfo {
+            uint16_t max_content_light_level;
+            uint16_t max_pic_average_light_level;
+        }content_light_level_info;
 
     }SEI_messages;
 
