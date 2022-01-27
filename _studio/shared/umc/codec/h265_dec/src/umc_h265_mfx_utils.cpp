@@ -345,7 +345,7 @@ bool CheckFourcc(mfxU32 fourcc, mfxU16 codecProfile, mfxFrameInfo const* frameIn
 }
 
 // Initialize mfxVideoParam structure based on decoded bitstream header values
-UMC::Status FillVideoParam(const H265SeqParamSet * seq, mfxVideoParam *par, bool full)
+UMC::Status FillVideoParam(const H265VideoParamSet * vps, const H265SeqParamSet * seq, mfxVideoParam *par, bool full)
 {
     par->mfx.CodecId = MFX_CODEC_HEVC;
 
@@ -384,7 +384,12 @@ UMC::Status FillVideoParam(const H265SeqParamSet * seq, mfxVideoParam *par, bool
         par->mfx.FrameInfo.AspectRatioH = 0;
     }
 
-    if (seq->getTimingInfo()->vps_timing_info_present_flag || full)
+    if (vps != nullptr && (vps->getTimingInfo()->vps_timing_info_present_flag || full))
+    {
+        par->mfx.FrameInfo.FrameRateExtD = vps->getTimingInfo()->vps_num_units_in_tick;
+        par->mfx.FrameInfo.FrameRateExtN = vps->getTimingInfo()->vps_time_scale;
+    }
+    else if (seq->getTimingInfo()->vps_timing_info_present_flag || full)
     {
         par->mfx.FrameInfo.FrameRateExtD = seq->getTimingInfo()->vps_num_units_in_tick;
         par->mfx.FrameInfo.FrameRateExtN = seq->getTimingInfo()->vps_time_scale;

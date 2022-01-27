@@ -31,7 +31,7 @@ namespace UMC_HEVC_DECODER
 namespace MFX_Utility
 {
     // Initialize mfxVideoParam structure based on decoded bitstream header values
-    UMC::Status FillVideoParam(const H265SeqParamSet * seq, mfxVideoParam *par, bool full);
+    UMC::Status FillVideoParam(const H265VideoParamSet * vps, const H265SeqParamSet * seq, mfxVideoParam *par, bool full);
 
     // Returns implementation platform
     eMFXPlatform GetPlatform_H265(VideoCORE * core, mfxVideoParam * par);
