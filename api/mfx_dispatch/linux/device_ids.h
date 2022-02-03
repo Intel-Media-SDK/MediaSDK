@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2022 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include <stdio.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <algorithm>
 #include <string>
@@ -413,21 +414,29 @@ std::vector <Device> get_devices() {
     std::vector <Device> result;
     for (; i < 64; ++i) {
         Device device;
-        std::string path = std::string(dir) + "/renderD" + std::to_string(128 + i) + vendor_id_file;
+        std::string node_num = std::to_string(128 + i);
+        std::string path = std::string(dir) + "/renderD" + node_num + vendor_id_file;
         FILE *file = fopen(path.c_str(), "r");
-        if (!file) break;
+        if (!file) continue;
         err = fscanf(file, "%x", &device.vendor_id);
         fclose(file);
-        if (err == EOF) break;
+        if (err == EOF) continue;
         if (device.vendor_id != 0x8086) {  // Filter out non-Intel devices
             continue;
         }
-        path = std::string(dir) + "/renderD" + std::to_string(128 + i) + device_id_file;
+        path = std::string(dir) + "/renderD" + node_num + device_id_file;
         file = fopen(path.c_str(), "r");
-        if (!file) break;
+        if (!file) continue;
         err = fscanf(file, "%x", &device.device_id);
         fclose(file);
-        if (err == EOF) break;
+        if (err == EOF) continue;
+
+        // if user only mapped /dev/dri/renderD129 in container, need to skip /dev/dri/renderD128
+        path = "/dev/dri/renderD" + node_num;
+        int fd = open(path.c_str(), O_RDWR);
+        if (fd < 0) continue; //device not accessible
+        close(fd);
+
         device.platform = get_platform(device.device_id);
         result.emplace_back(device);
     }
