@@ -1779,6 +1779,7 @@ bool MfxHwH264Encode::IsRunTimeExtBufferIdSupported(MfxVideoParam const & video,
              || id == MFX_EXTBUFF_PRED_WEIGHT_TABLE
            ))
 #endif
+        || id == MFX_EXTBUFF_PICTURE_TIMING_SEI
         );
 }
 
@@ -1833,6 +1834,7 @@ bool MfxHwH264Encode::IsRunTimeExtBufferPairAllowed(MfxVideoParam const & video,
                 || id == MFX_EXTBUFF_PRED_WEIGHT_TABLE
            ))
 #endif
+        || id == MFX_EXTBUFF_PICTURE_TIMING_SEI
            ;
 }
 
