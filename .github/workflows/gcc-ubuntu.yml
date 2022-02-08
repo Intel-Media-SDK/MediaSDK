@@ -1,0 +1,76 @@
+name: gcc-ubuntu
+
+on:
+  workflow_call:
+    inputs:
+      on:
+        description: 'Which runner to use?'
+        type: string
+        required: true
+      gcc:
+        description: 'Which gcc compiler to use?'
+        type: string
+        required: true
+      cmake-flags:
+        description: 'And additional cmake flags?'
+        type: string
+        required: true
+
+env:
+  CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+
+jobs:
+  build:
+    runs-on: ${{inputs.on}}
+    env:
+      CC: /usr/bin/gcc-${{inputs.gcc}}
+      CXX: /usr/bin/g++-${{inputs.gcc}}
+      ASM: /usr/bin/gcc-${{inputs.gcc}}
+    steps:
+    - name: checkout libmfx
+      uses: actions/checkout@v2
+      with:
+        path: libmfx
+    - name: checkout libva
+      uses: actions/checkout@v2
+      with:
+        repository: intel/libva
+        path: libva
+    - name: install prerequisites
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          cmake \
+          libdrm-dev \
+          libegl1-mesa-dev \
+          libgl1-mesa-dev \
+          libx11-dev \
+          libx11-xcb-dev \
+          libxcb-dri3-dev \
+          libxcb-present-dev \
+          libxext-dev \
+          libxfixes-dev \
+          libwayland-dev \
+          ocl-icd-opencl-dev \
+          opencl-clhpp-headers \
+          make
+    - name: print tools versions
+      run: |
+        cmake --version
+        $CC --version
+        $CXX --version
+    - name: build libva
+      run: |
+        cd libva
+        ./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu
+        make -j$(nproc)
+        sudo make install
+    - name: build libmfx
+      run: |
+        cd libmfx
+        mkdir build && cd build
+        echo "inputs.cmake-flags: ${{inputs.cmake-flags}}"
+        cmake ${{inputs.cmake-flags}} -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
+        make -j$(nproc)
+        sudo make install
+
