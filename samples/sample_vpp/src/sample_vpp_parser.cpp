@@ -1894,15 +1894,13 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
         }
     }
 
-
-
-    if ((pParams->ImpLib & MFX_IMPL_HARDWARE) && !(pParams->ImpLib & MFX_IMPL_VIA_D3D11))
+    if ((pParams->ImpLib & MFX_IMPL_HARDWARE) && !(pParams->ImpLib & MFX_IMPL_VIA_D3D11 || pParams->ImpLib & MFX_IMPL_VIA_D3D9))
     {
         pParams->ImpLib = MFX_IMPL_HARDWARE |
         #ifdef LIBVA_SUPPORT
                 MFX_IMPL_VIA_VAAPI;
         #else
-                MFX_IMPL_VIA_D3D9;
+                MFX_IMPL_VIA_D3D11;
         #endif
     }
 

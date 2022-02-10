@@ -72,9 +72,10 @@ enum {
 };
 
 enum MemType {
-    SYSTEM_MEMORY = 0x00,
-    D3D9_MEMORY   = 0x01,
-    D3D11_MEMORY  = 0x02,
+    SYSTEM_MEMORY = 0x01,
+    D3D9_MEMORY   = 0x02,
+    D3D11_MEMORY  = 0x03,
+    VAAPI_MEMORY  = D3D11_MEMORY
 };
 
 struct sInputParams
@@ -88,7 +89,7 @@ struct sInputParams
     mfxU16 nHeight; // source picture height
     mfxF64 dFrameRate;
     mfxU32 nNumFrames;
-    mfxU16 nBitRate;
+    mfxU32 nBitRate;
     mfxU16 MVC_flags;
     mfxU16 nGopPicSize;
     mfxU16 nGopRefDist;
@@ -181,9 +182,10 @@ struct sInputParams
 
     mfxU16 CodecLevel;
     mfxU16 CodecProfile;
-    mfxU16 MaxKbps;
-    mfxU16 BufferSizeInKB;
-    mfxU16 InitialDelayInKB;
+    mfxU32 MaxKbps;
+    mfxU32 BufferSizeInKB;
+    mfxU32 InitialDelayInKB;
+    mfxU16 nBitRateMultiplier;
     mfxU16 GopOptFlag;
     mfxU16 AdaptiveI;
     mfxU16 AdaptiveB;
@@ -433,6 +435,7 @@ protected:
     virtual mfxStatus AllocFrames();
     virtual void DeleteFrames();
 
+    virtual mfxU32 GetSufficientBufferSize();
     virtual mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper& bs);
     virtual mfxStatus FillBuffers();
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurf);

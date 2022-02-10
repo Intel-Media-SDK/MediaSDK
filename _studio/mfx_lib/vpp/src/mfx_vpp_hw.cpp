@@ -3584,9 +3584,6 @@ int RunGpu(
     res = device->CreateThreadSpace(tsWidth, tsHeight, threadSpace);
     CHECK_CM_ERR(res);
 
-    res = threadSpace->SelectThreadDependencyPattern(CM_NONE_DEPENDENCY);
-    CHECK_CM_ERR(res);
-
     SurfaceIndex *idxInput = 0;
     SurfaceIndex *idxOutput = 0;
     res = input->GetIndex(idxInput);
@@ -5869,17 +5866,16 @@ mfxStatus ConfigureExecuteParams(
                         mfxExtVPPComposite* extComp = (mfxExtVPPComposite*) videoParam.ExtParam[i];
                         StreamCount = extComp->NumInputStream;
 
-                        if (!executeParams.dstRects.empty())
+                        if (executeParams.dstRects.empty())
                         {
-                            if (executeParams.dstRects.size() < StreamCount)
-                                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                            executeParams.initialStreamNum = StreamCount;
                         }
+                        else
+                        {
+                            MFX_CHECK(StreamCount <= executeParams.initialStreamNum, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                        }
+                        executeParams.dstRects.resize(StreamCount);
 
-                        if (executeParams.dstRects.size() != StreamCount)
-                        {
-                            executeParams.dstRects.clear();
-                            executeParams.dstRects.resize(StreamCount);
-                        }
 #if MFX_VERSION > 1023
                         executeParams.iTilesNum4Comp = extComp->NumTiles;
 #endif

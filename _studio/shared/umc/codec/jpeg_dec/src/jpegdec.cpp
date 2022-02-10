@@ -150,6 +150,7 @@ void CJPEGDecoder::Reset(void)
   m_marker                 = JM_NONE;
 
   m_block_buffer           = 0;
+  m_block_buffer_size      = 0;
   m_num_threads            = 0;
   m_nblock                 = 0;
 
@@ -220,6 +221,8 @@ JERRCODE CJPEGDecoder::Clean(void)
     free(m_block_buffer);
     m_block_buffer = 0;
   }
+
+  m_block_buffer_size = 0;
 
   m_state.Destroy();
 
@@ -1383,6 +1386,8 @@ JERRCODE CJPEGDecoder::Init(void)
       return JPEG_ERR_ALLOC;
     }
 
+    m_block_buffer_size = tr_buf_size;
+
     memset((uint8_t*)m_block_buffer, 0, tr_buf_size);
   }
 
@@ -1897,6 +1902,11 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
           while(j < (int) srcWidth / m_dd_factor)
           {
+              if (pDst > curr_comp->GetCCBufferPtr<uint8_t>(0) + (curr_comp->m_cc_bufsize - 1) * sizeof(uint8_t))
+              {
+                 LOG0("Error: CCBuferPtr out of bound!");
+                 return JPEG_ERR_BUFF;
+              }
               status = mfxiSampleUpRowH2V2_Triangle_JPEG_8u_C1(pSrc + j, pSrc + j, pixelToProcess, pDst + j * 2);    
               if(ippStsNoErr != status)
               {
@@ -2052,6 +2062,8 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
 
             // set the pointer to source buffer
             pSrc = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU;
+            if(pSrc == nullptr)
+              return JPEG_ERR_BUFF;
             // set the pointer to temporary buffer
             std::unique_ptr<uint8_t[]> pTmp( new uint8_t[tmpStep * m_curr_scan->mcuHeight / 2] );
             // set the pointer to destination buffer
@@ -2359,10 +2371,19 @@ JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, 
 
     for(n = m_curr_scan->first_comp; n < m_curr_scan->first_comp + m_curr_scan->ncomps; n++)
     {
+      if(m_curr_scan->ncomps < 1 || m_curr_scan->ncomps > MAX_COMPS_PER_SCAN)
+      {
+        return JPEG_ERR_SOS_DATA;
+      }
       int16_t*                lastDC = &m_ccomp[n].m_lastDC;
+      if (m_ccomp[n].m_dc_selector >= MAX_HUFF_TABLES)
+      {
+          return JPEG_ERR_PARAMS;
+      }
       IppiDecodeHuffmanSpec* dctbl  = m_dctbl[m_ccomp[n].m_dc_selector];
       IppiDecodeHuffmanSpec* actbl  = m_actbl[m_ccomp[n].m_ac_selector];
-
+      if(dctbl == nullptr)
+        return JPEG_ERR_PARAMS;
       for(k = 0; k < m_ccomp[n].m_scan_vsampling; k++)
       {
         for(l = 0; l < m_ccomp[n].m_scan_hsampling; l++)
@@ -2528,6 +2549,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8_NxN(int16_t* pMCUBuf,
       lnz       = m_ccomp[c].GetLNZBufferPtr(thread_id);
       curr_lnz  = mcu_col * curr_comp->m_lnz_ds;
 
+      if (curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       uint16_t* qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
@@ -3030,7 +3055,8 @@ JERRCODE CJPEGDecoder::ReconstructMCURowEX(int16_t* pMCUBuf,
         {
           dst += l*8;
 
-
+          if((uint8_t*)dst > curr_comp->GetSSBufferPtr(thread_id)+curr_comp->m_ss_bufsize-1)
+            return JPEG_ERR_BUFF;
           status = mfxiDCTQuantInv8x8LS_JPEG_16s16u_C1R(
                      pMCUBuf,dst,dstStep,qtbl);
           if(ippStsNoErr > status)
@@ -3254,6 +3280,8 @@ JERRCODE CJPEGDecoder::DecodeScanBaseline(void)
         maxMCU = numxMCU;
         if (m_curr_scan->jpeg_restart_interval)
         {
+            if(numxMCU == 0)
+              return JPEG_ERR_PARAMS;
             rowMCU = m_mcu_decoded / numxMCU;
             colMCU = m_mcu_decoded % numxMCU;
             maxMCU = (numxMCU < colMCU + m_mcu_to_decode) ?
@@ -3264,6 +3292,8 @@ JERRCODE CJPEGDecoder::DecodeScanBaseline(void)
         while (rowMCU < numyMCU)
         {
             // decode a MCU row
+            if(m_numxMCU * m_nblock * DCTSIZE2 > (uint32_t)m_block_buffer_size)
+              return JPEG_ERR_BUFF;
             mfxsZero_16s(pMCUBuf, m_numxMCU * m_nblock * DCTSIZE2);
 
             jerr = DecodeHuffmanMCURowBL(pMCUBuf, colMCU, maxMCU);
@@ -4283,6 +4313,10 @@ JERRCODE CJPEGDecoder::ReadData(uint32_t restartNum, uint32_t restartsToDecode)
         }
 
         // reset DC predictors
+        if (m_jpeg_ncomp < 0 || m_jpeg_ncomp > MAX_COMPS_PER_SCAN)
+        {
+            return JPEG_ERR_SOF_DATA;
+        }
         for (int n = 0; n < m_jpeg_ncomp; n++)
         {
             m_ccomp[n].m_lastDC = 0;

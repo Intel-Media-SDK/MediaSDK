@@ -131,11 +131,14 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("Pipeline description (general options):\n"));
     msdk_printf(MSDK_STRING("  -i::h265|h264|mpeg2|vc1|mvc|jpeg|vp9|av1 <file-name>\n"));
     msdk_printf(MSDK_STRING("                 Set input file and decoder type\n"));
-    msdk_printf(MSDK_STRING("  -i::i420|nv12 <file-name>\n"));
+    msdk_printf(MSDK_STRING("  -i::i420|nv12|p010 <file-name>\n"));
     msdk_printf(MSDK_STRING("                 Set raw input file and color format\n"));
     msdk_printf(MSDK_STRING("  -i::rgb4_frame Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).\n"));
-    msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>\n"));
+    msdk_printf(MSDK_STRING("  -msb10 - 10-bit color format is expected to have data in Most Significant Bits of words.\n"));
+    msdk_printf(MSDK_STRING("                LSB data placement is expected by default.\n"));
+    msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>|null\n"));
     msdk_printf(MSDK_STRING("                Set output file and encoder type\n"));
+    msdk_printf(MSDK_STRING("                \'null\' keyword as file-name disables output file writing \n"));
     msdk_printf(MSDK_STRING("  -sw|-hw|-hw_d3d11|-hw_d3d9\n"));
     msdk_printf(MSDK_STRING("                SDK implementation to use: \n"));
     msdk_printf(MSDK_STRING("                      -hw - platform-specific on default display adapter (default)\n"));
@@ -292,6 +295,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -qpp          Constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
     msdk_printf(MSDK_STRING("  -qpb          Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
 #endif
+    msdk_printf(MSDK_STRING("  -minqp        Minimum quantizer for the stream. 0 by default, i.e.no limitations.\n"));
+    msdk_printf(MSDK_STRING("  -maxqp        Maximum quantizer for the stream. 0 by default, i.e.no limitations.\n"));
     msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
     msdk_printf(MSDK_STRING("  -lowpower:<on,off>       Turn this option ON to enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
 #if (MFX_VERSION >= 1027)
@@ -1345,6 +1350,27 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
         }
     }
 #endif
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-minqp")))
+    {
+        VAL_CHECK(i + 1 == argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nMinQP))
+        {
+            PrintError(MSDK_STRING("Minimum quantizer is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-maxqp")))
+    {
+        VAL_CHECK(i + 1 == argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nMaxQP))
+        {
+            PrintError(MSDK_STRING("Maximum quantizer is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-msb10"))) {
+        InputParams.IsSourceMSB = true;
+    }
     else
     {
         // no matching argument was found
@@ -1656,6 +1682,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             {
                 return MFX_ERR_UNSUPPORTED;
             }
+
             VAL_CHECK(i+1 == argc, i, argv[i]);
             i++;
             SIZE_CHECK((msdk_strlen(argv[i])+1) > MSDK_ARRAY_LEN(InputParams.strDstFile));
@@ -2782,6 +2809,7 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
        MFX_CODEC_RGB4 != InputParams.DecodeId &&
        MFX_CODEC_NV12 != InputParams.DecodeId &&
        MFX_CODEC_I420 != InputParams.DecodeId &&
+       MFX_CODEC_P010 != InputParams.DecodeId &&
        InputParams.eMode != Source)
     {
         PrintError(MSDK_STRING("Unknown decoder\n"));
@@ -2789,7 +2817,8 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     }
 
     if (MFX_CODEC_I420 == InputParams.DecodeId ||
-        MFX_CODEC_NV12 == InputParams.DecodeId)
+        MFX_CODEC_NV12 == InputParams.DecodeId ||
+        MFX_CODEC_P010 == InputParams.DecodeId)
     {
         InputParams.rawInput = true;
     }
@@ -2978,6 +3007,34 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
         InputParams.bPrefferdGfx = false;
     }
 #endif
+
+    mfxU16 mfxU16Limit = std::numeric_limits<mfxU16>::max();
+    if (InputParams.MaxKbps > mfxU16Limit || InputParams.nBitRate > mfxU16Limit ||
+        InputParams.InitialDelayInKB > mfxU16Limit || InputParams.BufferSizeInKB > mfxU16Limit)
+    {
+        mfxU32 maxVal = std::max<mfxU32>({ InputParams.MaxKbps,
+                                           InputParams.nBitRate,
+                                           InputParams.InitialDelayInKB,
+                                           InputParams.BufferSizeInKB });
+        InputParams.nBitRateMultiplier = (mfxU16)std::ceil(static_cast<double>(maxVal) / mfxU16Limit);
+        msdk_printf(MSDK_STRING("WARNING: BitRateMultiplier(-bm) was updated, new value: %d. \n"), InputParams.nBitRateMultiplier);
+
+        auto recalculate = [mfxU16Limit, InputParams] (mfxU32 &param, msdk_tstring paramName)
+        { 
+            if (param)
+            {
+                if (param > mfxU16Limit)
+                    msdk_printf(MSDK_STRING("WARNING: %s (%d) > allow limit (%d). \n"), paramName.c_str(), param, mfxU16Limit);
+                param = param / InputParams.nBitRateMultiplier;
+                msdk_printf(MSDK_STRING("WARNING: %s was updated, new value: %d. \n"), paramName.c_str(), param);
+            }
+        };
+
+        recalculate(InputParams.MaxKbps, MSDK_STRING("MaxKbps"));
+        recalculate(InputParams.nBitRate, MSDK_STRING("nBitRate(-b)"));
+        recalculate(InputParams.InitialDelayInKB, MSDK_STRING("InitialDelayInKB"));
+        recalculate(InputParams.BufferSizeInKB, MSDK_STRING("BufferSizeInKB"));
+    }
 
     return MFX_ERR_NONE;
 } //mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputParams &InputParams)

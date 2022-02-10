@@ -487,13 +487,27 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
                 }
                 else
                 {
+                    mfxPlatform platform = { MFX_PLATFORM_UNKNOWN, 0, MFX_MEDIA_UNKNOWN };
+                    if (pHandle->callTable[eMFXVideoCORE_QueryPlatform])
+                    {
+                        mfxRes = MFXVideoCORE_QueryPlatform((mfxSession)pHandle, &platform);
+                        if (MFX_ERR_NONE != mfxRes)
+                        {
+                            DISPATCHER_LOG_WRN(("MFXVideoCORE_QueryPlatform failed, rejecting loaded library\n"));
+                            pHandle->Close();
+                            continue;
+                        }
+                    }
+                    pHandle->mediaAdapterType = platform.MediaAdapterType;
+                    DISPATCHER_LOG_INFO((("media adapter type is %d\n"), pHandle->mediaAdapterType));
+
                     pHandle->storageID = MFX::MFX_UNKNOWN_KEY;
                     allocatedHandle.push_back(pHandle);
                     pHandle = new MFX_DISP_HANDLE_EX(requiredVersion);
                 }
         }
     }
-    while ((MFX_ERR_NONE > mfxRes) && (++curImplIdx <= maxImplIdx));
+    while ((MFX_ERR_NONE >= mfxRes) && (++curImplIdx <= maxImplIdx));
     delete pHandle;
 
     if (allocatedHandle.size() == 0)

@@ -631,7 +631,11 @@ void H264Slice::ReOrderRefPicList(H264DecoderFrame **pRefPicList,
                 }
             }
             picViewIdxLXPred = picViewIdxLX;
-
+            if (picViewIdxLX >= UMC::H264_MAX_NUM_VIEW_REF)
+            {
+                m_pCurrentFrame->SetErrorFlagged(ERROR_FRAME_MAJOR);
+                continue;
+            }
             // get the target view
             if (m_SliceHeader.nal_ext.mvc.anchor_pic_flag)
             {

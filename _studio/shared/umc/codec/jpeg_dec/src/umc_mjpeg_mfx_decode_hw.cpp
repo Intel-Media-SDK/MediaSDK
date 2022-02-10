@@ -464,6 +464,8 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
 
             for(int j = 0; j < m_decBase->m_curr_scan->ncomps; j += 1)
             {
+                if(m_decBase->m_curr_comp_no + 1 - m_decBase->m_curr_scan->ncomps + j < 0 || m_decBase->m_curr_comp_no + 1 - m_decBase->m_curr_scan->ncomps + j > MAX_COMPS_PER_SCAN)
+                    return UMC_ERR_INVALID_STREAM;
                 scanParams.ComponentSelector[j] = (uint8_t)m_decBase->m_ccomp[m_decBase->m_curr_comp_no + 1 - m_decBase->m_curr_scan->ncomps + j].m_id;
                 scanParams.DcHuffTblSelector[j] = (uint8_t)m_decBase->m_ccomp[m_decBase->m_curr_comp_no + 1 - m_decBase->m_curr_scan->ncomps + j].m_dc_selector;
                 scanParams.AcHuffTblSelector[j] = (uint8_t)m_decBase->m_ccomp[m_decBase->m_curr_comp_no + 1 - m_decBase->m_curr_scan->ncomps + j].m_ac_selector;
@@ -721,7 +723,8 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
 
         if(!bistreamData)
             return UMC_ERR_DEVICE_FAILED;
-
+        if(obtainedScanParams->DataLength > (uint32_t)compBufBs->GetBufferSize())
+            return UMC_ERR_INVALID_STREAM;
         std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
     }
 

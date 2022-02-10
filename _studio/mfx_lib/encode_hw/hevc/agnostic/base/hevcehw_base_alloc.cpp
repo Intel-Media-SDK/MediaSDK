@@ -55,7 +55,6 @@ IAllocation* Allocator::MakeAlloc(std::unique_ptr<MfxEncodeHW::ResPool>&& upAllo
         return nullptr;
 
     auto pAlloc = upAlloc.release();
-    pIAlloc->m_pthis.reset(pAlloc);
 
 #define WRAP_CC(X) pIAlloc->X.Push(WrapCC(&MfxEncodeHW::ResPool::X, pAlloc))
     WRAP_CC(Alloc);
@@ -68,6 +67,8 @@ IAllocation* Allocator::MakeAlloc(std::unique_ptr<MfxEncodeHW::ResPool>&& upAllo
     WRAP_CC(GetFlag);
     WRAP_CC(UnlockAll);
     WRAP_CC(Acquire);
+
+    pIAlloc->m_pthis.reset(pAlloc);
 
     return pIAlloc.release();
 }

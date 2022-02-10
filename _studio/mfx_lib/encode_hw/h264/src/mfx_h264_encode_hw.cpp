@@ -3508,7 +3508,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     task->m_fillerSize[fieldId] = PaddingBytesToWorkAroundHrdIssue(
                         m_video, m_hrd, m_encoding, task->m_fieldPicFlag, f);
 
-                PrepareSeiMessageBuffer(m_video, *task, fieldId, m_sei);
+                mfxU16 recovery_frame_cnt = (mfxU16)std::count_if(m_reordering.begin(), m_reordering.end(), [](DdiTask task_item) {return task_item.m_type[0] & MFX_FRAMETYPE_REF; });
+                if (!IsOn(extOpt.FramePicture))
+                    recovery_frame_cnt *= 2; // assume that both paired fields are or aren't reference.
+                PrepareSeiMessageBuffer(m_video, *task, fieldId, m_sei, recovery_frame_cnt);
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW
                 bool needSvcPrefix = IsSvcProfile(m_video.mfx.CodecProfile) || (m_video.calcParam.numTemporalLayer > 0);

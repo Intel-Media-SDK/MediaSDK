@@ -252,11 +252,13 @@ void MFXTaskSupplier_H265::SetVideoParams(mfxVideoParam * par)
 
 UMC::Status MFXTaskSupplier_H265::FillVideoParam(mfxVideoParam *par, bool full)
 {
+    const H265VideoParamSet * vps = GetHeaders()->m_VideoParams.GetCurrentHeader();
     const H265SeqParamSet * seq = GetHeaders()->m_SeqParams.GetCurrentHeader();
+
     if (!seq)
         return UMC::UMC_ERR_FAILED;
 
-    if (MFX_Utility::FillVideoParam(seq, par, full) != UMC::UMC_OK)
+    if (MFX_Utility::FillVideoParam(vps, seq, par, full) != UMC::UMC_OK)
         return UMC::UMC_ERR_FAILED;
 
     return UMC::UMC_OK;

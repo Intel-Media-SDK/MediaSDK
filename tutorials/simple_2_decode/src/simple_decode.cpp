@@ -32,7 +32,7 @@ static void usage(CmdOptionsCtx* ctx)
 int main(int argc, char* argv[])
 {
     mfxStatus sts = MFX_ERR_NONE;
-    bool bEnableOutput; // if true, removes all YUV file writing
+    bool bEnableOutput; // if false, removes all YUV file writing
     CmdOptions options;
 
     // =====================================================================

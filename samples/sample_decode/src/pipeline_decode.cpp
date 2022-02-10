@@ -267,9 +267,11 @@ mfxStatus CDecodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
 
     // If d3d11 surfaces are used ask the library to run acceleration through D3D11
     // feature may be unsupported due to OS or MSDK API version
-
-    if (D3D11_MEMORY == params.memType || D3D11_MEMORY == m_memType)
+    // prefer d3d11 by default
+#if D3D_SURFACES_SUPPORT
+    if (D3D9_MEMORY != params.memType || D3D9_MEMORY != m_memType)
         impl |= MFX_IMPL_VIA_D3D11;
+#endif
 
     return MFX_ERR_NONE;
 }
@@ -348,14 +350,14 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         switch (pParams->mode)
         {
         case MODE_PERFORMANCE:
-#if defined(_WIN32) || defined(_WIN64)
-            m_memType = pParams->bUseHWLib ? D3D11_MEMORY : SYSTEM_MEMORY;
-#elif defined(LIBVA_SUPPORT)
-            m_memType = pParams->bUseHWLib ? D3D9_MEMORY : SYSTEM_MEMORY;
-#endif
-            break;
         case MODE_RENDERING:
-            m_memType = D3D9_MEMORY;
+            m_memType = pParams->bUseHWLib ? 
+#if defined(_WIN32) || defined(_WIN64)
+            D3D11_MEMORY
+#elif defined(LIBVA_SUPPORT)
+            VAAPI_MEMORY
+#endif
+            : SYSTEM_MEMORY;
             break;
         case MODE_FILE_DUMP:
             m_memType = SYSTEM_MEMORY;
@@ -455,7 +457,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     isDeviceRequired = m_memType != SYSTEM_MEMORY || !m_bDecOutSysmem;
     hdl_t =
 #if MFX_D3D11_SUPPORT
-        D3D11_MEMORY == m_memType ? MFX_HANDLE_D3D11_DEVICE :
+        D3D9_MEMORY != m_memType ? MFX_HANDLE_D3D11_DEVICE :
 #endif // #if MFX_D3D11_SUPPORT
         MFX_HANDLE_D3D9_DEVICE_MANAGER;
 #elif LIBVA_SUPPORT
@@ -1109,7 +1111,7 @@ mfxStatus CDecodingPipeline::CreateHWDevice()
     }
 
 #if MFX_D3D11_SUPPORT
-    if (D3D11_MEMORY == m_memType)
+    if (D3D9_MEMORY != m_memType)
         m_hwdev = new CD3D11Device();
     else
 #endif // #if MFX_D3D11_SUPPORT
@@ -1371,7 +1373,7 @@ mfxStatus CDecodingPipeline::CreateAllocator()
         mfxHDL hdl = NULL;
         mfxHandleType hdl_t =
 #if MFX_D3D11_SUPPORT
-            D3D11_MEMORY == m_memType ? MFX_HANDLE_D3D11_DEVICE :
+            D3D9_MEMORY != m_memType ? MFX_HANDLE_D3D11_DEVICE :
 #endif // #if MFX_D3D11_SUPPORT
             MFX_HANDLE_D3D9_DEVICE_MANAGER;
 
@@ -2130,7 +2132,7 @@ void CDecodingPipeline::PrintInfo()
 #if defined(_WIN32) || defined(_WIN64)
         m_memType == D3D9_MEMORY  ? MSDK_STRING("d3d")
 #else
-        m_memType == D3D9_MEMORY  ? MSDK_STRING("vaapi")
+        m_memType == VAAPI_MEMORY  ? MSDK_STRING("vaapi")
 #endif
         : (m_memType == D3D11_MEMORY ? MSDK_STRING("d3d11")
         : MSDK_STRING("system"));

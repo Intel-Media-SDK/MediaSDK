@@ -265,7 +265,8 @@ namespace MfxHwH264Encode
 
     void PrepareSeiMessage(
         MfxVideoParam const &   par,
-        mfxExtAvcSeiRecPoint &  msg);
+        mfxExtAvcSeiRecPoint &  msg,
+        mfxU16 recovery_frame_cnt);
 
     mfxU32 CalculateSeiSize( mfxExtAvcSeiRecPoint const & msg);
     mfxU32 CalculateSeiSize( mfxExtAvcSeiDecRefPicMrkRep const & msg);
@@ -3400,7 +3401,8 @@ private:
         MfxVideoParam const & video,
         DdiTask const &       task,
         mfxU32                fieldId, // 0 - top/progressive, 1 - bottom
-        PreAllocatedVector &  sei);
+        PreAllocatedVector &  sei,
+        mfxU16 recovery_frame_cnt = 0);
 
     void PrepareSeiMessageBufferDepView(
         MfxVideoParam const & video,

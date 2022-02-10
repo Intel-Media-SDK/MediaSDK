@@ -447,11 +447,14 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetReader failed");
         }
 
-        std::unique_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
-        sts = writer->Init(m_InputParamsArray[i].strDstFile);
+        if (msdk_strncmp(MSDK_STRING("null"), m_InputParamsArray[i].strDstFile, msdk_strlen(MSDK_STRING("null"))))
+        {
+            std::unique_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
+            sts = writer->Init(m_InputParamsArray[i].strDstFile);
 
-        sts = m_pExtBSProcArray.back()->SetWriter(writer);
-        MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetWriter failed");
+            sts = m_pExtBSProcArray.back()->SetWriter(writer);
+            MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetWriter failed");
+        }
 
         if (Sink == m_InputParamsArray[i].eMode)
         {

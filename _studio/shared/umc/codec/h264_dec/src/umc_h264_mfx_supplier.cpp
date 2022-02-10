@@ -1067,7 +1067,6 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
             (MFX_PROFILE_AVC_BASELINE == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_MAIN == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_HIGH == in->mfx.CodecProfile) ||
-            (MFX_PROFILE_AVC_HIGH_422 == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_EXTENDED == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_MULTIVIEW_HIGH == in->mfx.CodecProfile) ||
             (MFX_PROFILE_AVC_STEREO_HIGH == in->mfx.CodecProfile)
@@ -1540,8 +1539,6 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
     case MFX_PROFILE_AVC_MAIN:
     case MFX_PROFILE_AVC_EXTENDED:
     case MFX_PROFILE_AVC_HIGH:
-    case MFX_PROFILE_AVC_HIGH10:
-    case MFX_PROFILE_AVC_HIGH_422:
     case MFX_PROFILE_AVC_STEREO_HIGH:
     case MFX_PROFILE_AVC_MULTIVIEW_HIGH:
         break;

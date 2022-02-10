@@ -97,6 +97,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-y416] - pipeline output format: Y416, output file format: Y416\n"));
 #endif
     msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("   [-sys]                    - work with linear buffer in system memory\n"));
 #if D3D_SURFACES_SUPPORT
     msdk_printf(MSDK_STRING("   [-d3d]                    - work with d3d9 surfaces\n"));
     msdk_printf(MSDK_STRING("   [-d3d11]                  - work with d3d11 surfaces\n"));
@@ -210,6 +211,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->bUseHWLib = true;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-sys")))
+        {
+            pParams->memType = SYSTEM_MEMORY;
+        }
 #if D3D_SURFACES_SUPPORT
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d3d")))
         {
@@ -222,9 +227,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-r")))
         {
             pParams->mode = MODE_RENDERING;
-            // use d3d9 rendering by default
-            if (SYSTEM_MEMORY == pParams->memType)
-                pParams->memType = D3D9_MEMORY;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-wall")))
         {
@@ -233,9 +235,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -wall key"));
                 return MFX_ERR_UNSUPPORTED;
             }
-            // use d3d9 rendering by default
-            if (SYSTEM_MEMORY == pParams->memType)
-                pParams->memType = D3D9_MEMORY;
 
             pParams->mode = MODE_RENDERING;
 
@@ -255,17 +254,15 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
 #if defined(LIBVA_SUPPORT)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vaapi")))
         {
-            pParams->memType = D3D9_MEMORY;
+            pParams->memType = VAAPI_MEMORY;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-r")))
         {
-            pParams->memType = D3D9_MEMORY;
             pParams->mode = MODE_RENDERING;
             pParams->libvaBackend = MFX_LIBVA_X11;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rwld")))
         {
-            pParams->memType = D3D9_MEMORY;
             pParams->mode = MODE_RENDERING;
             pParams->libvaBackend = MFX_LIBVA_WAYLAND;
         }
@@ -275,7 +272,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strncmp(strInput[i], MSDK_STRING("-rdrm"), 5))
         {
-            pParams->memType = D3D9_MEMORY;
             pParams->mode = MODE_RENDERING;
             pParams->libvaBackend = MFX_LIBVA_DRM_MODESET;
             if (strInput[i][5]) {
@@ -775,6 +771,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         pParams->bPrefferdGfx = false;
     }
 #endif
+
+    if(pParams->mode == MODE_RENDERING && pParams->memType == SYSTEM_MEMORY)
+    {
+        msdk_printf(MSDK_STRING("error: rendering model is unsupported for system memory"));
+        return MFX_ERR_UNSUPPORTED;
+    }
 
     return MFX_ERR_NONE;
 }

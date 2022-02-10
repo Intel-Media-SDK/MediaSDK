@@ -27,23 +27,27 @@
 mfxStatus GfxApiInit(mfxInitParam par, mfxU32 deviceID, mfxSession *session, mfxModuleHandle& hModule)
 {
     HRESULT hr = S_OK;
-    wchar_t IntelGFXAPIdllName[MFX_MAX_DLL_PATH] = { 0 };
-    MFX::DriverStoreLoader dsLoader;
 
-    if (!dsLoader.GetDriverStorePath(IntelGFXAPIdllName, sizeof(IntelGFXAPIdllName), deviceID))
+    if (hModule == NULL)
     {
-        return MFX_ERR_UNSUPPORTED;
-    }
+        wchar_t IntelGFXAPIdllName[MFX_MAX_DLL_PATH] = { 0 };
+        MFX::DriverStoreLoader dsLoader;
 
-    size_t pathLen = wcslen(IntelGFXAPIdllName);
-    MFX::mfx_get_default_intel_gfx_api_dll_name(IntelGFXAPIdllName + pathLen, sizeof(IntelGFXAPIdllName) / sizeof(IntelGFXAPIdllName[0]) - pathLen);
-    DISPATCHER_LOG_INFO((("loading %S\n"), IntelGFXAPIdllName));
+        if (!dsLoader.GetDriverStorePath(IntelGFXAPIdllName, sizeof(IntelGFXAPIdllName), deviceID))
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
 
-    hModule = MFX::mfx_dll_load(IntelGFXAPIdllName);
-    if (!hModule)
-    {
-        DISPATCHER_LOG_ERROR("Can't load intel_gfx_api\n");
-        return MFX_ERR_UNSUPPORTED;
+        size_t pathLen = wcslen(IntelGFXAPIdllName);
+        MFX::mfx_get_default_intel_gfx_api_dll_name(IntelGFXAPIdllName + pathLen, sizeof(IntelGFXAPIdllName) / sizeof(IntelGFXAPIdllName[0]) - pathLen);
+        DISPATCHER_LOG_INFO((("loading %S\n"), IntelGFXAPIdllName));
+
+        hModule = MFX::mfx_dll_load(IntelGFXAPIdllName);
+        if (!hModule)
+        {
+            DISPATCHER_LOG_ERROR("Can't load intel_gfx_api\n");
+            return MFX_ERR_UNSUPPORTED;
+        }
     }
 
     mfxFunctionPointer pFunc = (mfxFunctionPointer)MFX::mfx_dll_get_addr(hModule, "InitialiseMediaSession");
@@ -67,7 +71,7 @@ mfxStatus GfxApiClose(mfxSession& session, mfxModuleHandle& hModule)
 
     if (!hModule)
     {
-        return MFX_ERR_INVALID_HANDLE;
+        return MFX_ERR_NULL_PTR;
     }
 
     mfxFunctionPointer pFunc = (mfxFunctionPointer)MFX::mfx_dll_get_addr(hModule, "DisposeMediaSession");
@@ -184,17 +188,100 @@ mfxStatus GfxApiInitPriorityIntegrated(mfxInitParam par, mfxSession *session, mf
         gfxApiHandles.push_back(handle);
     }
 
+    //Try to use fallback from System folder
+    mfxModuleHandle hFallback = NULL;
+
+    if (gfxApiHandles.size() == 0)
+    {
+        wchar_t IntelGFXAPIdllName[MFX_MAX_DLL_PATH] = { 0 };
+        MFX::mfx_get_default_intel_gfx_api_dll_name(IntelGFXAPIdllName, sizeof(IntelGFXAPIdllName) / sizeof(IntelGFXAPIdllName[0]));
+        DISPATCHER_LOG_INFO((("loading fallback %S\n"), IntelGFXAPIdllName));
+
+        hFallback = MFX::mfx_dll_load(IntelGFXAPIdllName);
+        if (!hFallback)
+        {
+            DISPATCHER_LOG_ERROR("Can't load intel_gfx_api\n");
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        for (int adapterNum = 0; adapterNum < 4; ++adapterNum)
+        {
+            MFX::DXVA2Device dxvaDevice;
+
+            if (!dxvaDevice.InitDXGI1(adapterNum) || dxvaDevice.GetVendorID() != INTEL_VENDOR_ID)
+            {
+                continue;
+            }
+
+            par.Implementation &= ~(0xf);
+            switch (adapterNum)
+            {
+            case 0:
+                par.Implementation |= MFX_IMPL_HARDWARE;
+                break;
+            case 1:
+                par.Implementation |= MFX_IMPL_HARDWARE2;
+                break;
+            case 2:
+                par.Implementation |= MFX_IMPL_HARDWARE3;
+                break;
+            case 3:
+                par.Implementation |= MFX_IMPL_HARDWARE4;
+                break;
+            }
+
+            mfxSession sessionCur = NULL;
+
+            sts = GfxApiInit(par, dxvaDevice.GetDeviceID(), &sessionCur, hFallback);
+            if (sts != MFX_ERR_NONE)
+                continue;
+
+            mfxPlatform platform = { MFX_PLATFORM_UNKNOWN, 0, MFX_MEDIA_UNKNOWN };
+            sts = MFXVideoCORE_QueryPlatform(sessionCur, &platform);
+            if (sts != MFX_ERR_NONE)
+            {
+                continue;
+            }
+
+            GfxApiHandle handle = { NULL, sessionCur, platform.MediaAdapterType };
+            gfxApiHandles.push_back(handle);
+        }
+    }
+
+    if (gfxApiHandles.size() == 0)
+    {
+        if (hFallback != NULL)
+        {
+            MFX::mfx_dll_free(hFallback);
+            hFallback = NULL;
+        }
+
+        return MFX_ERR_UNSUPPORTED;
+    }
+
     qsort(&(*gfxApiHandles.begin()), gfxApiHandles.size(), sizeof(GfxApiHandle), &GfxApiHandleSort);
 
-    hModule = gfxApiHandles.begin()->hModule;
+    // When hModule == NULL and hFallback != NULL - it means dispatcher uses fallback library from System folder
+    hModule = ( gfxApiHandles.begin()->hModule == NULL && hFallback != NULL )? hFallback : gfxApiHandles.begin()->hModule;
     *session = gfxApiHandles.begin()->session;
 
     MFX::MFXVector<GfxApiHandle>::iterator it = gfxApiHandles.begin()++;
     for (; it != gfxApiHandles.end(); ++it)
     {
         sts = GfxApiClose(it->session, it->hModule);
+
+        if (sts == MFX_ERR_NULL_PTR)
+            continue;
+
         if (sts != MFX_ERR_NONE)
             return sts;
+    }
+
+    //If dispatcher has tried a fallback, but returns something else - free loaded fallback
+    if (hFallback != NULL && hModule != hFallback)
+    {
+        MFX::mfx_dll_free(hFallback);
+        hFallback = NULL;
     }
 
     return sts;

@@ -68,7 +68,7 @@ const mfxU32 TableA2[][4] =
 /*  6.2  */ {4278190080, 240000, 800000,    6},
 };
 
-const mfxU16 MaxLidx = (sizeof(TableA1) / sizeof(TableA1[0]));
+const mfxU16 MaxLidx = (sizeof(TableA1) / sizeof(TableA1[0])) - 1;
 
 mfxU16 LevelIdx(mfxU16 mfx_level)
 {
@@ -212,11 +212,11 @@ mfxU16 HEVCEHW::Base::GetMinLevel(
 
         bNextTier &= !bNextLevel;
 
-        bSearch = (lidx < MaxLidx) && (bNextTier || bNextLevel);
-
         tidx *= !bMaxTier;
         tidx += bNextTier;
         lidx += bNextLevel;
+
+        bSearch = (lidx <= MaxLidx) && (bNextTier || bNextLevel);
     }
 
     return MfxLevel(lidx, tidx);

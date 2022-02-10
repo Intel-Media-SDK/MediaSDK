@@ -256,7 +256,7 @@ void PrintInfo(sInputParams* pParams, mfxVideoParam* pMfxParams, MFXVideoSession
     //-------------------------------------------------------
     mfxIMPL impl;
     pMfxSession->QueryIMPL(&impl);
-    bool isHWlib = (MFX_IMPL_HARDWARE & impl) ? true:false;
+    bool isHWlib = (MFX_IMPL_SOFTWARE != impl) ? true:false;
 
     const msdk_char* sImpl = (isHWlib) ? MSDK_STRING("hw") : MSDK_STRING("sw");
     msdk_printf(MSDK_STRING("MediaSDK impl\t%s"), sImpl);

@@ -128,7 +128,7 @@ void CResourcesPool::CloseAndDeleteEverything()
 mfxStatus CRegionEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 {
     CEncodingPipeline::InitMfxEncParams(pInParams);
-    m_mfxEncParams.mfx.TargetKbps              = pInParams->nBitRate / pInParams->nNumSlice; // in Kbps
+    m_mfxEncParams.mfx.TargetKbps = (mfxU16)pInParams->nBitRate / pInParams->nNumSlice; // in Kbps
 
     if (m_mfxEncParams.mfx.NumSlice > 1 && MFX_CODEC_HEVC == pInParams->CodecId)
     {

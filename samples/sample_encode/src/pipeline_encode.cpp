@@ -487,10 +487,11 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     m_mfxEncParams.mfx.CodecProfile            = pInParams->CodecProfile;
     m_mfxEncParams.mfx.CodecLevel              = pInParams->CodecLevel;
-    m_mfxEncParams.mfx.MaxKbps                 = pInParams->MaxKbps;
-    m_mfxEncParams.mfx.InitialDelayInKB        = pInParams->InitialDelayInKB;
+    m_mfxEncParams.mfx.MaxKbps                 = (mfxU16)pInParams->MaxKbps;
+    m_mfxEncParams.mfx.InitialDelayInKB        = (mfxU16)pInParams->InitialDelayInKB;
     m_mfxEncParams.mfx.GopOptFlag              = pInParams->GopOptFlag;
-    m_mfxEncParams.mfx.BufferSizeInKB          = pInParams->BufferSizeInKB;
+    m_mfxEncParams.mfx.BufferSizeInKB          = (mfxU16)pInParams->BufferSizeInKB;
+    m_mfxEncParams.mfx.BRCParamMultiplier      = pInParams->nBitRateMultiplier;
 
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
@@ -506,12 +507,12 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     else if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
         m_mfxEncParams.mfx.Accuracy    = pInParams->Accuracy;
-        m_mfxEncParams.mfx.TargetKbps  = pInParams->nBitRate;
+        m_mfxEncParams.mfx.TargetKbps  = (mfxU16)pInParams->nBitRate;
         m_mfxEncParams.mfx.Convergence = pInParams->Convergence;
     }
     else
     {
-        m_mfxEncParams.mfx.TargetKbps = pInParams->nBitRate; // in Kbps
+        m_mfxEncParams.mfx.TargetKbps = (mfxU16)pInParams->nBitRate; // in Kbps
     }
 
     if(pInParams->enableQSVFF)
@@ -577,7 +578,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
             hevcTiles->NumTileRows = pInParams->nEncTileRows;
             hevcTiles->NumTileColumns = pInParams->nEncTileCols;
         }
-#if MFX_VERSION >= MFX_VERSION_NEXT
+#if (MFX_VERSION >= 1029)
         else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
         {
             auto vp9Param = m_mfxEncParams.AddExtBuffer<mfxExtVP9Param>();
@@ -623,7 +624,9 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
             // Converting to byte-string if necessary
             msdk_tstring tstr(pInParams->uSEI+index);
-            msg = std::string(tstr.begin(), tstr.end());
+            std::transform(tstr.begin(), tstr.end(), std::back_inserter(msg), [](msdk_char c) {
+                return (char)c;
+            });
         }
         size = (mfxU16)uuid.size();
         size += (mfxU16)msg.length();
@@ -770,15 +773,12 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     if (pInParams->nAvcTemp)
     {
-        if (pInParams->CodecId == MFX_CODEC_HEVC)
-        {
-            auto avcTemporalLayers = m_mfxEncParams.AddExtBuffer<mfxExtAvcTemporalLayers>();
+        auto avcTemporalLayers = m_mfxEncParams.AddExtBuffer<mfxExtAvcTemporalLayers>();
 
-            avcTemporalLayers->BaseLayerPID = pInParams->nBaseLayerPID;
-            for (int i = 0; i < 8; i++)
-            {
-                avcTemporalLayers->Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
-            }
+        avcTemporalLayers->BaseLayerPID = pInParams->nBaseLayerPID;
+        for (int i = 0; i < 8; i++)
+        {
+            avcTemporalLayers->Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
         }
     }
 
@@ -1629,8 +1629,11 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
 
     // If d3d11 surfaces are used ask the library to run acceleration through D3D11
     // feature may be unsupported due to OS or MSDK API version
-    if (D3D11_MEMORY == params.memType)
+    // prefer d3d11 by default
+#if D3D_SURFACES_SUPPORT
+    if (D3D9_MEMORY != params.memType)
         impl |= MFX_IMPL_VIA_D3D11;
+#endif
 
     return MFX_ERR_NONE;
 }
@@ -2127,7 +2130,10 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
         MSDK_CHECK_STATUS(sts, "m_pmfxVPP->Init failed");
     }
 
-    mfxU32 nEncodedDataBufferSize = m_mfxEncParams.mfx.FrameInfo.Width * m_mfxEncParams.mfx.FrameInfo.Height * 4;
+    mfxU32 nEncodedDataBufferSize = GetSufficientBufferSize();
+    if (nEncodedDataBufferSize == 0)
+        MSDK_CHECK_STATUS(MFX_ERR_UNKNOWN, "ERROR: GetSufficientBufferSize failed");
+
     sts = m_TaskPool.Init(&m_mfxSession, m_FileWriters.first, m_mfxEncParams.AsyncDepth, nEncodedDataBufferSize, m_FileWriters.second);
     MSDK_CHECK_STATUS(sts, "m_TaskPool.Init failed");
 
@@ -2165,18 +2171,41 @@ mfxStatus CEncodingPipeline::OpenRoundingOffsetFile(sInputParams *pInParams)
 
     return MFX_ERR_NONE;
 }
-mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper& bs)
+
+mfxU32 CEncodingPipeline::GetSufficientBufferSize()
 {
-    MSDK_CHECK_POINTER(GetFirstEncoder(), MFX_ERR_NOT_INITIALIZED);
+    if (!GetFirstEncoder())
+        return 0;
 
     mfxVideoParam par;
     MSDK_ZERO_MEMORY(par);
 
     // find out the required buffer size
     mfxStatus sts = GetFirstEncoder()->GetVideoParam(&par);
-    MSDK_CHECK_STATUS(sts, "GetFirstEncoder failed");
+    if (sts != MFX_ERR_NONE)
+        return 0;
 
-    bs.Extend(par.mfx.BufferSizeInKB * 1000);
+    mfxU32 new_size = 0;
+    if (par.mfx.CodecId == MFX_CODEC_JPEG)
+    {
+        new_size = 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023);
+    }
+    else
+    {
+        new_size = par.mfx.BufferSizeInKB * par.mfx.BRCParamMultiplier * 1000u;
+    }
+
+    return new_size;
+}
+
+mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper& bs)
+{
+
+    mfxU32 new_size = GetSufficientBufferSize();
+    if (new_size == 0)
+        MSDK_CHECK_STATUS(MFX_ERR_UNKNOWN, "ERROR: GetSufficientBufferSize failed");
+
+    bs.Extend(new_size);
 
     return MFX_ERR_NONE;
 }
@@ -2802,7 +2831,7 @@ void CEncodingPipeline::PrintInfo()
 #if defined(_WIN32) || defined(_WIN64)
         m_memType == D3D9_MEMORY  ? MSDK_STRING("d3d")
 #else
-        m_memType == D3D9_MEMORY  ? MSDK_STRING("vaapi")
+        m_memType == VAAPI_MEMORY  ? MSDK_STRING("vaapi")
 #endif
         : (m_memType == D3D11_MEMORY ? MSDK_STRING("d3d11")
         : MSDK_STRING("system"));

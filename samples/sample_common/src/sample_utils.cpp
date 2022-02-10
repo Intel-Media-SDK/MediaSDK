@@ -2443,6 +2443,9 @@ mfxStatus StrFormatToCodecFormatFourCC(msdk_char* strInput, mfxU32 &codecFormat)
         {
             codecFormat = MFX_CODEC_I420;
         }
+        else if ((0 == msdk_strcmp(strInput, MSDK_STRING("p010")))) {
+            codecFormat = MFX_CODEC_P010;
+        }
         else
             sts = MFX_ERR_UNSUPPORTED;
     }

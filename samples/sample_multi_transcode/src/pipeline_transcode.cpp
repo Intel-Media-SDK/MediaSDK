@@ -1999,37 +1999,40 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWr
         return MFX_ERR_MORE_DATA;
     }
 
-    if(pSurf->Syncp)
+    if (pSurf->Syncp)
     {
         sts = m_pmfxSession->SyncOperation(pSurf->Syncp, MSDK_WAIT_INTERVAL);
         HandlePossibleGpuHang(sts);
         MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "SyncOperation failed");
-        pSurf->Syncp=0;
+        pSurf->Syncp = 0;
 
-        //--- Copying data from surface to bitstream
-        sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
-        MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
-
-        switch(fourCC)
+        if (!m_pBSProcessor->IsNulOutput())
         {
-        case 0: // Default value is MFX_FOURCC_I420
-        case MFX_FOURCC_I420:
-            sts = NV12asI420toBS(pSurf->pSurface, pBS);
-            break;
-        case MFX_FOURCC_NV12:
-            sts=NV12toBS(pSurf->pSurface,pBS);
-            break;
-        case MFX_FOURCC_RGB4:
-            sts=RGB4toBS(pSurf->pSurface,pBS);
-            break;
-        case MFX_FOURCC_YUY2:
-            sts=YUY2toBS(pSurf->pSurface,pBS);
-            break;
-        }
-        MSDK_CHECK_STATUS(sts, "<FourCC>toBS failed");
+            //--- Copying data from surface to bitstream
+            sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis, pSurf->pSurface->Data.MemId, &pSurf->pSurface->Data);
+            MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
 
-        sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
-        MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+            switch(fourCC)
+            {
+            case 0: // Default value is MFX_FOURCC_I420
+            case MFX_FOURCC_I420:
+                sts = NV12asI420toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_NV12:
+                sts=NV12toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_RGB4:
+                sts=RGB4toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_YUY2:
+                sts=YUY2toBS(pSurf->pSurface, pBS);
+                break;
+            }
+            MSDK_CHECK_STATUS(sts, "<FourCC>toBS failed");
+
+            sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis, pSurf->pSurface->Data.MemId, &pSurf->pSurface->Data);
+            MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+        }
     }
 
     return sts;
@@ -2346,6 +2349,7 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.CodecId                 = pInParams->EncodeId;
     m_mfxEncParams.mfx.TargetUsage             = pInParams->nTargetUsage; // trade-off between quality and speed
     m_mfxEncParams.AsyncDepth                  = m_AsyncDepth;
+    m_mfxEncParams.mfx.FrameInfo.Shift = m_shouldUseShifted10BitEnc;
 
     if (pInParams->nTransferCharacteristics)
     {
@@ -2439,7 +2443,7 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
                 pInParams->nTargetUsage, m_mfxEncParams.mfx.FrameInfo.Width, m_mfxEncParams.mfx.FrameInfo.Height,
                 1.0 * m_mfxEncParams.mfx.FrameInfo.FrameRateExtN / m_mfxEncParams.mfx.FrameInfo.FrameRateExtD);
         }
-        m_mfxEncParams.mfx.TargetKbps = pInParams->nBitRate; // in Kbps
+        m_mfxEncParams.mfx.TargetKbps = (mfxU16)pInParams->nBitRate; // in Kbps
         m_mfxEncParams.mfx.BRCParamMultiplier = pInParams->nBitRateMultiplier;
     }
 
@@ -2543,9 +2547,9 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     // configure and attach external parameters
     if (pInParams->bLABRC || pInParams->nMaxSliceSize || pInParams->nBRefType
         || (pInParams->BitrateLimit && pInParams->EncodeId == MFX_CODEC_AVC)
-        || (pInParams->nExtBRC && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC)) ||
-        pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta || pInParams->nMaxFrameSize ||
-        pInParams->AdaptiveI || pInParams->AdaptiveB)
+        || (pInParams->nExtBRC && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC))
+        || pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta || pInParams->nMaxFrameSize
+        || pInParams->AdaptiveI || pInParams->AdaptiveB || pInParams->nMinQP || pInParams->nMaxQP)
     {
         auto co2 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption2>();
         co2->LookAheadDepth = pInParams->nLADepth;
@@ -2567,6 +2571,12 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         else
         {
             co2->ExtBRC = MFX_CODINGOPTION_UNKNOWN;
+        }
+
+        if (pInParams->nRateControlMethod != MFX_RATECONTROL_CQP)
+        {
+            co2->MinQPI = co2->MinQPP = co2->MinQPB =(mfxU8)(pInParams->nMinQP);
+            co2->MaxQPI = co2->MaxQPP = co2->MaxQPB =(mfxU8)(pInParams->nMaxQP);
         }
     }
 
@@ -2658,7 +2668,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     //--- Settings HRD buffer size
     if (pInParams->BufferSizeInKB)
     {
-        m_mfxEncParams.mfx.BufferSizeInKB = pInParams->BufferSizeInKB;
+        m_mfxEncParams.mfx.BufferSizeInKB = (mfxU16)pInParams->BufferSizeInKB;
     }
 
     //--- Force setting fourcc type if required
@@ -2697,12 +2707,17 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
 
     if (pInParams->MaxKbps)
     {
-        m_mfxEncParams.mfx.MaxKbps = pInParams->MaxKbps;
+        m_mfxEncParams.mfx.MaxKbps = (mfxU16)pInParams->MaxKbps;
     }
 
     if (pInParams->InitialDelayInKB)
     {
-        m_mfxEncParams.mfx.InitialDelayInKB = pInParams->InitialDelayInKB;
+        m_mfxEncParams.mfx.InitialDelayInKB = (mfxU16)pInParams->InitialDelayInKB;
+    }
+
+    if (pInParams->nBitRateMultiplier)
+    {
+        m_mfxEncParams.mfx.BRCParamMultiplier = pInParams->nBitRateMultiplier;
     }
 
     return MFX_ERR_NONE;
@@ -2888,7 +2903,7 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
     {
         m_mfxVppParams.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY|MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
     }
-    else if (pInParams->bForceSysMem || (MFX_IMPL_SOFTWARE == pInParams->libType))
+    else if (pInParams->bForceSysMem || (MFX_IMPL_SOFTWARE == pInParams->libType) || m_rawInput)
     {
         m_mfxVppParams.IOPattern = (mfxU16)(InPatternFromParent|MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
     }
@@ -2896,6 +2911,11 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
     {
         m_mfxVppParams.IOPattern = (mfxU16)(InPatternFromParent|MFX_IOPATTERN_OUT_VIDEO_MEMORY);
     }
+
+    // Fill Shift bit
+    m_mfxVppParams.vpp.In.Shift = m_shouldUseShifted10BitVPP;
+    m_mfxVppParams.vpp.Out.Shift =
+        m_shouldUseShifted10BitEnc; // This output should correspond to Encoder settings
 
     // input frame info
     m_mfxVppParams.vpp.In = GetFrameInfo(m_mfxDecParams);
@@ -3864,6 +3884,21 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     else
     {
         m_mfxDecParams.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+        if (MFX_CODEC_I420 == pParams->DecodeId || MFX_CODEC_NV12 == pParams->DecodeId || MFX_CODEC_P010 == pParams->DecodeId)
+        {
+            m_mfxDecParams.mfx.FrameInfo.FourCC = FileFourCC2EncFourCC(pParams->DecodeId);
+            m_mfxDecParams.mfx.FrameInfo.ChromaFormat = FourCCToChroma(pParams->DecoderFourCC);
+        }
+        else if (pParams->DecoderFourCC)
+        {
+            m_mfxDecParams.mfx.FrameInfo.FourCC = pParams->DecoderFourCC;
+        }
+    }
+
+    if (pParams->IsSourceMSB)
+    {
+        m_shouldUseShifted10BitVPP = true;
+        m_shouldUseShifted10BitEnc = true;
     }
 
     // VPP component initialization
@@ -4558,23 +4593,13 @@ mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper* pB
     MSDK_CHECK_STATUS(sts, "m_pmfxENC->GetVideoParam failed");
 
     mfxU32 new_size = 0;
-
-    // if encoder provided us information about buffer size
-    if (0 != par.mfx.BufferSizeInKB)
+    if (par.mfx.CodecId == MFX_CODEC_JPEG)
     {
-        //--- If value calculated basing on par.mfx.BufferSizeInKB is too low, just double the buffer size
-        new_size = par.mfx.BufferSizeInKB * 1000u > pBS->MaxLength ?
-            par.mfx.BufferSizeInKB * 1000u :
-            pBS->MaxLength*2;
+        new_size = 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023);
     }
     else
     {
-        // trying to guess the size (e.g. for JPEG encoder)
-        new_size = (0 == pBS->MaxLength)
-            // some heuristic init value
-            ? 4 + (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * 3 + 1023)
-            // double existing size
-            : 2 * pBS->MaxLength;
+        new_size = par.mfx.BufferSizeInKB * par.mfx.BRCParamMultiplier * 1000u;
     }
 
     pBS->Extend(new_size);
@@ -4855,6 +4880,11 @@ mfxStatus FileBitstreamProcessor::ResetOutput()
     return MFX_ERR_NONE;
 }
 
+bool FileBitstreamProcessor::IsNulOutput()
+{
+    return !m_pFileWriter.get();
+}
+
 void CTranscodingPipeline::ModifyParamsUsingPresets(sInputParams& params, mfxF64 fps, mfxU32 width, mfxU32 height)
 {
 
@@ -4905,7 +4935,7 @@ void CTranscodingPipeline::ModifyParamsUsingPresets(sInputParams& params, mfxF64
     {
         MODIFY_AND_PRINT_PARAM(params.MaxKbps, MaxKbps, params.shouldPrintPresets);
         MODIFY_AND_PRINT_PARAM(params.nBitRate, TargetKbps, params.shouldPrintPresets);
-        presetParams.BufferSizeInKB = params.nBitRate; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
+        presetParams.BufferSizeInKB = (mfxU16)params.nBitRate; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
         MODIFY_AND_PRINT_PARAM(params.BufferSizeInKB, BufferSizeInKB, params.shouldPrintPresets);
     }
 

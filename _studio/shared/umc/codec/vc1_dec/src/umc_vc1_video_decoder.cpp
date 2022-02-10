@@ -969,6 +969,12 @@ Status VC1VideoDecoder::GetStartCodes (uint8_t* pDataPointer,
             b = a & 0x00FFFFFF;
         }
 
+        // check small bitstream
+        if (stCodes->count == 0 && readBufSize < 4)
+        {
+            return UMC_ERR_NOT_ENOUGH_DATA;
+        }
+
         //check end of read buffer
         if(readPos < (readBuf + readBufSize - 1))
         {
