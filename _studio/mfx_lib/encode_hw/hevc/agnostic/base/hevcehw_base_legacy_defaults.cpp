@@ -1450,6 +1450,10 @@ public:
             ((hw == MFX_HW_CNL
               && par.mfx.TargetUsage >= 6
               && par.mfx.GopRefDist < 2) ||
+#if (MFX_VERSION >= 1031)
+             (hw == MFX_HW_EHL ||
+              hw == MFX_HW_JSL) ||
+#endif
              (hw >= MFX_HW_ICL &&
               (fcc == MFX_FOURCC_AYUV
 #if (MFX_VERSION >= 1027)
