@@ -124,6 +124,69 @@ jobs:
         make test
         sudo make install
 
+  gcc11:
+    runs-on: ubuntu-20.04
+    container:
+      image: ubuntu:21.10
+    env:
+      CC: /usr/bin/gcc-11
+      CXX: /usr/bin/g++-11
+      ASM: /usr/bin/gcc-11
+      # TODO: mind no -Werror
+      # We stepped into https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100366
+      # gcc-11 throws -Wstringop-overflow on some std:: operations
+      CFLAGS: -O2 -Wformat -Wformat-security -Wall -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+    steps:
+    - name: checkout libmfxgen
+      uses: actions/checkout@v2
+      with:
+        path: libmfxgen
+    - name: checkout libva
+      uses: actions/checkout@v2
+      with:
+        repository: intel/libva
+        path: libva
+    - name: install prerequisites
+      run: |
+        apt-get update
+        apt-get install -y --no-install-recommends \
+          automake \
+          cmake \
+          gcc \
+          g++ \
+          libtool \
+          libdrm-dev \
+          libegl1-mesa-dev \
+          libgl1-mesa-dev \
+          libx11-dev \
+          libx11-xcb-dev \
+          libxcb-dri3-dev \
+          libxcb-present-dev \
+          libxext-dev \
+          libxfixes-dev \
+          libwayland-dev \
+          ninja-build \
+          pkg-config \
+          make
+    - name: print tools versions
+      run: |
+        cmake --version
+        $CC --version
+        $CXX --version
+    - name: build libva
+      run: |
+        cd libva
+        ./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu
+        make -j$(nproc)
+        make install
+    - name: build libmfxgen
+      run: |
+        cd libmfxgen
+        mkdir build && cd build
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" -DCMAKE_CXX_FLAGS_RELEASE="$CFLAGS" ..
+        ninja
+        ninja install
+
   gcc10:
     runs-on: ubuntu-20.04
     env:
