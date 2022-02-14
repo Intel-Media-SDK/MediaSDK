@@ -245,6 +245,7 @@ enum
 
     H264_MAX_NUM_VIEW           = 1024,
     H264_MAX_NUM_OPS            = 64,
+    H264_MAX_VUI_EXT_NUM        = 1024,
     H264_MAX_NUM_VIEW_REF       = 16
 };
 

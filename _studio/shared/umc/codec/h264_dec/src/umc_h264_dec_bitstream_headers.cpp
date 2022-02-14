@@ -1006,7 +1006,8 @@ Status H264HeadersBitstream::GetSequenceParamSetSvcVuiExt(H264SeqParamSetSVCExte
 {
     SVC_VUI vui;
     vui.vui_ext_num_entries = GetVLCElement(false) + 1;
-
+    if(vui.vui_ext_num_entries > H264_MAX_VUI_EXT_NUM)
+        return UMC_ERR_INVALID_STREAM;
     for(uint32_t i = 0; i < vui.vui_ext_num_entries; i++)
     {
         vui.vui_entry[i].vui_ext_dependency_id      = GetBits(3);
