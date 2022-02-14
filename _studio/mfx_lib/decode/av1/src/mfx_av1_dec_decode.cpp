@@ -914,6 +914,11 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                  m_video_par.AsyncDepth = static_cast<mfxU16>(vp.async_depth);
             }
 
+            if (umcFrameRes == UMC::UMC_NTF_NEW_RESOLUTION)
+            {
+                MFX_RETURN(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            }
+
             if (umcRes == UMC::UMC_ERR_INVALID_STREAM)
             {
                 umcRes = UMC::UMC_OK;

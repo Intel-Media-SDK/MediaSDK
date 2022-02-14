@@ -81,6 +81,27 @@ namespace UMC_AV1_DECODER
             return MFX_LEVEL_UNKNOWN;
     }
 
+    static bool IsNeedSPSInvalidate(const SequenceHeader *old_sps, const SequenceHeader *new_sps)
+    {
+        if (!old_sps || !new_sps)
+        {
+            return false;
+        }
+
+        if ((old_sps->max_frame_width != new_sps->max_frame_width) ||
+            (old_sps->max_frame_height != new_sps->max_frame_height))
+        {
+            return true;
+        }
+
+        if (old_sps->seq_profile != new_sps->seq_profile)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     UMC::Status AV1Decoder::DecodeHeader(UMC::MediaData* in, UMC_AV1_DECODER::AV1DecoderParams& par)
     {
         if (!in)
@@ -465,11 +486,25 @@ namespace UMC_AV1_DECODER
                 switch (obuType)
                 {
                 case OBU_SEQUENCE_HEADER:
-                    if (!sequence_header.get())
+                {   if (!sequence_header.get())
                         sequence_header.reset(new SequenceHeader);
                     *sequence_header = SequenceHeader{};
                     bs.ReadSequenceHeader(*sequence_header);
+
+                    SequenceHeader const *old_seqHdr = nullptr;
+                    if (pPrevFrame)
+                    {
+                        old_seqHdr= &pPrevFrame->GetSeqHeader();
+                    }
+
+                    // check if sequence header has changed
+                    if (IsNeedSPSInvalidate(old_seqHdr, sequence_header.get()))
+                    {
+                        // new resolution required
+                        return UMC::UMC_NTF_NEW_RESOLUTION;
+                    }
                     break;
+                }
                 case OBU_FRAME_HEADER:
                 case OBU_REDUNDANT_FRAME_HEADER:
                 case OBU_FRAME:
