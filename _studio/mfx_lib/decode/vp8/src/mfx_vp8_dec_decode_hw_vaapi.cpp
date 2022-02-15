@@ -277,9 +277,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
 
      if (UMC::I_PICTURE == m_frame_info.frameType)
          offset = 10;
-     else
-         offset = 3;
-
+ 
      int32_t size = p_bistream->DataLength;
 
      UMC::UMCVACompBuffer* compBufSlice;
