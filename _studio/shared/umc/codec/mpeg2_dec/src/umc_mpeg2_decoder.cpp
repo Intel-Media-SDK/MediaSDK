@@ -946,7 +946,9 @@ namespace UMC_MPEG2_DECODER
         if (sliceCount)
         {
             EliminateSliceErrors(frame, fieldIndex);
-            Submit(frame, fieldIndex);
+            UMC::Status sts = Submit(frame, fieldIndex);
+            if (UMC::UMC_OK != sts)
+                throw mpeg2_exception(UMC::UMC_ERR_FAILED);
         }
         else
         {
