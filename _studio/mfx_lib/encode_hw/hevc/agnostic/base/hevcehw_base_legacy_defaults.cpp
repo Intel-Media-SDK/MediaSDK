@@ -1459,6 +1459,7 @@ public:
 #if (MFX_VERSION >= 1027)
                || fcc == MFX_FOURCC_Y410
 #endif
+               || fcc == MFX_FOURCC_A2RGB10
                   )));
 
         return mfxU16(
