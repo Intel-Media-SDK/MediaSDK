@@ -1058,11 +1058,11 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
                   reinterpret_cast<char*>(m_frameProbs.mvContexts));
     }
 
+    if (first_partition_size > in->DataLength - 10)
+        return MFX_ERR_MORE_DATA;
+
     if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
     {
-        if (first_partition_size > in->DataLength - 10)
-            return MFX_ERR_MORE_DATA;
-
         if (!(VP8_START_CODE_FOUND(data_in))) // (0x9D && 0x01 && 0x2A)
             return MFX_ERR_UNKNOWN;
 
