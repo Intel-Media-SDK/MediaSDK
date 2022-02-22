@@ -3051,8 +3051,6 @@ JERRCODE CJPEGDecoder::ReconstructMCURowEX(int16_t* pMCUBuf,
         {
           dst += l*8;
 
-          if((uint8_t*)dst > curr_comp->GetSSBufferPtr(thread_id)+curr_comp->m_ss_bufsize-1)
-            return JPEG_ERR_BUFF;
           status = mfxiDCTQuantInv8x8LS_JPEG_16s16u_C1R(
                      pMCUBuf,dst,dstStep,qtbl);
           if(ippStsNoErr > status)

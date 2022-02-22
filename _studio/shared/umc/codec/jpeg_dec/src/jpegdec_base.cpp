@@ -914,7 +914,8 @@ JERRCODE CJPEGDecoderBase::ParseSOF0(void)
     if(JPEG_OK != jerr)
       return jerr;
 
-    if(curr_comp->m_hsampling <= 0 || curr_comp->m_vsampling <= 0 || curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+    if(curr_comp->m_hsampling <= 0 || curr_comp->m_hsampling > 4 ||
+       curr_comp->m_vsampling <= 0 || curr_comp->m_vsampling > 4 || curr_comp->m_q_selector >= MAX_QUANT_TABLES)
     {
       return JPEG_ERR_SOF_DATA;
     }
