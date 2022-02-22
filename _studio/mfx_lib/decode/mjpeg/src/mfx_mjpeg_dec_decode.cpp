@@ -2215,7 +2215,8 @@ mfxStatus VideoDECODEMJPEGBase_SW::RunThread(void *pParam, mfxU32 threadNumber, 
     }
 
     // do decoding process
-    task->m_pMJPEGVideoDecoder->DecodePicture(*task, threadNumber, callNumber);
+    UMC::Status umcSts = task->m_pMJPEGVideoDecoder->DecodePicture(*task, threadNumber, callNumber);
+    MFX_CHECK(umcSts == UMC::UMC_OK, MFX_ERR_INVALID_VIDEO_PARAM);
 
     return ((callNumber + 1) == task->NumPiecesCollected()) ? (MFX_TASK_DONE) : (MFX_TASK_WORKING);
 }
