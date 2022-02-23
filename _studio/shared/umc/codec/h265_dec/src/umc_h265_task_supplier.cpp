@@ -2409,10 +2409,10 @@ UMC::Status TaskSupplier_H265::InitFreeFrame(H265DecoderFrame * pFrame, const H2
 
     pFrame->m_FrameType   = SliceTypeToFrameType(pSlice->GetSliceHeader()->slice_type);
     pFrame->m_dFrameTime  = pSlice->m_source.GetTime();
-    pFrame->m_crop_left   = pSeqParam->conf_win_left_offset;
-    pFrame->m_crop_right  = pSeqParam->conf_win_right_offset;
-    pFrame->m_crop_top    = pSeqParam->conf_win_top_offset;
-    pFrame->m_crop_bottom = pSeqParam->conf_win_bottom_offset;
+    pFrame->m_crop_left   = pSeqParam->conf_win_left_offset + pSeqParam->def_disp_win_left_offset;
+    pFrame->m_crop_right  = pSeqParam->conf_win_right_offset + pSeqParam->def_disp_win_right_offset;
+    pFrame->m_crop_top    = pSeqParam->conf_win_top_offset + pSeqParam->def_disp_win_top_offset;
+    pFrame->m_crop_bottom = pSeqParam->conf_win_bottom_offset + pSeqParam->def_disp_win_bottom_offset;
     pFrame->m_crop_flag   = pSeqParam->conformance_window_flag;
 
     pFrame->m_aspect_width  = pSeqParam->sar_width;
