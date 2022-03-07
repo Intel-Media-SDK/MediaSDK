@@ -329,6 +329,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
 
      //////////////////////////////////////////////////////////////////
      UMC::UMCVACompBuffer* compBufBs;
+     MFX_CHECK(p_bistream->DataLength > offset, MFX_ERR_INVALID_VIDEO_PARAM);
      uint8_t *bistreamData = (uint8_t *)m_p_video_accelerator->GetCompBuffer(VASliceDataBufferType, &compBufBs, p_bistream->DataLength - offset);
 
      uint8_t *pBuffer = (uint8_t*) p_bistream->Data;
