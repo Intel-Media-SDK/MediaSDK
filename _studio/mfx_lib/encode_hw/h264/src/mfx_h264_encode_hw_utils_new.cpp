@@ -2335,26 +2335,30 @@ void MfxHwH264Encode::ConfigureTask(
 
         for (mfxU16 i = 0; i < numRoi; i ++)
         {
-            if (extRoiRuntime)
+            if (pRoi->ROI[i].Left != 0 && pRoi->ROI[i].Top != 0 &&
+                pRoi->ROI[i].Right != 0 && pRoi->ROI[i].Bottom != 0)
             {
-                mfxRoiDesc task_roi = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
-                                       (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
+                if (extRoiRuntime)
+                {
+                    mfxRoiDesc task_roi = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
+                                        pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
+                                        (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
 
-                // check runtime ROI
-                mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoiRuntime->ROIMode);
+                    // check runtime ROI
+                    mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoiRuntime->ROIMode);
 
-                if (sts != MFX_ERR_UNSUPPORTED) {
-                    task.m_roi[task.m_numRoi] = task_roi;
-                    task.m_numRoi++;
+                    if (sts != MFX_ERR_UNSUPPORTED) {
+                        task.m_roi[task.m_numRoi] = task_roi;
+                        task.m_numRoi++;
+                    }
                 }
-            }
-            else
-            {
-                task.m_roi[task.m_numRoi] = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
-                                             (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
-                task.m_numRoi ++;
+                else
+                {
+                    task.m_roi[task.m_numRoi] = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
+                                                pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
+                                                (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
+                    task.m_numRoi ++;
+                }
             }
         }
         task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
