@@ -73,7 +73,8 @@ namespace VP8DecodeCommon
         {
             // set offset, but leave last six bytes
             // since they can be start bytes of start code and frame tag
-    
+            if(n_bytes_offset < 6)
+                return MFX_ERR_MORE_BITSTREAM;    
             MoveBitstreamData(*p_bs, n_bytes_offset - 6);
 
             return MFX_ERR_MORE_DATA;
