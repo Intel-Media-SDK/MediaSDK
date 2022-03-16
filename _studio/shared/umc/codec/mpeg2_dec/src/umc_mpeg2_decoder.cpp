@@ -500,8 +500,8 @@ namespace UMC_MPEG2_DECODER
         }
 
         const auto picExt = *m_currHeaders.picExtHdr;
-        uint32_t fieldIndex = m_currFrame->GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
-        MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU(fieldIndex);
+        m_currFrame->fieldIndex = m_currFrame->GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
+        MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU(m_currFrame->fieldIndex);
 
         // Add the slice to the picture
         info.AddSlice(slice);
@@ -843,7 +843,7 @@ namespace UMC_MPEG2_DECODER
 
     bool MPEG2Decoder::IsFieldOfCurrentFrame() const
     {
-        const auto firstFrameSlice = m_currFrame->GetAU(0)->GetSlice(0);
+        const auto firstFrameSlice = m_currFrame->GetAU(m_currFrame->fieldIndex)->GetSlice(0);
         const auto picHdr = firstFrameSlice->GetPicHeader();
         const auto picExtHdr = firstFrameSlice->GetPicExtHeader();
         const auto newPicHdr = *m_currHeaders.picHdr.get();

@@ -231,7 +231,7 @@ namespace UMC_MPEG2_DECODER
         FrameType                         frameType;
 
         int8_t                            currFieldIndex; // 0 means first field (in decoded order) or frame, 1 means 2nd field (in decoded order)
-
+        uint32_t                          fieldIndex; //Each slice of the current frame, 0 means first field (in decoded order) or frame, 1 means 2nd field (in decoded order)
         virtual void Free()
         {
             auto fd = GetFrameData();
