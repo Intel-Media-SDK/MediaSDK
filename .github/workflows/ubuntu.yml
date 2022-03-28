@@ -73,9 +73,9 @@ jobs:
   clang12:
     runs-on: ubuntu-20.04
     env:
-      CC: /usr/bin/clang-10
-      CXX: /usr/bin/clang++-10
-      ASM: /usr/bin/clang-10
+      CC: /usr/bin/clang-12
+      CXX: /usr/bin/clang++-12
+      ASM: /usr/bin/clang-12
     steps:
     - name: checkout libmfx
       uses: actions/checkout@v2
