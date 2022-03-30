@@ -1395,12 +1395,23 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
         dispaly_colour->WhitePointY = (mfxU16)pFrame->m_mastering_display.SEI_messages.mastering_display.white_point[1];
         dispaly_colour->MaxDisplayMasteringLuminance = (mfxU32)pFrame->m_mastering_display.SEI_messages.mastering_display.max_luminance;
         dispaly_colour->MinDisplayMasteringLuminance = (mfxU32)pFrame->m_mastering_display.SEI_messages.mastering_display.min_luminance;
+        dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_IDR;
     }
+    else if (dispaly_colour)
+    {
+        dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_OFF;
+    }
+
     mfxExtContentLightLevelInfo* content_light = (mfxExtContentLightLevelInfo*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
     if (content_light && pFrame->m_content_light_level_info.payLoadSize > 0)
     {
         content_light->MaxContentLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_content_light_level;
         content_light->MaxPicAverageLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_pic_average_light_level;
+        content_light->InsertPayloadToggle = MFX_PAYLOAD_IDR;
+    }
+    else if (content_light)
+    {
+        content_light->InsertPayloadToggle = MFX_PAYLOAD_OFF;
     }
 
 }
