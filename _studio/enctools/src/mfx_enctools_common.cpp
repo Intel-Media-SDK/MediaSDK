@@ -44,7 +44,7 @@ mfxStatus InitCtrl(mfxVideoParam const & par, mfxEncToolsCtrl *ctrl)
     mfxExtCodingOption3 *CO3 = (mfxExtCodingOption3 *)Et_GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_CODING_OPTION3);
     MFX_CHECK_NULL_PTR3(CO, CO2, CO3);
 
-    ctrl = {};
+    *ctrl = {};
 
     ctrl->CodecId = par.mfx.CodecId;
     ctrl->CodecProfile = par.mfx.CodecProfile;
