@@ -999,7 +999,7 @@ struct VUI_Entry
 struct SVC_VUI
 {
     uint32_t vui_ext_num_entries;
-    VUI_Entry vui_entry[1023];
+    VUI_Entry vui_entry[1024];
 };
 
 Status H264HeadersBitstream::GetSequenceParamSetSvcVuiExt(H264SeqParamSetSVCExtension *pSPSSvcExt)
