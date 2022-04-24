@@ -239,7 +239,7 @@ Status VideoProcessing::GetFrame(MediaData *input, MediaData *output)
     }
     res = pFilter[k]->GetFrame(src, dst);
     if (res != UMC_OK) {
-      if (k == iColorConv && res == UMC_ERR_NOT_IMPLEMENTED && !bFiltering[iColorConv0]) {
+      if (iColorConv0 < MAX_NUM_FILTERS && k == iColorConv && res == UMC_ERR_NOT_IMPLEMENTED && !bFiltering[iColorConv0]) {
         bFiltering[iColorConv0] = true; // try double color conversion
         src_c = GetIntermediatedColor(src->GetColorFormat()); // intermediated color
         k = iColorConv0 - 1; // back to first color conversion
