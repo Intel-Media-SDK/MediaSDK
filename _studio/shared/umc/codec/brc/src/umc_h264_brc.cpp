@@ -264,6 +264,9 @@ Status H264BRC::InitHRD()
     }
   }
 
+  MFX_CHECK_COND(level_ind >= 0 && level_ind <= H264_LIMIT_TABLE_LEVEL_MAX );
+  MFX_CHECK_COND(profile_ind >= 0 && profile_ind < 4);
+
   if (maxBitrate < (unsigned long long)mParams.targetBitrate) {
     maxBitrate = (unsigned long long)mParams.targetBitrate;
     for (; profile_ind <= H264_LIMIT_TABLE_HIGH_PROFILE; profile_ind++) {
