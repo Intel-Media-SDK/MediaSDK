@@ -167,6 +167,12 @@ Status VideoProcessing::GetFrame(MediaData *input, MediaData *output)
 
   memset(bFiltering, 0, sizeof(bFiltering));
   {
+      // if filter index is out of bound, return error
+      if(iDeinterlacing >= MAX_NUM_FILTERS ||
+         iColorConv >= MAX_NUM_FILTERS     ||
+         iResizing >= MAX_NUM_FILTERS)
+          return UMC_ERR_INVALID_PARAMS;
+
       bFiltering[iDeinterlacing] =
           (Param.m_DeinterlacingMethod != NO_DEINTERLACING) &&
           (in->GetPictureStructure() != PS_FRAME);
@@ -214,6 +220,10 @@ Status VideoProcessing::GetFrame(MediaData *input, MediaData *output)
     }
   }
 
+  // if filter index is out of bound, return error
+  if(numFilters >= MAX_NUM_FILTERS || iColorConv0 >= MAX_NUM_FILTERS)
+      return UMC_ERR_INVALID_PARAMS;
+
   // Get last filter in chain
   int iLastFilter = numFilters - 1;
   while (iLastFilter >= 0 && bFiltering[iLastFilter] == false) iLastFilter--;
@@ -239,7 +249,7 @@ Status VideoProcessing::GetFrame(MediaData *input, MediaData *output)
     }
     res = pFilter[k]->GetFrame(src, dst);
     if (res != UMC_OK) {
-      if (iColorConv0 < MAX_NUM_FILTERS && k == iColorConv && res == UMC_ERR_NOT_IMPLEMENTED && !bFiltering[iColorConv0]) {
+      if (k == iColorConv && res == UMC_ERR_NOT_IMPLEMENTED && !bFiltering[iColorConv0]) {
         bFiltering[iColorConv0] = true; // try double color conversion
         src_c = GetIntermediatedColor(src->GetColorFormat()); // intermediated color
         k = iColorConv0 - 1; // back to first color conversion
