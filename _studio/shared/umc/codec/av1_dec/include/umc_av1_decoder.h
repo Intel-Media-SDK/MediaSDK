@@ -171,6 +171,7 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame*                Curr_temp; // store current frame insist double updateDPB
         uint32_t                        Repeat_show; // show if current frame is repeated frame
         uint32_t                        PreFrame_id;//id of previous frame
+        uint32_t                        OldPreFrame_id;//old id of previous frame. When decode multi tile-group clip, need this for parsing twice
         DPBType                         refs_temp; // previous updated frameDPB
         mfxU16                          frame_order;
         mfxF64                          in_framerate;

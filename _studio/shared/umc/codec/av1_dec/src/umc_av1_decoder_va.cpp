@@ -86,9 +86,12 @@ namespace UMC_AV1_DECODER
 
         const bool lastSubmission = (GetNumMissingTiles(frame) == 0);
         if (lastSubmission)
+        {
             packer->EndFrame();
-
-        sts = va->Execute();
+            // VA Execute after full frame detected to avoid duplicate submission
+            // of the decode buffer when app use small decbufsize.
+            sts = va->Execute();
+        }
         if (sts != UMC::UMC_OK)
             sts = UMC::UMC_ERR_DEVICE_FAILED;
 

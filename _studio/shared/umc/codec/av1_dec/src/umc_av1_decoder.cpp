@@ -41,6 +41,7 @@ namespace UMC_AV1_DECODER
         , Curr_temp(new AV1DecoderFrame{})
         , Repeat_show(0)
         , PreFrame_id(0)
+        , OldPreFrame_id(0)
         , frame_order(0)
         , in_framerate(0)
     {
@@ -346,6 +347,9 @@ namespace UMC_AV1_DECODER
         {
         case OBU_REDUNDANT_FRAME_HEADER:
         case OBU_TILE_GROUP:
+        case OBU_PADDING:
+        case OBU_SEQUENCE_HEADER:
+        case OBU_METADATA:
             return false;
         default:
             return true;
@@ -462,6 +466,7 @@ namespace UMC_AV1_DECODER
             TileLayout layout;
 
             UMC::MediaData tmp = *in; // use local copy of [in] for OBU header parsing to not move data pointer in original [in] prematurely
+            OldPreFrame_id = PreFrame_id;
 
             while (tmp.GetDataSize() >= MINIMAL_DATA_SIZE && gotFullFrame == false && repeatedFrame == false)
             {
@@ -515,6 +520,7 @@ namespace UMC_AV1_DECODER
                         // we read only first entry of uncompressed header in the frame
                         // each subsequent copy of uncompressed header (i.e. OBU_REDUNDANT_FRAME_HEADER) must be exact copy of first entry by AV1 spec
                         // TODO: [robust] maybe need to add check that OBU_REDUNDANT_FRAME_HEADER contains copy of OBU_FRAME_HEADER
+                        OldPreFrame_id = PreFrame_id;
                         bs.ReadUncompressedHeader(fh, *sequence_header, updated_refs, obuInfo.header, PreFrame_id);
                         gotFrameHeader = true;
                     }
@@ -547,6 +553,13 @@ namespace UMC_AV1_DECODER
                 OBUOffset += static_cast<uint32_t>(obuInfo.size);
                 tmp.MoveDataPointer(static_cast<int32_t>(obuInfo.size));
             }
+
+            // For small decbufsize, cur bitstream may not contain any tile, then deocder will read more data and do header parse again.
+            // So we use OldPreFrame_id to update PreFrame_id to avoid the Frame_id check fail in ReadUncompressedHeader.
+            if (layout.empty() && !gotFullFrame)
+                PreFrame_id = OldPreFrame_id;
+            else if (gotFullFrame)
+                OldPreFrame_id = PreFrame_id;
 
             if (!HaveTilesToSubmit(pFrameInProgress, layout) && !repeatedFrame)
                 return UMC::UMC_ERR_NOT_ENOUGH_DATA;
