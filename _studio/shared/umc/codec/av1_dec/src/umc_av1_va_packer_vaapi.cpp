@@ -83,7 +83,7 @@ namespace UMC_AV1_DECODER
         }
 
         UMC::UMCVACompBuffer* compBufBs = nullptr;
-        uint8_t* const bitstreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, CalcSizeOfTileSets(tileSets));
+        uint8_t* const bitstreamData = (uint8_t *)m_va->GetCompBuffer(VASliceDataBufferType, &compBufBs, CalcSizeOfTileSets(tileSets), tileSets.size());
         if (!bitstreamData || !compBufBs)
             throw av1_exception(MFX_ERR_MEMORY_ALLOC);
 
@@ -110,7 +110,7 @@ namespace UMC_AV1_DECODER
 
         UMCVACompBuffer* compBufTile = nullptr;
         const int32_t tileControlInfoSize = static_cast<int32_t>(sizeof(VASliceParameterBufferAV1) * tileControlParams.size());
-        VASliceParameterBufferAV1 *tileControlParam = (VASliceParameterBufferAV1*)m_va->GetCompBuffer(VASliceParameterBufferType, &compBufTile, tileControlInfoSize);
+        VASliceParameterBufferAV1 *tileControlParam = (VASliceParameterBufferAV1*)m_va->GetCompBuffer(VASliceParameterBufferType, &compBufTile, tileControlInfoSize, tileSets.size());
         if (!tileControlParam || !compBufTile || (compBufTile->GetBufferSize() < tileControlInfoSize))
             throw av1_exception(MFX_ERR_MEMORY_ALLOC);
 
