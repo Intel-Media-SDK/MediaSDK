@@ -2089,7 +2089,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs,
         pEntryPoint->pParam = pAsyncSurface;
         pEntryPoint->pRoutineName = (char *)"DecodeVC1";
 
-        if (MFX_ERR_NONE == mfxSts)
+        if (MFX_ERR_NONE == mfxSts && (m_InternMediaDataOut.GetFrameType() != NONE_PICTURE))
         {
             FillMFXDataOutputSurface(*surface_out);
         }
