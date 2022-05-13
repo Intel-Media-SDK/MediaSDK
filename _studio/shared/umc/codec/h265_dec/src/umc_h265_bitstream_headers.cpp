@@ -981,7 +981,9 @@ void H265HeadersBitstream::parseVUI(H265SeqParamSet *pSPS)
     pSPS->frame_field_info_present_flag = Get1Bit();
 
     pSPS->default_display_window_flag = Get1Bit();
-    if (pSPS->default_display_window_flag)
+    //Hack to ignore the video cropping here.
+    //if (pSPS->default_display_window_flag)
+    if (0)
     {
         pSPS->def_disp_win_left_offset   = GetVLCElementU()*pSPS->SubWidthC();
         pSPS->def_disp_win_right_offset  = GetVLCElementU()*pSPS->SubWidthC();
