@@ -844,6 +844,11 @@ namespace UMC_MPEG2_DECODER
     bool MPEG2Decoder::IsFieldOfCurrentFrame() const
     {
         const auto firstFrameSlice = m_currFrame->GetAU(m_currFrame->fieldIndex)->GetSlice(0);
+        if (!firstFrameSlice)
+        {
+            throw mpeg2_exception(UMC::UMC_ERR_NULL_PTR);
+        }
+
         const auto picHdr = firstFrameSlice->GetPicHeader();
         const auto picExtHdr = firstFrameSlice->GetPicExtHeader();
         const auto newPicHdr = *m_currHeaders.picHdr.get();
