@@ -23,8 +23,8 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
 
 # mpeg2d:
-/_studio/mfx_lib/dec/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com 
-/_studio/mfx_lib/decode/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/dec/mpeg2/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/mpeg2/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 
 # mpeg2e:
 /_studio/mfx_lib/enc/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
