@@ -76,8 +76,8 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 
 # vp9e:
-/_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-_studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin chunbo.chen@intel.com apple.wang@intel.com
+_studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin chunbo.chen@intel.com apple.wang@intel.com
 
 # vpp:
 /_studio/mfx_lib/vpp/ @Intel-Media-SDK/mediasdk-admin furong.zhang@intel.com
