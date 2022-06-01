@@ -12,7 +12,6 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/mfx_lib/decode/h264/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 /_studio/shared/umc/codec/h264_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 
-
 # h264e:
 /_studio/mfx_lib/enc/h264/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
 /_studio/mfx_lib/enc_hw/h264/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
@@ -43,7 +42,6 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/mfx_lib/encode/vc1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 /_studio/shared/umc/codec/vc1_enc/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 /_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-
 
 # hevcd:
 /_studio/mfx_lib/decode/h265/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
