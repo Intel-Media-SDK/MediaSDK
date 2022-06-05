@@ -26,6 +26,7 @@
 
 #include <gtest/gtest.h>
 #include <map>
+#include <memory>
 #include <list>
 #include <algorithm>
 
