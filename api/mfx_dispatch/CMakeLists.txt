@@ -29,4 +29,8 @@ set( PKG_CONFIG_LFNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/${PROJECT_NAME}.pc"
 add_custom_target(pc_link_target ALL COMMAND ${CMAKE_COMMAND} -E copy ${PKG_CONFIG_FNAME} ${PKG_CONFIG_LFNAME})
 install( FILES ${PKG_CONFIG_LFNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 
-add_subdirectory(linux)
+if(WIN32)
+  add_subdirectory(windows)
+else()
+  add_subdirectory(linux)
+endif()
