@@ -127,7 +127,7 @@ endif()
 
 # should prepend others to define target mfx
 if (BUILD_DISPATCHER)
-  add_subdirectory(api/mfx_dispatch/linux)
+  add_subdirectory(api/mfx_dispatch)
 endif()
 
 if (BUILD_TOOLS)

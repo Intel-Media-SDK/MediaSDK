@@ -18,22 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required( VERSION 3.6 FATAL_ERROR )
-project( mfx )
-
 set( MFX_API_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../include )
-
-# While equal to get_mfx_version in samples/builder, this function should remain separate to make this file self-sufficient 
-function( get_api_version mfx_version_major mfx_version_minor )
-  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h major REGEX "#define MFX_VERSION_MAJOR" LIMIT_COUNT 1)
-  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h minor REGEX "#define MFX_VERSION_MINOR" LIMIT_COUNT 1)
-  string(REPLACE "#define MFX_VERSION_MAJOR " "" major ${major})
-  string(REPLACE "#define MFX_VERSION_MINOR " "" minor ${minor})
-  set(${mfx_version_major} ${major} PARENT_SCOPE)
-  set(${mfx_version_minor} ${minor} PARENT_SCOPE)
-endfunction()
-
-set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__bin )
 
 # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
 # to /opt/intel/mediasdk instead of cmake's default
@@ -41,8 +26,6 @@ if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
   set( CMAKE_INSTALL_PREFIX /opt/intel/mediasdk CACHE PATH "Install Path Prefix" FORCE )
 endif( )
 message( STATUS "CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" )
-
-include( GNUInstallDirs )
 
 if( NOT DEFINED MFX_PLUGINS_CONF_DIR )
   set( MFX_PLUGINS_CONF_DIR ${CMAKE_INSTALL_FULL_DATADIR}/mfx )
@@ -98,8 +81,6 @@ include_directories (
 add_library(mfx SHARED ${sources})
 target_link_libraries(mfx dl)
 
-get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
-
 set_target_properties( mfx PROPERTIES LINK_FLAGS
   "-Wl,--no-undefined,-z,relro,-z,now,-z,noexecstack -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libmfx.map -fstack-protector")
 set_target_properties( mfx PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER mfx )
@@ -107,15 +88,4 @@ set_target_properties( mfx PROPERTIES   VERSION ${MFX_VERSION_MAJOR}.${MFX_VERSI
 set_target_properties( mfx PROPERTIES SOVERSION ${MFX_VERSION_MAJOR})
 
 install(TARGETS mfx LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}.pc")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
-
-install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mfx FILES_MATCHING PATTERN *.h )
-
-# For backwards compatibility, create a relative symbolic link without the "lib"
-# prefix to the .pc file.
-set( PKG_CONFIG_LFNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/${PROJECT_NAME}.pc" )
-add_custom_target(pc_link_target ALL COMMAND ${CMAKE_COMMAND} -E create_symlink lib${PROJECT_NAME}.pc ${PKG_CONFIG_LFNAME})
-install( FILES ${PKG_CONFIG_LFNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
