@@ -39,16 +39,20 @@ int32_t H265HeadersBitstream::sei_message(const HeaderSet<H265SeqParamSet> & sps
     uint32_t code;
     int32_t payloadType = 0;
 
+    CheckBitsLeft(8);
     PeakNextBits(m_pbs, m_bitOffset, 8, code);
     while (code  ==  0xFF)
     {
         /* fixed-pattern bit string using 8 bits written equal to 0xFF */
+        CheckBitsLeft(8);
         GetNBits(m_pbs, m_bitOffset, 8, code);
         payloadType += 255;
+        CheckBitsLeft(8);
         PeakNextBits(m_pbs, m_bitOffset, 8, code);
     }
 
     int32_t last_payload_type_byte;    //uint32_t integer using 8 bits
+    CheckBitsLeft(8);
     GetNBits(m_pbs, m_bitOffset, 8, last_payload_type_byte);
 
     payloadType += last_payload_type_byte;
@@ -59,13 +63,16 @@ int32_t H265HeadersBitstream::sei_message(const HeaderSet<H265SeqParamSet> & sps
     while( code  ==  0xFF )
     {
         /* fixed-pattern bit string using 8 bits written equal to 0xFF */
+        CheckBitsLeft(8);
         GetNBits(m_pbs, m_bitOffset, 8, code);
         payloadSize += 255;
+        CheckBitsLeft(8);
         PeakNextBits(m_pbs, m_bitOffset, 8, code);
     }
 
     int32_t last_payload_size_byte;    //uint32_t integer using 8 bits
 
+    CheckBitsLeft(8);
     GetNBits(m_pbs, m_bitOffset, 8, last_payload_size_byte);
     payloadSize += last_payload_size_byte;
     spl->Reset();
@@ -92,6 +99,7 @@ int32_t H265HeadersBitstream::sei_message(const HeaderSet<H265SeqParamSet> & sps
 
     for (uint32_t i = 0; i < spl->payLoadSize; i++)
     {
+        CheckBitsLeft(8);
         SkipNBits(pbs, bitOffset, 8);
     }
 
@@ -224,7 +232,11 @@ int32_t H265HeadersBitstream::content_light_level_info(const HeaderSet<H265SeqPa
 int32_t H265HeadersBitstream::reserved_sei_message(const HeaderSet<H265SeqParamSet> & , int32_t current_sps, H265SEIPayLoad *spl)
 {
     for(uint32_t i = 0; i < spl->payLoadSize; i++)
-        SkipNBits(m_pbs, m_bitOffset, 8)
+    {
+        CheckBitsLeft(8);
+        SkipNBits(m_pbs, m_bitOffset, 8);
+    }
+
     AlignPointerRight();
     return current_sps;
 }
