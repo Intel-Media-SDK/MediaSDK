@@ -239,6 +239,15 @@ int main(int argc, char** argv)
         if (MFX_ERR_NONE < sts && syncpD)
             sts = MFX_ERR_NONE;
 
+        // skip the buffer in mfxBS when MFX_ERR_INCOMPATIBLE_VIDEO_PARAM
+        if (MFX_ERR_INCOMPATIBLE_VIDEO_PARAM == sts)
+        {
+            mfxBS.DataOffset += mfxBS.DataLength;
+            mfxBS.DataLength = 0;
+            sts = MFX_ERR_MORE_DATA;
+            continue;
+        }
+
         if (MFX_ERR_NONE == sts) {
             for (;;) {
                 // Encode a frame asychronously (returns immediately)
