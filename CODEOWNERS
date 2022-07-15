@@ -1,7 +1,8 @@
 *    apple.wang@intel.com carl.zhang@intel.com
 /api/include/ apple.wang@intel.com dmitry.v.rogozhkin@intel.com
 
-CODEOWNERS   @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com carl.zhang@intel.com
+CODEOWNERS      @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com carl.zhang@intel.com
+CMakeLists.txt  sherry.lin@intel.com
 
 # av1d
 /_studio/mfx_lib/decode/av1/  will.guo@intel.com yan.wang@intel.com
