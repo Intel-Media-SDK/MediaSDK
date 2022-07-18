@@ -1,122 +1,123 @@
 *    apple.wang@intel.com carl.zhang@intel.com
 /api/include/ apple.wang@intel.com dmitry.v.rogozhkin@intel.com
 
-CODEOWNERS   @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com carl.zhang@intel.com
+CODEOWNERS      @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com carl.zhang@intel.com
+CMakeLists.txt  sherry.lin@intel.com
 
 # av1d
-/_studio/mfx_lib/decode/av1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/av1_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/av1/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/av1_dec/  will.guo@intel.com yan.wang@intel.com
 
 # h264d:
-/_studio/mfx_lib/dec/h264/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/mfx_lib/decode/h264/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/h264_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/dec/h264/  will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/h264/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/h264_dec/  will.guo@intel.com yan.wang@intel.com
 
 # h264e:
-/_studio/mfx_lib/enc/h264/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/enc_hw/h264/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode_hw/h264/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode/h264/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/shared/umc/codec/h264_enc/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/pak/h264/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/enc/h264/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/enc_hw/h264/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode_hw/h264/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode/h264/  thomas.li@intel.com apple.wang@intel.com
+/_studio/shared/umc/codec/h264_enc/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/pak/h264/  thomas.li@intel.com apple.wang@intel.com
+/_studio/shared/umc/codec/me/  thomas.li@intel.com apple.wang@intel.com
 
 # mpeg2d:
-/_studio/mfx_lib/dec/mpeg2/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/mfx_lib/decode/mpeg2/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/dec/mpeg2/  will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/mpeg2/  will.guo@intel.com yan.wang@intel.com
 
 # mpeg2e:
-/_studio/mfx_lib/enc/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/enc_hw/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode_hw/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/shared/umc/codec/mpeg2_enc/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/pak/mpeg2/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/enc/mpeg2/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/enc_hw/mpeg2/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode/mpeg2/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode_hw/mpeg2/  thomas.li@intel.com apple.wang@intel.com
+/_studio/shared/umc/codec/mpeg2_enc/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/pak/mpeg2/  thomas.li@intel.com apple.wang@intel.com
+/_studio/shared/umc/codec/me/  thomas.li@intel.com apple.wang@intel.com
 
 # vc1:
-/_studio/mfx_lib/decode/vc1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/vc1_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/mfx_lib/enc/vc1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/mfx_lib/encode/vc1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/vc1_enc/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/vc1/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_dec/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_common/  will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/enc/vc1/  will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/encode/vc1/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_enc/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_common/  will.guo@intel.com yan.wang@intel.com
 
 # hevcd:
-/_studio/mfx_lib/decode/h265/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/h265_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/h265/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/h265_dec/  will.guo@intel.com yan.wang@intel.com
 
 # hevce:
-/_studio/hevce_hw/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode_hw/h265/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode_hw/hevc/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/hevce_hw/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode_hw/h265/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode_hw/hevc/  thomas.li@intel.com apple.wang@intel.com
 
 # mjpegd:
-/_studio/mfx_lib/decode/mjpeg/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/jpeg_common/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/jpeg_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/mjpeg/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/jpeg_common/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/jpeg_dec/  will.guo@intel.com yan.wang@intel.com
 
 # mjpege:
-/_studio/mfx_lib/encode/mjpeg/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode_hw/mjpeg/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/shared/umc/codec/jpeg_common/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/shared/umc/codec/jpeg_enc/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode/mjpeg/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode_hw/mjpeg/  thomas.li@intel.com apple.wang@intel.com
+/_studio/shared/umc/codec/jpeg_common/  thomas.li@intel.com apple.wang@intel.com
+/_studio/shared/umc/codec/jpeg_enc/  thomas.li@intel.com apple.wang@intel.com
 
 # vp8d:
-/_studio/mfx_lib/decode/vp8/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/vp8_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/vp8/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vp8_dec/  will.guo@intel.com yan.wang@intel.com
 
 # vp9d:
-/_studio/mfx_lib/decode/vp9/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/mfx_lib/shared/include/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/mfx_lib/shared/src/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
-/_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/decode/vp9/  will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/shared/include/mfx_vpx_dec/  will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/shared/src/mfx_vpx_dec/  will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vp9_dec/  will.guo@intel.com yan.wang@intel.com
 
 # vp9e:
-/_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin chunbo.chen@intel.com apple.wang@intel.com
-_studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin chunbo.chen@intel.com apple.wang@intel.com
+/_studio/vp9e_hw/  chunbo.chen@intel.com apple.wang@intel.com
+_studio/mfx_lib/encode_hw/vp9/  chunbo.chen@intel.com apple.wang@intel.com
 
 # vpp:
-/_studio/mfx_lib/vpp/ @Intel-Media-SDK/mediasdk-admin furong.zhang@intel.com
-/_studio/shared/umc/codec/color_space_converter/ @Intel-Media-SDK/mediasdk-admin furong.zhang@intel.com
-/_studio/shared/umc/codec/scene_analyzer/ @Intel-Media-SDK/mediasdk-admin furong.zhang@intel.com
+/_studio/mfx_lib/vpp/  furong.zhang@intel.com
+/_studio/shared/umc/codec/color_space_converter/  furong.zhang@intel.com
+/_studio/shared/umc/codec/scene_analyzer/  furong.zhang@intel.com
 
 # tests:
-/tests/ @Intel-Media-SDK/mediasdk-admin dmitry.v.rogozhkin@intel.com apple.wang@intel.com
+/tests/  dmitry.v.rogozhkin@intel.com apple.wang@intel.com
 
 # avc_fei:
-/_studio/mfx_lib/fei/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/samples/sample_fei/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/fei/  thomas.li@intel.com apple.wang@intel.com
+/samples/sample_fei/  thomas.li@intel.com apple.wang@intel.com
 
 # hevc_fei:
-/_studio/hevc_fei/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/samples/sample_hevc_fei/ @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode_hw/h265/src/*fei* @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
-/_studio/mfx_lib/encode_hw/h265/include/*fei* @Intel-Media-SDK/mediasdk-admin thomas.li@intel.com apple.wang@intel.com
+/_studio/hevc_fei/  thomas.li@intel.com apple.wang@intel.com
+/samples/sample_hevc_fei/  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode_hw/h265/src/*fei*  thomas.li@intel.com apple.wang@intel.com
+/_studio/mfx_lib/encode_hw/h265/include/*fei*  thomas.li@intel.com apple.wang@intel.com
 
 # enctools:
-/_studio/enctools/ @Intel-Media-SDK/mediasdk-admin sergey.plotnikov@intel.com
-/_studio/enctools/aenc @Intel-Media-SDK/mediasdk-admin sergey.plotnikov@intel.com
-/_studio/shared/include/mfxenctools-int.h @Intel-Media-SDK/mediasdk-admin sergey.plotnikov@intel.com
+/_studio/enctools/  sergey.plotnikov@intel.com
+/_studio/enctools/aenc  sergey.plotnikov@intel.com
+/_studio/shared/include/mfxenctools-int.h  sergey.plotnikov@intel.com
 
 # samples:
-/samples/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com
+/samples/  apple.wang@intel.com
 
 # core:
-/_studio/mfx_lib/shared/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/shared/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/shared/umc/core/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/shared/umc/io/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/mfx_lib/cmrt_cross_platform/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/mfx_lib/scheduler/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/shared/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/shared/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/shared/umc/core/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/shared/umc/io/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/cmrt_cross_platform/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/scheduler/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
 
 # android:
 /android/ @Intel-Media-SDK/mediasdk-admin
 *.mk @Intel-Media-SDK/mediasdk-admin
 
 # build:
-/builder/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/builder/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
 
 # plugin:
-/_studio/mfx_lib/plugin/ @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/plugin/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
