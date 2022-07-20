@@ -387,6 +387,7 @@ Status MFXTaskSupplier::DecodeSEI(NalUnit *nalUnit)
         swapper->SwapMemory(&swappedMem, &mem, DEFAULT_NU_HEADER_TAIL_VALUE);
 
         bitStream.Reset((uint8_t*)swappedMem.GetPointer(), (uint32_t)swappedMem.GetDataSize());
+        bitStream.SetTailBsSize(DEFAULT_NU_TAIL_SIZE);
 
         NAL_Unit_Type nal_unit_type = NAL_UT_UNSPECIFIED;
         uint32_t nal_ref_idc = 0;
