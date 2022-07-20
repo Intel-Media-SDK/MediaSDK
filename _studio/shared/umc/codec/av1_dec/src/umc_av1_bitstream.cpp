@@ -88,6 +88,11 @@ namespace UMC_AV1_DECODER
             info.num_ticks_per_picture_minus_1 = read_uvlc(bs);
     }
 
+    inline bool av1_obu_type_is_reserved(AV1_OBU_TYPE& obu_type)
+    {
+        return OBU_RESERVED_0 == obu_type || (OBU_RESERVED_9 <= obu_type && OBU_RESERVED_14 >= obu_type);
+    }
+
     static void av1_color_config(AV1Bitstream& bs, ColorConfig& config, uint32_t profile)
     {
         AV1D_LOG("[+]: %d", (uint32_t)bs.BitsDecoded());
@@ -1198,7 +1203,8 @@ namespace UMC_AV1_DECODER
 
         if (info.header.obu_has_size_field)
             av1_read_obu_size(*this, obu_size, sizeFieldLength);
-        else if (info.header.obu_type != OBU_TEMPORAL_DELIMITER)
+        // Av1-spec section 6.2.2: Reserved units are for future use and shall be ignored by AV1 decoder.
+        else if (info.header.obu_type != OBU_TEMPORAL_DELIMITER && !av1_obu_type_is_reserved(info.header.obu_type))
             throw av1_exception(UMC::UMC_ERR_NOT_IMPLEMENTED); // no support for OBUs w/o size field so far
 
         info.size = headerSize + sizeFieldLength + obu_size;
