@@ -1017,6 +1017,7 @@ UMC::Status TaskSupplier_H265::DecodeSEI(UMC::MediaDataEx *nalUnit)
         swapper->SwapMemory(&swappedMem, &mem, 0);
 
         bitStream.Reset((uint8_t*)swappedMem.GetPointer(), (uint32_t)swappedMem.GetDataSize());
+        bitStream.SetTailBsSize(DEFAULT_NU_TAIL_SIZE);
 
         NalUnitType nal_unit_type;
         uint32_t temporal_id;
@@ -1398,6 +1399,7 @@ UMC::Status TaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
         swapper->SwapMemory(&swappedMem, &mem, 0);
 
         bitStream.Reset((uint8_t*)swappedMem.GetPointer(), (uint32_t)swappedMem.GetDataSize());
+        bitStream.SetTailBsSize(DEFAULT_NU_TAIL_SIZE);
 
         NalUnitType nal_unit_type;
         uint32_t temporal_id;

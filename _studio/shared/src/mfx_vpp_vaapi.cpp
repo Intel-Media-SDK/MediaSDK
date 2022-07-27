@@ -1334,6 +1334,22 @@ if (pParams->mirroringExt)
     }
 }
 
+    // Additional parameters for interlaced cases
+    {
+        if (pParams->targetSurface.frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF &&
+            pRefSurf->frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF)
+        {
+            m_pipelineParam[0].input_surface_flag = VA_TOP_FIELD_FIRST;
+            m_pipelineParam[0].output_surface_flag = VA_TOP_FIELD_FIRST;
+        }
+        if (pParams->targetSurface.frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF &&
+            pRefSurf->frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF)
+        {
+            m_pipelineParam[0].input_surface_flag = VA_BOTTOM_FIELD_FIRST;
+            m_pipelineParam[0].output_surface_flag = VA_BOTTOM_FIELD_FIRST;
+        }
+    }
+
     vaSts = vaCreateBuffer(m_vaDisplay,
                         m_vaContextVPP,
                         VAProcPipelineParameterBufferType,
