@@ -1334,8 +1334,9 @@ if (pParams->mirroringExt)
     }
 }
 
-    // Additional parameters for interlaced cases
+    if (m_core->GetHWType() >= MFX_HW_ICL)
     {
+        // Additional parameters for interlaced cases
         if (pParams->targetSurface.frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF &&
             pRefSurf->frameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF)
         {
