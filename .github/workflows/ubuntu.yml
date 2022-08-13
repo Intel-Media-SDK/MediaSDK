@@ -6,12 +6,12 @@ env:
   CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 
 jobs:
-  clang14:
-    runs-on: ubuntu-20.04
+  clang15:
+    runs-on: ubuntu-22.04
     env:
-      CC: /usr/bin/clang-14
-      CXX: /usr/bin/clang++-14
-      ASM: /usr/bin/clang-14
+      CC: /usr/bin/clang-15
+      CXX: /usr/bin/clang++-15
+      ASM: /usr/bin/clang-15
     steps:
     - name: checkout libmfx
       uses: actions/checkout@v2
@@ -25,12 +25,12 @@ jobs:
     - name: install toolchain
       run: |
         if [[ -e $CC && -e $CXX ]]; then \
-          echo "clang-14 already presents in the image"; \
+          echo "clang-15 already presents in the image"; \
         else \
-          echo "clang-14 missed in the image, installing from llvm"; \
-          echo "deb [trusted=yes] http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main" | sudo tee -a /etc/apt/sources.list; \
+          echo "clang-15 missed in the image, installing from llvm"; \
+          echo "deb [trusted=yes] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main" | sudo tee -a /etc/apt/sources.list; \
           sudo apt-get update; \
-          sudo apt-get install -y --no-install-recommends clang-14; \
+          sudo apt-get install -y --no-install-recommends clang-15; \
         fi
     - name: install prerequisites
       run: |
@@ -70,12 +70,12 @@ jobs:
         make test
         sudo make install
 
-  clang12:
-    runs-on: ubuntu-20.04
+  clang14:
+    runs-on: ubuntu-22.04
     env:
-      CC: /usr/bin/clang-12
-      CXX: /usr/bin/clang++-12
-      ASM: /usr/bin/clang-12
+      CC: /usr/bin/clang-14
+      CXX: /usr/bin/clang++-14
+      ASM: /usr/bin/clang-14
     steps:
     - name: checkout libmfx
       uses: actions/checkout@v2
