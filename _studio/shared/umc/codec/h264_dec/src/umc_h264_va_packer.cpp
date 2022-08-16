@@ -307,7 +307,6 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
         FillFrameAsInvalid(&(pPicParams_H264->ReferenceFrames[i]));
     }
 
-    int32_t referenceCount = 0;
     int32_t j = 0;
 
     int32_t viewCount = m_supplier->GetViewCount();
@@ -349,7 +348,6 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
             }
 
             reference = pFrm->isShortTermRef() ? 1 : (pFrm->isLongTermRef() ? 2 : 0);
-            referenceCount ++;
             int32_t field = pFrm->m_bottom_field_flag[0];
             FillFrame(&(pPicParams_H264->ReferenceFrames[j]), pFrm,
                 field, reference, defaultIndex);
@@ -977,7 +975,6 @@ void PackerVA_CENC::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice *
         FillFrameAsInvalid(&(pPicParams_H264->ReferenceFrames[i]));
     }
 
-    int32_t referenceCount = 0;
     int32_t j = 0;
 
     int32_t viewCount = m_supplier->GetViewCount();
@@ -1019,7 +1016,6 @@ void PackerVA_CENC::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice *
             }
 
             reference = pFrm->isShortTermRef() ? 1 : (pFrm->isLongTermRef() ? 2 : 0);
-            referenceCount ++;
             int32_t field = pFrm->m_bottom_field_flag[0];
             FillFrame(&(pPicParams_H264->ReferenceFrames[j]), pFrm,
                 field, reference, defaultIndex);

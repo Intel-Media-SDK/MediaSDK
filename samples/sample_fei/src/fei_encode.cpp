@@ -415,7 +415,7 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(iTask* eTask)
     }
 
     /* Load input Buffer for FEI ENCODE */
-    mfxU32 feiEncCtrlId = ffid, pMvPredId = ffid, pWeightsId = ffid, encMBID = 0, mbQPID = 0, fieldId = 0;
+    mfxU32 feiEncCtrlId = ffid, pMvPredId = ffid, pWeightsId = ffid, encMBID = 0, mbQPID = 0;
     for (std::vector<mfxExtBuffer*>::iterator it = eTask->bufs->PB_bufs.in.buffers.begin();
         it != eTask->bufs->PB_bufs.in.buffers.end(); ++it)
     {
@@ -504,8 +504,6 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(iTask* eTask)
                 feiEncCtrl->NumMVPredictors[0] = GetNumL0MVPs(*eTask, feiEncCtrlId != ffid);
                 feiEncCtrl->NumMVPredictors[1] = GetNumL1MVPs(*eTask, feiEncCtrlId != ffid);
             }
-
-            fieldId++;
 
             feiEncCtrlId = 1 - feiEncCtrlId; // set to sfid
         }

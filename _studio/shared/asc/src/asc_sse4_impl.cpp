@@ -518,8 +518,6 @@ void ImageDiffHistogram_SSE4(pmfxU8 pSrc, pmfxU8 pRef, mfxU32 pitch, mfxU32 widt
 }
 
 mfxStatus Calc_RaCa_pic_SSE4(mfxU8 *pSrc, mfxI32 width, mfxI32 height, mfxI32 pitch, mfxF64 &RsCs) {
-    mfxU32
-        count = 0;
     mfxU8*
         pY = pSrc + (4 * pitch) + 4;
     mfxI32
@@ -573,7 +571,6 @@ mfxStatus Calc_RaCa_pic_SSE4(mfxU8 *pSrc, mfxI32 width, mfxI32 height, mfxI32 pi
 
             pY -= 4 * pitch;
             pY += 16;
-            count += 4;
         }
 
         // remaining blocks
@@ -581,7 +578,6 @@ mfxStatus Calc_RaCa_pic_SSE4(mfxU8 *pSrc, mfxI32 width, mfxI32 height, mfxI32 pi
         {
             calc_RACA_4x4_C(pY, pitch, &RS, &CS);
             pY += 4;
-            count++;
         }
 
         pY -= width - 8;
