@@ -266,8 +266,8 @@ JERRCODE CJPEGEncoder::SetSource(
 
 
 JERRCODE CJPEGEncoder::SetSource(
-  uint8_t*   pSrc[],
-  int      srcStep[],
+  uint8_t*   pSrc[4],
+  int      srcStep[4],
   mfxSize srcSize,
   int      srcChannels,
   JCOLOR   srcColor,
@@ -307,8 +307,8 @@ JERRCODE CJPEGEncoder::SetSource(
 
 
 JERRCODE CJPEGEncoder::SetSource(
-  int16_t*  pSrc[],
-  int      srcStep[],
+  int16_t*  pSrc[4],
+  int      srcStep[4],
   mfxSize srcSize,
   int      srcChannels,
   JCOLOR   srcColor,
