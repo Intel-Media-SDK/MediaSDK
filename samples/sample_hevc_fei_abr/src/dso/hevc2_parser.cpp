@@ -56,7 +56,9 @@ Parser::Parser(Bs32u mode)
 
     if (m_mode & PARALLEL_SD)
     {
+#ifdef __BS_TRACE__
         Bs32u id = 0;
+#endif
         m_sdt.resize(hwThreads);
 
         for (auto& sdt : m_sdt)
@@ -64,6 +66,8 @@ Parser::Parser(Bs32u mode)
 #ifdef __BS_TRACE__
             char fname[] = "X_bs_thread.log";
             fname[0] = '0' + (id % 10);
+
+            id++;
 #if !defined(__GNUC__) && !defined(__clang__)
   #pragma warning(disable:4996)
 #endif
@@ -75,8 +79,6 @@ Parser::Parser(Bs32u mode)
             sdt.p.m_pAllocator = &(BS_MEM::Allocator&)*this;
             sdt.p.SetEmulation(false);
             sdt.p.SetTraceLevel(TRACE_DEFAULT);
-
-            id++;
         }
     }
 

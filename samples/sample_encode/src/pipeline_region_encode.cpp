@@ -509,7 +509,6 @@ mfxStatus CRegionEncodingPipeline::Run()
     mfxI64 timeCurStart=0;
     mfxI64 timeCurEnd=0;
     mfxI64 timeCurMax;
-    mfxI64 nFrames = 0;
 
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -620,7 +619,6 @@ mfxStatus CRegionEncodingPipeline::Run()
                 timeCurMax = timeCurEnd - timeCurStart;
         }
         if (timeCurMax) {
-            nFrames ++;
             m_timeAll += timeCurMax;
         }
     }
@@ -686,7 +684,6 @@ mfxStatus CRegionEncodingPipeline::Run()
                 timeCurMax = timeCurEnd - timeCurStart;
         }
         if (timeCurMax) {
-            nFrames ++;
             m_timeAll += timeCurMax;
         }
     }
