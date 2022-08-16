@@ -293,8 +293,8 @@ JERRCODE CJPEGDecoder::SetDestination(
 
 
  JERRCODE CJPEGDecoder::SetDestination(
-  uint8_t*   pDst[],
-  int      dstStep[],
+  uint8_t*   pDst[4],
+  int      dstStep[4],
   mfxSize dstSize,
   int      dstChannels,
   JCOLOR   dstColor,
@@ -327,8 +327,8 @@ JERRCODE CJPEGDecoder::SetDestination(
 
 
   JERRCODE CJPEGDecoder::SetDestination(
-  int16_t*  pDst[],
-  int      dstStep[],
+  int16_t*  pDst[4],
+  int      dstStep[4],
   mfxSize dstSize,
   int      dstChannels,
   JCOLOR   dstColor,
