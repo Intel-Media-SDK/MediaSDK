@@ -124,8 +124,8 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVi
     umcVideoParams->clip_info.height = par->mfx.FrameInfo.Height;
     umcVideoParams->clip_info.width = par->mfx.FrameInfo.Width;
 
-    umcVideoParams->disp_clip_info.height = umcVideoParams->clip_info.height;
-    umcVideoParams->disp_clip_info.width = umcVideoParams->clip_info.width;
+    umcVideoParams->disp_clip_info.height = par->mfx.FrameInfo.CropH;
+    umcVideoParams->disp_clip_info.width = par->mfx.FrameInfo.CropW;
 
     if(par->mfx.CodecId == MFX_CODEC_JPEG && (MFX_ROTATION_90 == par->mfx.Rotation || MFX_ROTATION_270 == par->mfx.Rotation))
     {
