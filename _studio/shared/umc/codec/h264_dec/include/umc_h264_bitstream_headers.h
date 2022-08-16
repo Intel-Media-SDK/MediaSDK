@@ -122,6 +122,8 @@ public:
 
     inline bool IsBSLeft(size_t sizeToRead = 0);
     inline void CheckBSLeft(size_t sizeToRead = 0);
+    inline bool IsBitsLeft(size_t sizeToRead = 0);
+    inline void CheckBitsLeft(size_t sizeToRead = 0);
 
     // Check amount of data
     bool More_RBSP_Data();
@@ -140,6 +142,9 @@ public:
     // Set current decoding position
     void SetDecodedBytes(size_t);
 
+    // Set dummy buffer size in bytes
+    void SetTailBsSize(const uint32_t nBytes);
+
     size_t BytesDecodedRoundOff()
     {
         return static_cast<size_t>((uint8_t*)m_pbs - (uint8_t*)m_pbsBase);
@@ -151,7 +156,7 @@ protected:
     int32_t m_bitOffset;                                         // (int32_t) the bit position (0 to 31) in the dword pointed by m_pbs.
     uint32_t *m_pbsBase;                                          // (uint32_t *) pointer to the first byte of the buffer.
     uint32_t m_maxBsSize;                                         // (uint32_t) maximum buffer size in bytes.
-
+    uint32_t m_tailBsSize; // (uint32_t) dummy buffer size in bytes at the buffer end.
 };
 
 class H264HeadersBitstream : public H264BaseBitstream
@@ -262,6 +267,7 @@ inline void FillScalingList8x8(H264ScalingList8x8 *scl_dst, const uint8_t *coefs
 inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
                                                       int32_t *pBitOffset,
                                                       int32_t *pDst,
+                                                      int32_t remainingBits,
                                                       int32_t isSigned)
 {
     uint32_t code;
@@ -273,21 +279,37 @@ inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
     /* check error(s) */
 
     /* Fast check for element = 0 */
-    h264GetBits((*ppBitStream), (*pBitOffset), 1, code)
+    if ((remainingBits < 1))
+    {
+        throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+    }
+    h264GetBits((*ppBitStream), (*pBitOffset), 1, code);
+    remainingBits -= 1;
+
     if (code)
     {
         *pDst = 0;
         return true;
     }
 
+    if ((remainingBits < 8))
+    {
+        throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+    }
     h264GetBits((*ppBitStream), (*pBitOffset), 8, code);
     length += 8;
+    remainingBits -= 8;
 
     /* find nonzero byte */
     while (code == 0 && 32 > length)
     {
+        if ((remainingBits < 8))
+        {
+            throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+        }
         h264GetBits((*ppBitStream), (*pBitOffset), 8, code);
         length += 8;
+        remainingBits -= 8;
     }
 
     /* find leading '1' */
@@ -298,7 +320,8 @@ inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
     }
     length -= 8 - thisChunksLength;
 
-    h264UngetNBits((*ppBitStream), (*pBitOffset),8 - (thisChunksLength + 1))
+    h264UngetNBits((*ppBitStream), (*pBitOffset),8 - (thisChunksLength + 1));
+    remainingBits += 8 - (thisChunksLength + 1);
 
     /* skipping very long codes, let's assume what the code is corrupted */
     if (32 <= length || 32 <= thisChunksLength)
@@ -316,6 +339,10 @@ inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
     /* Get info portion of codeword */
     if (length)
     {
+        if ((remainingBits < length))
+        {
+            throw h264_exception(UMC::UMC_ERR_INVALID_STREAM);
+        }
         h264GetBits((*ppBitStream), (*pBitOffset),length, info)
     }
 
@@ -336,7 +363,7 @@ inline bool DecodeExpGolombOne_H264_1u32s (uint32_t **ppBitStream,
 inline bool H264BaseBitstream::IsBSLeft(size_t sizeToRead)
 {
     size_t bitsDecoded = BitsDecoded();
-    return (bitsDecoded + sizeToRead*8 <= m_maxBsSize*8);
+    return (bitsDecoded + sizeToRead  *8 <= m_maxBsSize * 8);
 }
 
 inline void H264BaseBitstream::CheckBSLeft(size_t sizeToRead)
@@ -345,10 +372,23 @@ inline void H264BaseBitstream::CheckBSLeft(size_t sizeToRead)
         throw h264_exception(UMC_ERR_INVALID_STREAM);
 }
 
+inline bool H264BaseBitstream::IsBitsLeft(size_t sizeToRead)
+{
+    size_t bitsDecoded = BitsDecoded();
+    return (bitsDecoded + sizeToRead <= m_maxBsSize * 8);
+}
+
+inline void H264BaseBitstream::CheckBitsLeft(size_t sizeToRead)
+{
+    if (!IsBitsLeft(sizeToRead))
+        throw h264_exception(UMC_ERR_INVALID_STREAM);
+}
+
 inline uint32_t H264BaseBitstream::GetBits(const uint32_t nbits)
 {
     uint32_t w, n = nbits;
 
+    CheckBitsLeft(n);
     h264GetBits(m_pbs, m_bitOffset, n, w);
     return(w);
 }
@@ -356,8 +396,9 @@ inline uint32_t H264BaseBitstream::GetBits(const uint32_t nbits)
 inline int32_t H264BaseBitstream::GetVLCElement(bool bIsSigned)
 {
     int32_t sval = 0;
+    int32_t remainingbits = (int32_t)((m_maxBsSize + m_tailBsSize) * 8) - (int32_t)BitsDecoded();
 
-    bool res = DecodeExpGolombOne_H264_1u32s(&m_pbs, &m_bitOffset, &sval, bIsSigned);
+    bool res = DecodeExpGolombOne_H264_1u32s(&m_pbs, &m_bitOffset, &sval, remainingbits, bIsSigned);
 
     if (!res)
         throw h264_exception(UMC_ERR_INVALID_STREAM);
@@ -368,6 +409,7 @@ inline uint8_t H264BaseBitstream::Get1Bit()
 {
     uint32_t w;
 
+    CheckBitsLeft(1);
     GetBits1(m_pbs, m_bitOffset, w);
     return (uint8_t)w;
 }

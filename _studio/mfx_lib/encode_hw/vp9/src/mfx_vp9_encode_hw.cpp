@@ -990,7 +990,7 @@ mfxStatus MFXVideoENCODEVP9_HW::GetVideoParam(mfxVideoParam *par)
 
 inline mfxStatus UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pPictureHeader, mfxU32 bufferSize)
 {
-    mfxU32 ivf_frame_header[3] = {frameLen, frameNum << 1, 0x00000000};
+    mfxU32 ivf_frame_header[3] = {frameLen, frameNum, 0x00000000};
     if (bufferSize < sizeof(ivf_frame_header))
         return MFX_ERR_MORE_DATA;
 
