@@ -1766,7 +1766,7 @@ mfxStatus CDecodingPipeline::RunDecoding()
         deliverThread = std::thread (&CDecodingPipeline::DeliverLoop, this);
     }
 
-    while (((sts == MFX_ERR_NONE) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) && (m_nFrames > m_output_count))
+    while (((sts == MFX_ERR_NONE) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) && ((m_nFrames == MFX_INFINITE) || (m_nFrames > m_output_count)))
     {
         if (MFX_ERR_NONE != m_error) {
             msdk_printf(MSDK_STRING("DeliverOutput return error = %d\n"),m_error);
