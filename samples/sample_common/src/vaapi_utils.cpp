@@ -355,7 +355,6 @@ CLibVA* CreateLibVA(const std::string& devicePath, int type)
 
 struct AcquireCtx
 {
-    int fd;
     VAImage image;
 };
 
@@ -451,7 +450,6 @@ void CLibVA::ReleaseVASurface(
         AcquireCtx* ctx = (AcquireCtx*)actx;
         if (ctx) {
             m_libva.vaDestroySurfaces(dpy2, &srf2, 1);
-            close(ctx->fd);
             m_libva.vaReleaseBufferHandle(dpy1, ctx->image.buf);
             m_libva.vaDestroyImage(dpy1, ctx->image.image_id);
             free(ctx);
