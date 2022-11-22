@@ -36,6 +36,9 @@ extern "C"
 #if defined(WAYLAND_LINUX_DMABUF_SUPPORT)
 #include "linux-dmabuf-unstable-v1.h"
 #endif
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+#include "xdg-shell-client-protocol.h"
+#endif
 
 typedef struct buffer wld_buffer;
 
@@ -156,6 +159,11 @@ class Wayland: public CBuffering {
 #endif
         volatile int m_pending_frame;
         struct ShmPool *m_shm_pool;
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+        struct xdg_wm_base* m_xdg_wm_base;
+        struct xdg_surface* m_xdg_surface;
+        struct xdg_toplevel* m_xdg_toplevel;
+#endif
         int m_display_fd;
         int m_fd;
         struct pollfd m_poll;

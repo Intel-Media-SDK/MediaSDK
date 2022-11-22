@@ -66,6 +66,11 @@ Wayland::Wayland()
 #endif
     , m_pending_frame(0)
     , m_shm_pool(NULL)
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+    , m_xdg_wm_base(NULL)
+    , m_xdg_surface(NULL)
+    , m_xdg_toplevel(NULL)
+#endif
     , m_display_fd(-1)
     , m_fd(-1)
     , m_bufmgr(NULL)
@@ -112,6 +117,18 @@ int Wayland::DisplayRoundtrip()
 
 bool Wayland::CreateSurface()
 {
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+    static struct xdg_surface_listener
+        xdg_surface_listener   = {
+            xdg_surface_configure
+        };
+
+    static struct xdg_toplevel_listener
+        xdg_toplevel_listener = {
+            xdg_toplevel_configure,
+            xdg_toplevel_close
+        };
+#endif
     static const struct wl_shell_surface_listener
         shell_surface_listener = {
             shell_surface_ping,
@@ -122,20 +139,45 @@ bool Wayland::CreateSurface()
     if (NULL == m_surface)
         return false;
 
-    m_shell_surface = wl_shell_get_shell_surface(m_shell
-        , m_surface);
-    if(NULL == m_shell_surface)
-    {
-        wl_surface_destroy(m_surface);
-        return false;
-    }
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+    if (m_xdg_wm_base) {
+        m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base
+            , m_surface);
+        if (nullptr == m_xdg_surface) {
+            xdg_surface_destroy(m_xdg_surface);
+            return false;
+        }
 
-    wl_shell_surface_add_listener(m_shell_surface
-        , &shell_surface_listener
-        , 0);
-    wl_shell_surface_set_toplevel(m_shell_surface);
-    wl_shell_surface_set_user_data(m_shell_surface, m_surface);
-    wl_surface_set_user_data(m_surface, NULL);
+        xdg_surface_add_listener(m_xdg_surface
+            , &xdg_surface_listener
+            , 0);
+        m_xdg_toplevel = xdg_surface_get_toplevel(m_xdg_surface);
+        if (nullptr == m_xdg_toplevel)
+            return false;
+
+        xdg_toplevel_add_listener(m_xdg_toplevel
+            , &xdg_toplevel_listener
+            , 0);
+        wl_surface_commit(m_surface);
+        wl_display_dispatch(m_display);
+    }
+    else if (m_shell)
+#endif
+    {
+        m_shell_surface = wl_shell_get_shell_surface(m_shell
+            , m_surface);
+        if (NULL == m_shell_surface) {
+            wl_surface_destroy(m_surface);
+            return false;
+        }
+
+        wl_shell_surface_add_listener(m_shell_surface
+            , &shell_surface_listener
+            , 0);
+        wl_shell_surface_set_toplevel(m_shell_surface);
+        wl_shell_surface_set_user_data(m_shell_surface, m_surface);
+        wl_surface_set_user_data(m_surface, NULL);
+    }
     return true;
 }
 
@@ -146,6 +188,12 @@ void Wayland::FreeSurface()
         wl_shell_surface_destroy(m_shell_surface);
     if(NULL != m_surface)
         wl_surface_destroy(m_surface);
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+    if (nullptr != m_xdg_toplevel)
+        xdg_toplevel_destroy(m_xdg_toplevel);
+    if (nullptr != m_xdg_surface)
+        xdg_surface_destroy(m_xdg_surface);
+#endif
 }
 
 void Wayland::Sync()
@@ -436,12 +484,30 @@ void Wayland::RegistryGlobal(struct wl_registry *registry
             , name
             , &wl_compositor_interface
             , version));
-    else if(0 == strcmp(interface, "wl_shell"))
+    else if(0 == strcmp(interface, "wl_shell")) {
         m_shell = static_cast<wl_shell*>
             (wl_registry_bind(registry
             , name
             , &wl_shell_interface
             , version));
+    }
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+    else if (0 == strcmp(interface, "xdg_wm_base")) {
+        static const struct xdg_wm_base_listener
+            xdg_wm_base_listener = {
+                xdg_wm_base_ping
+            };
+        m_xdg_wm_base =
+            static_cast<xdg_wm_base*>(wl_registry_bind(registry
+            , name
+            , &xdg_wm_base_interface
+            , 1));
+
+        xdg_wm_base_add_listener(m_xdg_wm_base
+           , &xdg_wm_base_listener
+           , this);
+    }
+#endif
     else if(0 == strcmp(interface, "wl_drm")) {
         static const struct wl_drm_listener drm_listener = {
             drm_handle_device,

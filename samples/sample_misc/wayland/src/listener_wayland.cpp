@@ -103,3 +103,35 @@ void buffer_release(void *data, struct wl_buffer *buffer)
     wl_buffer_destroy(buffer);
     buffer = NULL;
 }
+
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+/* xdg shell */
+void xdg_wm_base_ping(void* data
+    , struct xdg_wm_base* xdg_wm_base
+    , uint32_t serial)
+{
+    xdg_wm_base_pong(xdg_wm_base, serial);
+}
+
+void xdg_surface_configure(void* data
+    , struct xdg_surface* xdg_surface
+    , uint32_t serial)
+{
+    xdg_surface_ack_configure(xdg_surface, serial);
+}
+
+void xdg_toplevel_configure(void* data
+    , struct xdg_toplevel* xdg_toplevel
+    , int32_t width
+    , int32_t height,
+    struct wl_array* states)
+{
+    /* NOT IMPLEMENTED */
+}
+
+void xdg_toplevel_close(void* data
+    , struct xdg_toplevel* xdg_toplevel)
+{
+    /* NOT IMPLEMENTED */
+}
+#endif
