@@ -1455,7 +1455,7 @@ public:
               hw == MFX_HW_JSL) ||
 #endif
              (hw >= MFX_HW_ICL &&
-              (fcc == MFX_FOURCC_AYUV
+              (fcc == MFX_FOURCC_AYUV || fcc == MFX_FOURCC_RGB4
 #if (MFX_VERSION >= 1027)
                || fcc == MFX_FOURCC_Y410
 #endif
