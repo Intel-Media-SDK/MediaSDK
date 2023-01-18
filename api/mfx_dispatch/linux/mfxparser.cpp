@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cstdint>
 #include <list>
 
 #include "mfxloader.h"
