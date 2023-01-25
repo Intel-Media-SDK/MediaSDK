@@ -435,6 +435,9 @@ template<>struct mfx_ext_buffer_id<mfxExtHEVCTiles> {
 template<>struct mfx_ext_buffer_id<mfxExtVP9Param> {
     enum {id = MFX_EXTBUFF_VP9_PARAM};
 };
+template<>struct mfx_ext_buffer_id<mfxExtVP9Segmentation> {
+    enum {id = MFX_EXTBUFF_VP9_SEGMENTATION};
+};
 template<>struct mfx_ext_buffer_id<mfxExtVideoSignalInfo> {
     enum {id = MFX_EXTBUFF_VIDEO_SIGNAL_INFO};
 };

@@ -417,6 +417,35 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
         }
     }
 #endif
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vp9SegmentationBlockSize"))) {
+    VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+    if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->vp9SegmentationBlockSize)) {
+        msdk_printf(MSDK_STRING("error: Set size of block (NxN) for segmentation map: 8, 16, 32, 64.\n"));
+        pParams->vp9SegmentationBlockSize = 64;
+    }
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vp9SegmentationQIDelta"))) {
+    VAL_CHECK(i + 8 >= nArgNum, i, strInput[i]);
+
+    pParams->nVp9Segments = 1;
+
+    for (mfxU16 t = 0; t < 8; t++) {
+        if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->vp9SegmentationQIDelta[t])) {
+            msdk_printf(MSDK_STRING(
+                "error: Array of 8 digits containing quantization index deltas for 8 possible segments, each value [-255..255], 0 - disabled (default).\n"));
+            pParams->vp9SegmentationQIDelta[t] = 0;
+        }
+        if (pParams->vp9SegmentationQIDelta[t] != 0) pParams->nVp9Segments = t + 1;
+    }
+    }
+    //else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vp9SegmentationMap"))) {
+    //    VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+    //    pParams->vp9SegmMapPath = strInput[++i];
+    //    if (!pParams->vp9SegmMapPath) {
+    //        msdk_printf(MSDK_STRING("error: vp9SegmentationMap is not provided!!.\n"));
+    //    }
+    //}
     else
     {
         return MFX_ERR_NOT_FOUND;

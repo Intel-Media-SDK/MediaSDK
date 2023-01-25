@@ -239,6 +239,12 @@ struct sInputParams
     mfxI16 DeblockingBetaOffset;
 #endif
 
+    mfxU16 nVp9Segments;
+    mfxI16 vp9SegmentationQIDelta[8];
+    mfxU16 vp9SegmentationBlockSize;
+    //mfxU8* vp9SegmentationMap;
+    //msdk_char* vp9SegmMapPath;
+
 };
 
 
