@@ -353,8 +353,9 @@ UMC::Status MFXTaskSupplier_H265::DecodeSEI(UMC::MediaDataEx *nalUnit)
         MemoryPiece mem;
         mem.SetData(nalUnit);
 
+        //NU reader needs 8 bytes as tail data, allocate another 8 bytes here to avoid out of bound read.
         MemoryPiece swappedMem;
-        swappedMem.Allocate(nalUnit->GetDataSize() + DEFAULT_NU_TAIL_SIZE);
+        swappedMem.Allocate(nalUnit->GetDataSize() + DEFAULT_NU_TAIL_SIZE * 2);
 
         SwapperBase * swapper = m_pNALSplitter->GetSwapper();
         swapper->SwapMemory(&swappedMem, &mem, 0);
