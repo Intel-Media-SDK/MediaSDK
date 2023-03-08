@@ -345,9 +345,7 @@ H264HeadersBitstream::H264HeadersBitstream(uint8_t * const pb, const uint32_t ma
 
 inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
 {
-#if (MFX_VERSION < 1035)
-    std::ignore = ignore_level_constrain;
-#endif
+    (void)(ignore_level_constrain); //UNREFERENCED_PARAMETER
 
     switch(level_idc)
     {
@@ -373,15 +371,12 @@ inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
     case H264VideoDecoderParams::H264_LEVEL_52:
 
     case H264VideoDecoderParams::H264_LEVEL_9:
-        return true;
 
-#if (MFX_VERSION >= 1035)
     case H264VideoDecoderParams::H264_LEVEL_6:
     case H264VideoDecoderParams::H264_LEVEL_61:
     case H264VideoDecoderParams::H264_LEVEL_62:
-        return ignore_level_constrain;
-#endif
-
+        return true;
+        
     default:
         return false;
     }
