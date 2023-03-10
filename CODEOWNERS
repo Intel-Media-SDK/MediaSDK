@@ -1,7 +1,7 @@
-*    apple.wang@intel.com carl.zhang@intel.com
-/api/include/ apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+*    apple.wang@intel.com carl.zhang@intel.com felix.zhou@intel.com
+/api/include/ apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
 
-CODEOWNERS      @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com carl.zhang@intel.com
+CODEOWNERS      @Intel-Media-SDK/mediasdk-admin apple.wang@intel.com carl.zhang@intel.com felix.zhou@intel.com
 CMakeLists.txt  sherry.lin@intel.com
 
 # av1d
@@ -84,7 +84,7 @@ _studio/mfx_lib/encode_hw/vp9/  chunbo.chen@intel.com apple.wang@intel.com
 /_studio/shared/umc/codec/scene_analyzer/  furong.zhang@intel.com
 
 # tests:
-/tests/  dmitry.v.rogozhkin@intel.com apple.wang@intel.com
+/tests/  dmitry.v.rogozhkin@intel.com apple.wang@intel.com felix.zhou@intel.com
 
 # avc_fei:
 /_studio/mfx_lib/fei/  thomas.li@intel.com apple.wang@intel.com
@@ -102,22 +102,22 @@ _studio/mfx_lib/encode_hw/vp9/  chunbo.chen@intel.com apple.wang@intel.com
 /_studio/shared/include/mfxenctools-int.h  sergey.plotnikov@intel.com
 
 # samples:
-/samples/  apple.wang@intel.com
+/samples/  apple.wang@intel.com felix.zhou@intel.com
 
 # core:
-/_studio/mfx_lib/shared/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/shared/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/shared/umc/core/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/shared/umc/io/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/mfx_lib/cmrt_cross_platform/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
-/_studio/mfx_lib/scheduler/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/shared/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
+/_studio/shared/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
+/_studio/shared/umc/core/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
+/_studio/shared/umc/io/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
+/_studio/mfx_lib/cmrt_cross_platform/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
+/_studio/mfx_lib/scheduler/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
 
 # android:
 /android/ @Intel-Media-SDK/mediasdk-admin
 *.mk @Intel-Media-SDK/mediasdk-admin
 
 # build:
-/builder/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/builder/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
 
 # plugin:
-/_studio/mfx_lib/plugin/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/plugin/  apple.wang@intel.com dmitry.v.rogozhkin@intel.com felix.zhou@intel.com
