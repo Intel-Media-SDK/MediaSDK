@@ -549,7 +549,12 @@ inline size_t H265BaseBitstream::BytesLeft() const
 // Throw exception if left bits not enough to decode
 inline void H265BaseBitstream::CheckBitsLeft(const uint32_t nbits)
 {
-    if ((int32_t)m_maxBsSize * 8 - BitsDecoded() < nbits)
+    if((int32_t)m_maxBsSize > 0 && (size_t)m_maxBsSize * 8 > BitsDecoded())
+    {
+        if ((size_t)m_maxBsSize * 8 - (size_t)BitsDecoded() < nbits)
+            throw h265_exception(UMC::UMC_ERR_NOT_ENOUGH_DATA);
+    }
+    else
         throw h265_exception(UMC::UMC_ERR_NOT_ENOUGH_DATA);
 }
 
