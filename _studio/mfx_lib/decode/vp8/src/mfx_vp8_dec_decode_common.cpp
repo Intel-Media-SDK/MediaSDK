@@ -61,6 +61,10 @@ namespace VP8DecodeCommon
                 start_code_found = true;
                 // move to frame tag
                 p_bitstream -= 3;
+
+                if (n_bytes_offset < 3)
+                    MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
+                    
                 n_bytes_offset -= 3;
                 break;
             }

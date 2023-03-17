@@ -339,6 +339,27 @@ typedef struct _vp8_FrameData
 
 } // namespace UMC
 
+class vp8_exception
+{
+    public:
+
+        vp8_exception(int32_t status = -1)
+            : m_Status(status)
+        {}
+
+        virtual ~vp8_exception()
+        {}
+
+        int32_t GetStatus() const
+        {
+            return m_Status;
+        }
+
+    private:
+
+        int32_t m_Status;
+};
+
 #endif // __VP8_DEC_H__
 
 #endif // _MFX_VP8_DEC_DECODE_VP8_DEFS_H_
