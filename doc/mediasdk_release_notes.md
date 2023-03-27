@@ -35,36 +35,18 @@ In this document we will refer to processor families by their former codenames f
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I" will be referred to as “Apollo Lake”
 
 
-## What’s New in Media SDK 20.5.1
+## What’s New in Media SDK 21.3.4
 **New features**:
-* **AV1 decode**
-    - Refactored handling errors in SubmitFrame
-
-* **AVC encode**
-    - Improved handling support status for "Sliding window" feature
-    - Added EncTools support
-    - Added vaSyncBuffer support
-    - Added external BRC support for Rocket Lake
-    - Added TCBRC support
-    - Added MCTF support
-
-* **HEVC encode**
-    - Extended B frames support across all target usage with LowPower on
-    - Added TCBRC support
-
-* **MPEG2 encode**
-    - Added vaSyncBuffer support
+* **VP9 Encode**
+    - Added WebRTC mode.
 
 * **Samples**
-    - Added AdaptiveI and AdaptiveB frames support in sample_multi_transcode (#1401)
-    - Added NV16 output support
-    - Added 12 bit support in sample_multi_transcode, sample_decode and sample_vpp (#2055)
-    - Enabled MBQP for all encoders in sample_multi_transcode
-    - Added -disable_film_grain flag to disable film grain application in sample_decode
+    - Added "VuiTC" option to set VUI TransferCharacteristics in sample_multi_transcode.
+    - Added the verification of input params before used in Init for sample_encode
 
 * **Misc**
-    - Disabled plugins loading (Plugin implementations were moved to library runtime, except LA and FEI)
-    - Added support for dynamic GPU session priority
+    - Added support of DRM_FORMAT_NV12 for console mode rendering.
+    - Added runtimes support matrix for Media SDK and oneVPL GPU Runtime (please see the details [here](https://github.com/Intel-Media-SDK/MediaSDK#id9))
 
 * **Software requirements**
     - Libdrm 2.4.84 or later
@@ -72,8 +54,6 @@ In this document we will refer to processor families by their former codenames f
 
 * **Known issues**
     - Kernel 5.0 have known issue with endurance on Skylake see https://bugs.freedesktop.org/show_bug.cgi?id=110285 for details.
-    - Media Stack 20.5.1 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
-    - AV1 Decoder doesn't properly support asynchronous decoding (AsyncDepth > 1) and sometimes may return *MFX_ERR_UNDEFINED_BEHAVIOR* and *MFX_ERR_DEVICE_FAILED* from DecodeFrameAsync calls. See #2244 for details.
 
 ## <a id='System_Requirements'>System Requirements</a>
 
@@ -100,7 +80,7 @@ Intel® Media SDK supports the following platforms with the Intel graphics:
 - **Linux kernel 4.14 or newer** of 64 - bit architecture. Kernel 4.19 or newer recommended, as it contains stability and performance improvements over 4.14. Release was validated against 4.19.5 for gen8 and gen9 graphics, 5.4 for gen10 (Icelake) graphics, and 5.5 for gen11 (Tigerlake) graphics.
 
 ## <a id='Features'>Features</a>
-Intel® Media SDK included in this package implements SDK API 1.34 and contains the following components:
+Intel® Media SDK included in this package implements SDK API 1.35 and contains the following components:
 
  Component | Supported features | Limitations
  --- | --- | ---
@@ -205,8 +185,11 @@ This release is subject to the following known limitations:
     - Multi Frame Encode (MFE), HEVC Flexible Encode Infrastructure only supported on Skylake
     - VP9 decoder is supported starting from Kabylake platform
     - VP9 encoder is supported starting from Icelake platform
-    - Support for Tigerlake, Elkhartlake and Jasperlake platforms is preliminary and may not be fully functional
     - SW fallback is unsupported for all components but MJPEG
+    - Keem Bay requires a [VPU runtime](https://github.com/intel/MediaSDK-VPU) library
+    - The following features are supported by Keem Bay runtime and are not supported by Gen graphics runtime:
+        - mfxExtInsertHeaders
+        - mfxExtEncoderIPCMArea
 
 * **Absence of software fallback**:
     - AVC Encode: MVC encode capabilities
@@ -350,6 +333,9 @@ This release is subject to the following known limitations:
     - Only the following features among those introduced in API 1.34 are supported:
         - Added Keem Bay platform support
         - Added AV1 decode support
+    - Only the following features among those introduced in API 1.35 are supported:
+        - Added AVC decode 6-6.2 levels
+        - Added deprecation attributes in API Headers.
 
     **NOTE**: Other options may be not supported. Please use *Query* functions to check feature availability on any given machine at runtime. Availability of features depends on hardware capabilities as well as driver version.
 
@@ -428,7 +414,6 @@ This release is subject to the following known limitations:
     - Encoder cannot change frame rate via Reset() call (new value will be ignored). But if frame rate is changed along with bitrate by same Reset() call, encoder will apply new value.
     - [38510] Encoder cannot change bit rate via Reset() call for user-defined BRC if HRD conformance is enabled. *MFX_ERR_INCOMPATIBLE_VIDEO_PARAM* is returned.
     - For CQP encoding of very complex content with low QP *BufferSizeInKB* reported by *GetVideoParam()* may not be enough to hold coded bitstream. If it happens, HEVC encoder returns *MFX_ERR_NOT_ENOUGH_BUFFER* from SyncOperation. Application may workaround it by allocation of bigger buffer than SDK reported in *BufferSizeInKB*. Following value is enough: <frame size in pixels> * 3.
-    - [18046] Encoder may generate too high bitrate in CBR mode.
     - Per-LCU QP mode has the following limitations:
         - the feature is applicable only for CQP BRC.
         - QP values can be set in range 0-51.
@@ -458,12 +443,14 @@ This release is subject to the following known limitations:
     **Workaround:** An application can explicitly define higher level to avoid possible violation.
     - QP range is extended to the higher QP values depending on bit-depth: [1; 51+6*(bits-8)]. For HEVC encoder with LowPower ON, QP range is [10; 51+6*(bits-8)]
     - For HEVC encoder with LowPower ON, MFX_CHROMAFORMAT_YUV422 is not supported as target encoding chroma format and max supported target encoding bit-depth for luma/chroma samples is 10.
+
 * **H.264 decode:**
     - The H.264 decoder may leave Corrupted flag as 0 in case of minor corruption in macroblock bitstream data.
     - Decoder returns *MFX_ERR_UNSUPPORTED* for streams which cannot be processed by hardware, software fallback was removed.
     - For decoders it's not guaranteed that GPU hang will be timely reported from *SyncOperation* (there could be several frames delay). *MFX_ERR_GPU_HANG* will be timely reported from *DecodeFrameAsync* call.
     - Function *GetPayload()* returns SEI with inserted emulation prevention bytes. If these SEI messages will be sent as Payloads to SDK HEVC encoder, emulation bytes will be duplicated.
     - When more than one frame is passed to *DecodeFrameAsync* in same input buffer, and external timestamp is set for this input, decoder will use provided timestamp to calculate PTS for 1st frame in the buffer. Decoder will not request additional timestamps for rest of frames in the buffer, and output PTS for these frames will be incorrect.
+
 * **H.264 encode:**
     - Encoder doesn’t support use of *MaxFrameSize* and *MaxSliceSize* together. If *MaxSliceSize* is set, *MaxFrameSize* is ignored.
     - Reset function isn’t supported for LookAhead BRC modes (except *MaxSliceSize* mode). Reset returns *MFX_ERR_INVALID_VIDEO_PARAM* for LA BRC.
@@ -490,7 +477,7 @@ This release is subject to the following known limitations:
     - [35082] Encoder doesn't release Locked counters of input surfaces in Close() function.
     - For very complex content *BufferSizeInKB* reported by *GetVideoParam()* may not be enough to hold coded bitstream. If it happens AVC encoder will cut bytes that don't fit to output buffer.
     - If application needs to disable deblocking, it needs to always set respective value of DisableDeblockingIdc if extended buffer MfxExtCodingOption2 is sent to encoder in runtime. If value isn't set (equals to 0), and buffer is sent to EncodeFrameAsync, zero value will be applied to current frame, and deblocking will be turned on.
-    - [27936] Turning ON Trellis for B-frames may slightly worsen objective quality of coded streams in terms of BDPSNR.
+    - [27936/51151] Turning ON Trellis for B-frames may slightly worsen objective quality of coded streams in terms of BDPSNR.
     - Encoder cannot change frame rate via Reset() call (new value will be ignored). But if frame rate is changed along with bitrate with same Reset() call, encoder will apply new value.
     - Encoder cannot change bit rate via Reset() call for software BRC if HRD conformance is enabled. *MFX_ERR_INCOMPATIBLE_VIDEO_PARAM* is returned.
     - Encoder cannot accept SEI payloads with total size over \~1130 bytes (the exact number may slightly vary depending on Encoder configuration). As a result of bigger payload error *MFX_ERR_DEVICE_FAILED* will be returned from *SyncOperation()*.
@@ -498,22 +485,19 @@ This release is subject to the following known limitations:
     - [27539] When I/P field pair is encoded at the beginning of new GOP, P field in the pair may use frames from previous GOP as reference. So I/P field pairs can't be used as clean random access points, unlike IDR/P field pairs.
     - Parameters that are part of PPS header in AVC standard (e.g. weighted prediction) can't be correctly applied on per-frame level if RepeatPPS option is set to OFF during encoder initialization.
     - [28660] Encoder implements "force-to-skip" functionality: Inter frame is coded w/o coefficients and motion vectors if there is a risk of HRD underflow. But this feature doesn't guarantee HRD compliant encoding. In rare cases for very low bitrates and very complex content HRD underflow may happen (e.g. 500 kbps 1080p and white noise content). It's actual for both Skylake and Broadwell.
-    - [28667, 31597] Rolling Intra refresh with MB-rows doesn't work correctly - all MBs below current Intra region in the frame are forced to Intra as well. Intra refresh with MB-columns could be used as work around.
+    - [28667/31597] Rolling Intra refresh with MB-rows doesn't work correctly - all MBs below current Intra region in the frame are forced to Intra as well. Intra refresh with MB-columns could be used as work around.
     - Encoder may produce different output if cases when size of input surface is bigger than frame resolution, and when size of surface equal to frame resolution. Difference doesn't affect objective quality, and isn't visible by eye.
     - When number of slices is controlled by parameters *NumSlice*, *NumSliceI*, *NumSliceP*, *NumSliceB*, resulting slices are always aligned to MB-row. In addition all slices have equal sizes (except last one). Such alignment may cause change of slice number set by application. Application should use *NumMBPerSlice* parameter to get slices of arbitrary MB size.
     - Following restrictions are applied to reference lists set via mfxExtAVCRefLists for interlaced encoding. List should start from reference field with same polarity as current one. Fields in reference lists should alternate while it's possible to pick field of alternative parity. If listed restrictions are violated, coded field may contain visual artifacts, or be encoded with Intra macroblocks only.
     - Enabling or disabling of Rolling Intra Refresh by Reset() call will lead to insertion of IDR. E.g. if Encoder is initialized with IntRefType = 0 (disabled refresh), and IntRefType = 1 is sent to Reset call, IDR will be inserted right after Reset, and only then first Intra refresh cycle will be started.
     - For CQP encoding of very complex content with low QP *BufferSizeInKB* reported by *GetVideoParam()* may not be enough to hold coded bitstream. If it happens, AVC encoder truncates coded bitstream to fit to the buffer provided by application and returns *MFX_ERR_NONE* from respective *SyncOperation* call. Application may workaround it by allocation of bigger buffer than SDK reported in *BufferSizeInKB*. Following value is enough: <frame size in pixels> * 3.
     - Encoder fills *mfxExtAVCEncodedFrameInfo::SecondFieldOffset* correctly only if application attaches only 1 such buffer for the case of interlaced content.
-    - [31266] Visual artifacts may occur when encoder tries to satisfy too small *MaxFrameSize* video parameter.
     - Encoder doesn’t support “Region Of Interest” feature.
     - [34037] On 4K content Look Ahead BRC may produce worse quality with *MFX_TARGETUSAGE_BEST_QUALITY* than with *MFX_TARGETUSAGE_BALANCED* / *MFX_TARGETUSAGE_SPEED*.
     **Workaround:** Use 2x2 downscaling to work around the issue.
     - [35309] In EncodedOrder mode AVC encoder always returns status *MFX_ERR_MORE_DATA* for EncodeFrameAsync calls with zero pointer to mfxFrameSurface1 structure. It means that when EncodedOrder mode is used together with asynchronous encoding (AsyncDepth > 1), buffered AsyncDepth frames cannot be retrieved from encoder at the end of encoding by mechanism described in Media SDK specification.
     - [35288] On SKL frequent (several time per second) BRC resets using VBR interlace encode results in low bitrate.
     - [38227] PSNR drop (without coding artifacts) is observed with dynamic *MaxFrameSize* parameter on screen content encode. It affects one frame when a complex scene is changed. On the other hand, an improvement in encoding quality is observed on the rest frames.
-    - [37925] Encoder in CQP mode doesn't insert CABAC trailing bits.
-    - [39869] In very rare cases encoder may produce GPU hang for very specific input content (static flat texture with small portion of very complex blocks - like white noise) on Skylake
 * **MPEG-2 decode:**
     - Decoder does not support bitstreams with resolution bigger than 2048x2048. MFXVideoDECODE_Init returns *MFX_ERR_UNSUPPORTED* on such bitstreams.
     - Decoder does not support MPEG-1 bitstreams. It is interpreted as corrupted MPEG-2 bitstream. MFXVideoDECODE_Init returns *MFX_ERR_NONE* and MFXVideoDECODE_DecodeFrameAsync returns *MFX_ERR_MORE_DATA* until valid MPEG-2 bitstream is found.
@@ -523,7 +507,6 @@ This release is subject to the following known limitations:
     - Decoder returns *MFX_ERR_UNSUPPORTED* for streams which cannot be processed by hardware, software fallback was removed.
     - [46442] Decoder may report a GPU hang with delay in a 1-2 frames.
 * **MPEG-2 encode:**
-    - [36085, 35800] Encoder may produce non-bit exact streams. Run to run difference doesn’t affect visual quality.
     - [28337] The MPEG-2 encoder may produce output that under-runs the MPEG-2 video buffer verifier model (VBV) on some streams. We suggest the following guideline of the parameter values to be followed to keep VBV compliance.
         - MPEG2 buffer usage is mainly restricted by the number of bits used for I frame. The minimum size of each 16x16 blocks of intra frame at highest QP is about 50 bits. The minimum initial buffer fullness (InitVBVBufferFullnessInBit) should be at least twice the size of the initial I frame, and the minimum buffer size (vbv_buffer_size) should be twice of the initial buffer fullness (4 times of the initial I frame).
     - MBQP mode is applicable only for CQP BRC and can be set in value range 1-122.
@@ -535,13 +518,13 @@ This release is subject to the following known limitations:
     - [26996] Setting too low bitrate for MPEG-2 Encoder may produce mosaic visual artifacts on complex content with fast motion or scene changes. For example bitrate 5.6 Mbps is too low for 1080<i></i>@25p, increasing bitrate to 8.5 Mbps produce much better quality stream. Sometimes Encoder Bitrate Control acts too conservative and produces artifacts caused by so-called panic mode.
     **Workaround:** Disable Encoder Bitrate Control panic mode. This may increase visual quality on low bitrates at the cost of potential VBV compliance violation.
     - Resetting MPEG-2 Encoder with new aspect ratio may return *MFX_ERR_INCOMPATIBLE_VIDEO_PARAM*, workaround - explicitly close and re-initialize encoder.
-    - Contrary to SDK Reference Manual (mediasdkman.pdf) MPEG-2 Encoder may allocate surfaces on Reset call.
+    - Contrary to SDK Reference Manual (mediasdkman.md) MPEG-2 Encoder may allocate surfaces on Reset call.
     - Encoder doesn't return errors on attempts to initialize it with some unsupported parameters (e.g. WeightedPrediction, FadeDetection and so on). Encoder ignores such parameters and returns *MFX_ERR_NONE* from Query/Init/Reset functions.
     - Once Encoder is initialized with some resolution, Encoder doesn't return error status on attempt to submit frame of bigger resolution to *EncodeFrameAsync*. Frame is accepted, consequence may be corrupted output, segmentation fault or some other undefined behavior.
     - [31656] On some content encoder may generate stream with lesser bitrate than requested.
-    - [31893] On complex content like interlace stream with fast motion encoded to progressive frame PSNR quality may vary frame to frame by more than 10 dB from average.
+    - [31893/50706] On complex content like interlace stream with fast motion encoded to progressive frame PSNR quality may vary frame to frame by more than 10 dB from average.
     - [38895] In software implementation of MPEG2 encoder encoding quality depends on a number of executions threads. Bigger number of threads improves performance, but decreases quality. The number of executions threads depends on a number of CPU cores.
-    - [47087] In VBR mode MPEG2 encoder uses provided target bitrate and ignores maximum bitrate, unlike other encoders.
+
 * **JPEG/MJPEG decode and encode** support only the below feature set:
     - Baseline mode only
         - DCT based
@@ -566,12 +549,15 @@ This release is subject to the following known limitations:
     - Hardware accelerated encoder is not supported on Broadwell.
     - Encoder doesn't encode correctly NV12 monochrome format input.
     - Encoder doesn't support non-interleaved scans.
+
 * **VC1 decoder:**
     - Decoder may cause GPU hangs and return status *MFX_ERR_UNDEFINED_BEHAVIOR* during decoding of corrupted content.
     - Decoder doesn’t support GPU hang reporting.
+
 * **VP8 decoder:**
     - Decoder doesn’t support GPU hang reporting.
     - [34602] GPU hang can occur on streams with corrupted partition sizes.
+
 * **VP9 encoder:**
     - Encoder supports only CQP, CBR and VBR rate control methods.
     - Encoder supports maximum 3 reference frames for Target Usage 1 and only 2 reference frames for Target Usage 4 and 7.
@@ -580,8 +566,7 @@ This release is subject to the following known limitations:
     - Encoder doesn't support dynamic scaling with increasing resolution more than the first frame's resolution.
     - BRC doesn't support configurations where amount of bits for frames in base layer is less than amount of bits for frames in upper layers. Encoder may produce stream with bitrate of base layer proportionally bigger or equal to upper layers.
     - Distance between base layer frames more than 8 may leads decrease of compressing effective.
-* **VP9 decoder:**
-    - [59476]Decoder may return *MFX_ERR_INCOMPATIBLE_VIDEO_PARAM* while decoding bitstream containing dynamic resolution change
+
 * **VPP:**
     - Multiple VPP filters being combined in one session may produce output that is not bit-exact with the output from the same VPP filters that are split by separate sessions, but the difference does not affect visual quality.
     - Field copy processing cannot be used with any other VPP filters including resize and color conversion. In case field processing is requested, all other VPP filters are skipped without error/warning messages.
@@ -594,7 +579,6 @@ This release is subject to the following known limitations:
     - De-interlacing is supported for NV12, YUY2, P010 formats only.
     - *MFX_DEINTERLACING_ADI* can produce color artifacts and out of order frames after scene change. *MFX_DEINTERLACING_ADI_SCD* should be used.
     - *MFX_DEINTERLACING_ADI_SCD* is handling frame with scene change and two or four frames after with BOB algorithm producing frame from the second field (from bottom in case of TFF and from top in case of BFF). Number of frames which is processed by BOB depends on deinterlacing mode: two for 30i->30p and four for 30i->60p.
-    - [35025] *MFX_DEINTERLACING_ADI_SCD* uses previous and current input frame to generate current output. The output timing may be offset by a field, which may be more visible after a scene change.
     - [27242] *MFX_DEINTERLACING_ADI* and *MFX_DEINTERLACING_ADI_SCD* may produce color artefacts in case of harmonic motion (repeated pattern and motion magnitude is the same as the periodic of repeated pattern).
     - VPP doesn’t support standalone scene change detection filter and ignores *MFX_EXTBUFF_VPP_SCENE_CHANGE*, *MFX_EXTBUFF_VPP_SCENE_ANALYSIS* extended buffers.
     - Fields weaving and fields splitting cannot be used with any other VPP filters including resize and color conversion. In case fields weaving or fields splitting is requested together with any other VPP filters, VPP initialization shall fail.
@@ -651,14 +635,12 @@ This release is subject to the following known limitations:
     - [28542] Result of bidirectional prediction by FEI ENCODE may be different to the expected: based on neighbor subblocks, biderctional prediction may be not used for a particular 8x8 subblock even if such prediction gives the best distortion.
     - [28398] FEI ENCODE may code 16x16, 16x8 and 8x16 MB partitions as 8x8 if repartition check or quarter pixel estimation are enabled.
     - FEI ENCODE: on some cases Trellis=ON may give no objective quality improvement or even small degradation compared to Trellis=OFF.
-    - [1173] PREENC doesn’t support *Query* function. *QueryIOSurf* function is not required for PREENC, as PREENC is a stateless interface, and it operates only on surfaces that are managed by application and doesn’t leave locked surfaces after processing.
     - [29112] Encoder finds good matches on all reference frames but then during mode decision one of the best found partitions is lost. It happens when we mix 8x8 partitions with minor subblocks, like 8x4.
     <br><br>**ENC, PAK**
     - FEI ENC and PAK expect correct Frame Orders to be set for input surfaces (i.e.different for different frames and unique)
     - ENC and PAK do not support reconstructed surface pools bigger than 127 surfaces.
     - Incompatible combinations (per AVC standard) of DPB size, progressive/interlaced encoding, profile and level settings would not be adjusted by Media SDK and may lead to unpredictable errors, including corrupted bitstream and GPU hangs for FEI ENC and PAK.
     - FEI ENC doesn’t have proper *QueryIOSurf* implementation. It is suggested to use FEI PAK’s one instead.
-    - [1173] FEI ENC and PAK don’t support *Query* functions.
     - [35095] FEI PAK may insert wrong MMCO for LT references and for some transformations in mixed picstructs streams, which doesn’t invoke sliding window algorithm.
     - FEI PAK doesn’t insert ALL_TO_UNUSED (MMCO_5), but uses multiple ST_TO_UNUSED / LT_TO_UNUSED (MMCO_1, MMCO_2).
     - FEI PAK doesn’t insert VUI to output bitstream.
@@ -686,7 +668,6 @@ This release is subject to the following known limitations:
     - Using system memory as input/output with *mfxInitParam::GPUCopy* set to *MFX_GPUCOPY_ON* has restriction for system memory allocation to be aligned at 64 bytes. Planar surface types types should be allocated as a single continous memory chunk.
     - Encode quality may be different (non-bit exact) between CPU generations.
     - General user plugin should not expect more than four input and four output surfaces in MFXVideoUSER_ProcessFrameAsync call. User should not provide more than four parameters to mfxHDL \*in, mfxU32 in_num, mfxHDL \*out, mfxU32 out_num.
-    - [17856] hardware SDK implementations require at least two logical cores to run correctly.
 
 <div style="page-break-after: always;"></div>
 
