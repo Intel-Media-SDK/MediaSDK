@@ -153,6 +153,20 @@ const mfxU16 LevelIdxToMfx[] =
     MFX_LEVEL_HEVC_62,
 };
 
+inline mfxU16 MinRefForPyramid(mfxU16 GopRefDist, bool bField)
+{
+    assert(GopRefDist > 0);
+    mfxU16 refB  = (GopRefDist - 1) / 2;
+
+    for (mfxU16 x = refB; x > 2;)
+    {
+        x     = (x - 1) / 2;
+        refB -= x;
+    }
+
+    return bField ? ((2 + refB)*2 +1) : (2 + refB);
+}
+
 inline mfxU16 MaxTidx(mfxU16 l) { return (LevelIdxToMfx[std::min<mfxU16>(l, MaxLidx)] >= MFX_LEVEL_HEVC_4); }
 
 mfxU16 MfxLevel(mfxU16 l, mfxU16 t) { return LevelIdxToMfx[std::min<mfxU16>(l, MaxLidx)] | (MFX_TIER_HEVC_HIGH * !!t); }
@@ -163,14 +177,17 @@ mfxU16 HEVCEHW::Base::GetMinLevel(
     , mfxU16 PicWidthInLumaSamples
     , mfxU16 PicHeightInLumaSamples
     , mfxU16 MinRef
+    , mfxU16 GopRefDist
     , mfxU16 NumTileColumns
     , mfxU16 NumTileRows
     , mfxU32 NumSlice
     , mfxU32 BufferSizeInKB
     , mfxU32 MaxKbps
-    , mfxU16 StartLevel)
+    , mfxU16 StartLevel
+    , bool   isBPyramid
+    , bool   isField)
 {
-    bool bInvalid = frN == 0 || frD == 0;
+    bool bInvalid = (frN == 0 || frD == 0 || GopRefDist == 0);
     if (bInvalid)
         return 0;
 
@@ -208,6 +225,7 @@ mfxU16 HEVCEHW::Base::GetMinLevel(
             || NumTileColumns > MaxTileCols
             || NumTileRows > MaxTileRows
             || NumSlice > MaxSSPP
+            || (isBPyramid && MaxDpbSize < MinRefForPyramid(GopRefDist, isField))
             || bMaxTier;
 
         bNextTier &= !bNextLevel;

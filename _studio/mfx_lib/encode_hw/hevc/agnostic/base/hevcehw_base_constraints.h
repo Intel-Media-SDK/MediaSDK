@@ -39,12 +39,15 @@ namespace Base
         , mfxU16 PicWidthInLumaSamples
         , mfxU16 PicHeightInLumaSamples
         , mfxU16 MinRef
+        , mfxU16 GopRefDist
         , mfxU16 NumTileColumns
         , mfxU16 NumTileRows
         , mfxU32 NumSlice
         , mfxU32 BufferSizeInKB
         , mfxU32 MaxKbps
-        , mfxU16 StartLevel);
+        , mfxU16 StartLevel
+        , bool   isBPyramid
+        , bool   isField);
 
 } //Base
 } //namespace HEVCEHW

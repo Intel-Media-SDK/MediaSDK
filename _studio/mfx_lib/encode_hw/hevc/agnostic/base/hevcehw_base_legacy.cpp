@@ -3503,12 +3503,15 @@ void Legacy::SetDefaults(
             , defPar.base.GetCodedPicWidth(defPar)
             , defPar.base.GetCodedPicHeight(defPar)
             , par.mfx.NumRefFrame
+            , par.mfx.GopRefDist
             , nCol
             , nRow
             , par.mfx.NumSlice
             , BufferSizeInKB(par.mfx)
             , MaxKbps(par.mfx)
-            , MFX_LEVEL_HEVC_1);
+            , MFX_LEVEL_HEVC_1
+            , (pCO2 && (pCO2->BRefType == MFX_B_REF_PYRAMID))
+            , (par.mfx.FrameInfo.PicStruct & (MFX_PICSTRUCT_FIELD_TOP | MFX_PICSTRUCT_FIELD_BOTTOM)));
     };
 
     if (pHEVC)
@@ -3581,6 +3584,8 @@ mfxStatus Legacy::CheckLevelConstraints(
 {
     MFX_CHECK(par.mfx.CodecLevel, MFX_ERR_NONE);
 
+    mfxExtCodingOption2* pCO2       = ExtBuffer::Get(par);
+
     mfxU16 PicWidthInLumaSamples    = defPar.base.GetCodedPicWidth(defPar);
     mfxU16 PicHeightInLumaSamples   = defPar.base.GetCodedPicHeight(defPar);
     mfxU16 MinRef                   = defPar.base.GetNumRefFrames(defPar);
@@ -3590,6 +3595,9 @@ mfxStatus Legacy::CheckLevelConstraints(
     mfxU16 rc                       = defPar.base.GetRateControlMethod(defPar);
     auto   tiles                    = defPar.base.GetNumTiles(defPar);
     auto   frND                     = defPar.base.GetFrameRate(defPar);
+
+    bool   isBPyramid               = (pCO2 && (pCO2->BRefType == MFX_B_REF_PYRAMID));
+    bool   isField                  = (par.mfx.FrameInfo.PicStruct & (MFX_PICSTRUCT_FIELD_TOP | MFX_PICSTRUCT_FIELD_BOTTOM));
 
     SetIf(MaxKbps
         , rc != MFX_RATECONTROL_CQP && rc != MFX_RATECONTROL_ICQ
@@ -3601,12 +3609,15 @@ mfxStatus Legacy::CheckLevelConstraints(
         , PicWidthInLumaSamples
         , PicHeightInLumaSamples
         , MinRef
+        , par.mfx.GopRefDist
         , std::get<0>(tiles)
         , std::get<1>(tiles)
         , NumSlice
         , BufferSizeInKB
         , MaxKbps
-        , par.mfx.CodecLevel);
+        , par.mfx.CodecLevel
+        , isBPyramid
+        , isField);
 
     MFX_CHECK(!CheckMinOrClip(par.mfx.CodecLevel, minLevel), MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
 
