@@ -13,7 +13,7 @@ Intel® Media SDK provides a plain C API to access hardware-accelerated video de
 
 Media SDK is a part of Intel software stack for graphics:
 
-* `Linux Graphics Drivers <https://intel.com/linux-graphics-drivers>`_ - General Purpose GPU Drivers for Linux&ast; Operating Systems
+* `Linux Graphics Drivers <https://intel.com/linux-graphics-drivers>`_ - General Purpose GPU Drivers for Linux* Operating Systems
 
   * Visit `documentation <https://dgpu-docs.intel.com>`_ for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux&ast;-based operating system distributions.
 
