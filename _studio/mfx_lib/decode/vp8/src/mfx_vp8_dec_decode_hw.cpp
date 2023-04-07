@@ -1115,6 +1115,9 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
 
         }
 
+        if ((int32_t) (data_in_end - data_in) < 4)
+            throw vp8_exception(MFX_ERR_MORE_DATA);
+
         m_boolDecoder[VP8_FIRST_PARTITION].init(data_in, (int32_t) (data_in_end - data_in));
 
         if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
