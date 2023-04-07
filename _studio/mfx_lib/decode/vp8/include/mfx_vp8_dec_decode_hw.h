@@ -121,10 +121,6 @@ public:
         m_range = 255;
         m_bitcount = 8;
         m_pos = 0;
-
-        if (dataSize < 4)
-            throw vp8_exception(MFX_ERR_MORE_DATA);
-
         m_value = (pBitStream[0] << 24) + (pBitStream[1] << 16) +
                   (pBitStream[2] << 8) + pBitStream[3];
         m_pos += 4;
