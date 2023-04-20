@@ -1,3 +1,17 @@
+DISCONTINUATION OF PROJECT.
+
+This project will no longer be maintained by Intel.
+
+Intel has ceased development and contributions including, but not limited to, maintenance, bug fixes, new releases, or updates, to this project.
+
+Intel no longer accepts patches to this project.
+
+If you have an ongoing need to use this project, are interested in independently developing it, or would like to maintain patches for the open source software community, please create your own fork of this project.
+
+For continued support and access to new features, Intel Media SDK users are encouraged to read the transition guide on `upgrading from Intel® Media SDK to Intel® oneAPI Video Processing Library (oneVPL) <https://www.intel.com/content/www/us/en/docs/onevpl/upgrade-from-msdk/2023-1/overview.html>`_, and to move to oneVPL as soon as possible.
+
+Please also refer to the "`Media SDK Support Matrix`_" for more information.
+
 Intel® Media SDK
 ================
 
@@ -20,20 +34,10 @@ Media SDK is a part of Intel software stack for graphics:
 Media SDK Support Matrix
 ------------------------
 
-DISCONTINUATION OF PROJECT.
-
-This project will no longer be maintained by Intel.
-
-Intel has ceased development and contributions including, but not limited to, maintenance, bug fixes, new releases, or updates, to this project.
-
-Intel no longer accepts patches to this project.
-
-If you have an ongoing need to use this project, are interested in independently developing it, or would like to maintain patches for the open source software community, please create your own fork of this project.
+Pay attention that Intel® Media SDK lifetime comes to an end in a form it exists right now. In particular,
 
 * API 1.35 is projected to be the last API of 1.x API series
 * Runtime library (libmfxhw64.so.1) is not planned to get support of new Gen platforms
-
-For continued support and access to new features, Intel Media SDK users are encouraged to read the transition guide on `upgrading from Intel® Media SDK to Intel® oneAPI Video Processing Library (oneVPL) <https://www.intel.com/content/www/us/en/docs/onevpl/upgrade-from-msdk/2023-1/overview.html>`_, and to move to oneVPL as soon as possible.
 
 All future development is planned to happen within
 `oneVPL <https://github.com/oneapi-src/oneVPL>`_ library and its runtime
