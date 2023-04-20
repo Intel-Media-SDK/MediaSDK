@@ -10,7 +10,7 @@ If you have an ongoing need to use this project, are interested in independently
 
 For continued support and access to new features, Intel Media SDK users are encouraged to read the transition guide on `upgrading from Intel® Media SDK to Intel® oneAPI Video Processing Library (oneVPL) <https://www.intel.com/content/www/us/en/docs/onevpl/upgrade-from-msdk/2023-1/overview.html>`_, and to move to oneVPL as soon as possible.
 
-Please also refer to the "`Media SDK Support Matrix`_" for more information.
+Please also refer to the `Media SDK Support Matrix`_ for more information.
 
 Intel® Media SDK
 ================
