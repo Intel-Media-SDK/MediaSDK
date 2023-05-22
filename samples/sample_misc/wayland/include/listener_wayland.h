@@ -63,4 +63,25 @@ void shell_surface_configure(void *data
 void handle_done(void *data, struct wl_callback *callback, uint32_t time);
 
 void buffer_release(void *data, struct wl_buffer *buffer);
+
+#if defined(WAYLAND_LINUX_XDG_SHELL_SUPPORT)
+/* xdg shell */
+void xdg_wm_base_ping(void* data
+    , struct xdg_wm_base* xdg_wm_base
+    , uint32_t serial);
+
+void xdg_surface_configure(void* data
+    , struct xdg_surface* xdg_surface
+    , uint32_t serial);
+
+void xdg_toplevel_configure(void* data
+    , struct xdg_toplevel* xdg_toplevel
+    , int32_t width
+    , int32_t height
+    , struct wl_array* states);
+
+void xdg_toplevel_close(void* data
+    , struct xdg_toplevel* xdg_toplevel);
+#endif
+
 #endif /* LISTENER_WAYLAND_H */

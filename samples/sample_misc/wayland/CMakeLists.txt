@@ -12,6 +12,35 @@ set(DEPENDENCIES  libva libdrm wayland-client)
 
 make_library(mfx_wayland none shared )
 
+if (WAYLAND_LINUX_XDG_SHELL_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
+  execute_process(
+          COMMAND "${WAYLAND_SCANNER_BINARY_PATH}"
+	  "client-header" "${WAYLAND_LINUX_XDG_SHELL_XML_PATH}"
+              "samples/sample_misc/wayland/xdg-shell-client-protocol.h"
+      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+      RESULT_VARIABLE WAYLAND_SCANNER_RESULT)
+  if (WAYLAND_SCANNER_RESULT)
+    message(FATAL_ERROR "Failed to generate xdg-shell-client-protocol.h")
+  endif()
+
+  execute_process(
+      COMMAND "${WAYLAND_SCANNER_BINARY_PATH}"
+      "private-code" "${WAYLAND_LINUX_XDG_SHELL_XML_PATH}"
+              "samples/sample_misc/wayland/xdg-shell-protocol.c"
+      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+      RESULT_VARIABLE WAYLAND_SCANNER_RESULT)
+  if (WAYLAND_SCANNER_RESULT)
+    message(FATAL_ERROR "Failed to generate xdg-shell-protocol.c")
+  endif()
+
+  include_directories(
+    ${CMAKE_BINARY_DIR}/samples/sample_misc/wayland
+  )
+  target_sources(
+    ${target}
+    PRIVATE ${CMAKE_BINARY_DIR}/samples/sample_misc/wayland/xdg-shell-protocol.c)
+endif()
+
 if (WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
   execute_process(
 	  COMMAND "${WAYLAND_SCANNER_BINARY_PATH}"

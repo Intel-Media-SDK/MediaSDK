@@ -195,6 +195,9 @@ function(configure_wayland_target target)
   if(WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
     set(SCOPE_CFLAGS "${SCOPE_CFLAGS} -DWAYLAND_LINUX_DMABUF_SUPPORT")
   endif()
+  if(WAYLAND_LINUX_XDG_SHELL_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
+    set(SCOPE_CFLAGS "${SCOPE_CFLAGS} -DWAYLAND_LINUX_XDG_SHELL_SUPPORT")
+  endif()
   set(SCOPE_CFLAGS "${SCOPE_CFLAGS}" PARENT_SCOPE)
   set(SCOPE_LINKFLAGS ${SCOPE_LINKFLAGS} PARENT_SCOPE)
   set(SCOPE_LIBS ${SCOPE_LIBS} drm_intel drm wayland-client PARENT_SCOPE)
@@ -260,6 +263,9 @@ function(configure_universal_target target)
     set(LOCAL_CFLAGS "${LOCAL_CFLAGS} -DLIBVA_WAYLAND_SUPPORT")
     if(WAYLAND_LINUX_DMABUF_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
       set(LOCAL_CFLAGS "${LOCAL_CFLAGS} -DWAYLAND_LINUX_DMABUF_SUPPORT")
+    endif()
+    if(WAYLAND_LINUX_XDG_SHELL_XML_PATH AND WAYLAND_SCANNER_BINARY_PATH)
+      set(LOCAL_CFLAGS "${LOCAL_CFLAGS} -DWAYLAND_LINUX_XDG_SHELL_SUPPORT")
     endif()
   endif()
 
@@ -520,14 +526,17 @@ if( Linux )
     pkg_check_modules(PKG_WAYLAND_CLIENT REQUIRED wayland-client)
 
     pkg_check_modules(PKG_WAYLAND_SCANNER "wayland-scanner>=1.15")
-    pkg_check_modules(PKG_WAYLAND_PROTCOLS "wayland-protocols>=1.15")
+    pkg_check_modules(PKG_WAYLAND_PROTOCOLS "wayland-protocols>=1.15")
 
-    if ( PKG_WAYLAND_SCANNER_FOUND AND PKG_WAYLAND_PROTCOLS_FOUND )
+    if ( PKG_WAYLAND_SCANNER_FOUND AND PKG_WAYLAND_PROTOCOLS_FOUND )
       pkg_get_variable(WAYLAND_PROTOCOLS_PATH wayland-protocols pkgdatadir)
       if(WAYLAND_PROTOCOLS_PATH)
         find_file(
             WAYLAND_LINUX_DMABUF_XML_PATH linux-dmabuf-unstable-v1.xml
             PATHS ${WAYLAND_PROTOCOLS_PATH}/unstable/linux-dmabuf
+            NO_DEFAULT_PATH)
+        find_file(WAYLAND_LINUX_XDG_SHELL_XML_PATH xdg-shell.xml
+            PATHS ${WAYLAND_PROTOCOLS_PATH}/stable/xdg-shell
             NO_DEFAULT_PATH)
       endif()
 
