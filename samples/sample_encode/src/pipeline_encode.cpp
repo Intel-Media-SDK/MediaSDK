@@ -75,6 +75,58 @@ void UnlockPreEncAuxBuffer(PreEncAuxBuffer* pBuff)
     msdk_atomic_dec16(&pBuff->Locked);
 }
 
+mfxStatus ParseSegmentMap(/*msdk_char* fname,*/
+    mfxU16 frameWidth,
+    mfxU16 frameHeight,
+    mfxExtVP9Segmentation* pSeg,
+    mfxU8** segmentIds) {
+    if (segmentIds == nullptr)
+        return MFX_ERR_UNKNOWN;
+
+    //umc_file* parFile = umc_file_fopen(fname, VM_STRING("r"));
+    //MFX_CHECK(parFile != 0);
+
+    mfxU16 defaultSize = MFX_VP9_SEGMENT_ID_BLOCK_SIZE_16x16;
+
+    mfxU16 blockSize = pSeg->SegmentIdBlockSize > 0 ? pSeg->SegmentIdBlockSize : defaultSize;
+    mfxU16 mapWidth = (frameWidth + (blockSize - 1)) / blockSize;
+    mfxU16 mapHeight = (frameHeight + (blockSize - 1)) / blockSize;
+    pSeg->NumSegmentIdAlloc = (mfxU32)(mapWidth * mapHeight);
+    mfxU8* buffer = new mfxU8[pSeg->NumSegmentIdAlloc];
+    *segmentIds = buffer;
+
+    bool isInvalid = false;
+    //int bufSize    = sizeof(vm_char) * (mapWidth + blockSize);
+    //vm_char* sbuf  = new vm_char[bufSize];
+
+    for (mfxU16 i = 0; !isInvalid && i < mapHeight; ++i) {
+        //vm_char* pStr = nullptr;
+
+        //pStr = umc_file_fgets(sbuf, bufSize, parFile);
+
+        //if (!pStr)
+        //    break;
+
+        for (mfxU16 j = 0; j < mapWidth; ++j) {
+            //buffer[i * mapWidth + j] = pStr[j] - '0';
+            buffer[i * mapWidth + j] = i % 8;
+            if (buffer[i * mapWidth + j] >= pSeg->NumSegments) {
+                isInvalid = true;
+                break;
+            }
+        }
+    }
+
+    //delete[] sbuf;
+    //umc_file_close(parFile);
+
+    if (isInvalid)
+        return MFX_ERR_UNKNOWN;
+    else
+        return MFX_ERR_NONE;
+}
+
+
 
 CEncTaskPool::CEncTaskPool()
 {
@@ -587,6 +639,25 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         }
 #endif
     }
+
+    if (pInParams->nVp9Segments && m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+    {
+            auto vp9SegmParam = m_mfxEncParams.AddExtBuffer<mfxExtVP9Segmentation>();
+            vp9SegmParam->NumSegments = pInParams->nVp9Segments;
+            for (int i = 0; i < pInParams->nVp9Segments; i++) {
+                vp9SegmParam->Segment[i].QIndexDelta = pInParams->vp9SegmentationQIDelta[i];
+                vp9SegmParam->Segment[i].FeatureEnabled = MFX_VP9_SEGMENT_FEATURE_QINDEX;
+            }
+            vp9SegmParam->SegmentIdBlockSize = pInParams->vp9SegmentationBlockSize;
+            //vp9SegmParam->SegmentId          = pInParams->vp9SegmentationMap;
+            MSDK_CHECK_STATUS(ParseSegmentMap(/*pInParams->vp9SegmMapPath,*/
+                                                pInParams->nDstWidth,
+                                                pInParams->nDstHeight,
+                                                vp9SegmParam,
+                                                &vp9SegmParam->SegmentId),
+                              "error: vp9 segm map is invalid !");
+    }
+
     if (*pInParams->uSEI && (pInParams->CodecId == MFX_CODEC_AVC || pInParams->CodecId == MFX_CODEC_HEVC))
     {
         auto pl = new mfxPayload;
