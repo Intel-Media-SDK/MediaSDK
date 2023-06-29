@@ -177,6 +177,7 @@ mfxStatus VideoVPPBase::Init(mfxVideoParam *par)
     MFX_CHECK_NULL_PTR1( par );
 
     VPP_CHECK_MULTIPLE_INIT;
+    m_bDelayedFrameAllocation = IsOn(par->DelayedFrameAllocation);
 
     /* step [0]: checking */
     sts = CheckIOPattern( par );
@@ -527,7 +528,7 @@ mfxStatus VideoVPPBase::CheckIOPattern( mfxVideoParam* par )
       return MFX_ERR_INVALID_VIDEO_PARAM;
   }
 
-  if (!m_core->IsExternalFrameAllocator() && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
+  if ((!m_core->IsExternalFrameAllocator() && !m_bDelayedFrameAllocation) && (par->IOPattern & (MFX_IOPATTERN_OUT_VIDEO_MEMORY | MFX_IOPATTERN_IN_VIDEO_MEMORY)))
   {
     return MFX_ERR_INVALID_VIDEO_PARAM;
   }

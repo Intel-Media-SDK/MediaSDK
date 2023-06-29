@@ -955,7 +955,7 @@ void CParametersDumper::SerializeVideoParamStruct(msdk_ostream& sstr,msdk_string
     sstr<<sectionName<<std::endl;
     SERIALIZE_INFO(AllocId);
     SERIALIZE_INFO_ARRAY(reserved);
-    SERIALIZE_INFO(reserved3);
+    SERIALIZE_INFO(DelayedFrameAllocation);
     SERIALIZE_INFO(AsyncDepth);
 
     if(shouldUseVPPSection)

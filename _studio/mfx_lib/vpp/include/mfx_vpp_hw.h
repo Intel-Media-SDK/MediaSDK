@@ -963,6 +963,7 @@ namespace MfxHwVideoProcessing
         // Not a smart pointer anymore since core owns create/delete semantic now.
         VPPHWResMng * m_ddi;
         bool          m_bMultiView;
+        bool          m_bDelayedFrameAllocation;
 
 #ifdef MFX_ENABLE_MCTF
         bool m_MctfIsFlushing;

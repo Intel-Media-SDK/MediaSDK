@@ -289,7 +289,7 @@ mfxStatus SetSupportedParameters(mfxVideoParam & par)
     par.Protected = 0;
     memset(par.reserved, 0, sizeof(par.reserved));
     memset(&par.reserved2, 0, sizeof(par.reserved2));
-    memset(&par.reserved3, 0, sizeof(par.reserved3));
+    par.DelayedFrameAllocation = 0;
 
     // mfxInfoMfx
     SetOrCopySupportedParams(&par.mfx);
