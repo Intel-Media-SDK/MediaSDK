@@ -119,6 +119,9 @@ struct sInputParams
 #if defined(LINUX32) || defined(LINUX64)
     std::string strDevicePath;
 #endif
+#if defined(LIBVA_DRM_SUPPORT)
+    mfxI32 nVACopy;
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
     bool bPrefferdGfx;
     bool bPrefferiGfx;
@@ -377,6 +380,9 @@ protected:
 #if defined(LINUX32) || defined(LINUX64)
     std::string m_strDevicePath; //path to device for processing
 #endif
+#if defined(LIBVA_DRM_SUPPORT)
+    mfxI32 m_nVACopy;
+#endif
 
     std::vector<mfxPayload*> m_UserDataUnregSEI;
 
@@ -451,6 +457,10 @@ protected:
     virtual MFXVideoENCODE* GetFirstEncoder(){return m_pmfxENC;}
 
     virtual mfxU32 FileFourCC2EncFourCC(mfxU32 fcc);
+
+#if defined(LIBVA_DRM_SUPPORT)
+    virtual mfxStatus LoadFrameWithVACopy(mfxFrameSurface1* pSurf, mfxI32 nVACopyMode);
+#endif
 
     void InitExtMVCBuffers(mfxExtMVCSeqDesc *mvcBuffer) const;
     mfxStatus ConfigTCBRCTest(mfxFrameSurface1* pSurf);
