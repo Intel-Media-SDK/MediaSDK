@@ -986,16 +986,16 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 
     if (pParams->bFieldWeaving || ( (pParams->refCount > 1) && (0 != pParams->iDeinterlacingAlgorithm )))
     {
-        m_pipelineParam[0].num_backward_references = 1;
+        m_pipelineParam[0].num_forward_references = 1;
         mfxDrvSurface* pRefSurf_1 = NULL;
         /* in pRefSurfaces
-            * first is backward references
+            * first is past frame references
             * then current src surface
-            * and only after this is forward references
+            * and only after this is future frame references
             * */
         pRefSurf_1 = &(pParams->pRefSurfaces[0]); // point to previous frame
         VASurfaceID *ref_srf = (VASurfaceID *)(pRefSurf_1->hdl.first);
-        m_pipelineParam[0].backward_references = ref_srf;
+        m_pipelineParam[0].forward_references = ref_srf;
     }
     /* FRC Interpolated case */
     if (0 != pParams->bFRCEnable)
