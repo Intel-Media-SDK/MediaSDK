@@ -96,6 +96,7 @@ namespace UMC_AV1_DECODER
 
     enum AV1_OBU_TYPE
     {
+        OBU_RESERVED_0 = 0,
         OBU_SEQUENCE_HEADER = 1,
         OBU_TEMPORAL_DELIMITER = 2,
         OBU_FRAME_HEADER = 3,
@@ -103,6 +104,12 @@ namespace UMC_AV1_DECODER
         OBU_METADATA = 5,
         OBU_FRAME = 6,
         OBU_REDUNDANT_FRAME_HEADER = 7,
+        OBU_RESERVED_9 = 9,
+        OBU_RESERVED_10 = 10,
+        OBU_RESERVED_11 = 11,
+        OBU_RESERVED_12 = 12,
+        OBU_RESERVED_13 = 13,
+        OBU_RESERVED_14 = 14,
         OBU_PADDING = 15,
     };
 
