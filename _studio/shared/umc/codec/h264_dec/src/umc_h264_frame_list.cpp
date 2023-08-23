@@ -215,7 +215,6 @@ H264DecoderFrame * H264DBPList::findDisplayableByDPBDelay(void)
     int32_t  SmallestPicOrderCnt = 0x7fffffff;    // very large positive
     uint32_t  LargestRefPicListResetCount = 0;
 
-    int32_t count = 0;
     while (pCurr)
     {
         if (pCurr->IsFullFrame() && !pCurr->wasOutputted() && !pCurr->m_dpb_output_delay)
@@ -241,8 +240,6 @@ H264DecoderFrame * H264DBPList::findDisplayableByDPBDelay(void)
                     pCurr->RefPicListResetCount(0) == LargestRefPicListResetCount)
                     pOldest = pCurr;
             }
-
-            count++;
         }
 
         pCurr = pCurr->future();
@@ -264,7 +261,6 @@ H264DecoderFrame * H264DBPList::findOldestDisplayable(int32_t /*dbpSize*/ )
     int32_t  SmallestPicOrderCnt = 0x7fffffff;    // very large positive
     uint32_t  LargestRefPicListResetCount = 0;
 
-    int32_t count = 0;
     while (pCurr)
     {
         if (pCurr->IsFullFrame() && !pCurr->wasOutputted())
@@ -290,8 +286,6 @@ H264DecoderFrame * H264DBPList::findOldestDisplayable(int32_t /*dbpSize*/ )
                     pCurr->RefPicListResetCount(0) == LargestRefPicListResetCount)
                     pOldest = pCurr;
             }
-
-            count++;
         }
 
         pCurr = pCurr->future();

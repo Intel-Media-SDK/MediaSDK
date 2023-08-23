@@ -568,18 +568,25 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
     case VA_FOURCC_P010:
 #if (MFX_VERSION >= 1031)
     case VA_FOURCC_P016:
+    case VA_FOURCC_P012:
 #endif
-        if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
-
+        if ((mfx_fourcc == MFX_FOURCC_P010 && va_image.format.fourcc == VA_FOURCC_P010) ||
+            (mfx_fourcc == MFX_FOURCC_P016 && (va_image.format.fourcc == VA_FOURCC_P012 ||
+                                               va_image.format.fourcc == VA_FOURCC_P016)))
         {
             ptr->Y = p_buffer + va_image.offsets[0];
             ptr->U = p_buffer + va_image.offsets[1];
             ptr->V = ptr->U + sizeof(mfxU16);
         }
+        else return MFX_ERR_LOCK_MEMORY;
         break;
 
     case VA_FOURCC_AYUV:
-        if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
+    /* Set AYUV mfxFrameData by XYUV VAImage */
+#ifdef VA_FOURCC_XYUV
+    case VA_FOURCC_XYUV:
+#endif
+        if (mfx_fourcc != MFX_FOURCC_AYUV) return MFX_ERR_LOCK_MEMORY;
 
         {
             ptr->V = p_buffer + va_image.offsets[0];
@@ -593,14 +600,17 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
     case VA_FOURCC_Y210:
 #if (MFX_VERSION >= 1031)
     case VA_FOURCC_Y216:
+    case VA_FOURCC_Y212:
 #endif
-        if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
-
+        if ((mfx_fourcc == MFX_FOURCC_Y210 && va_image.format.fourcc == VA_FOURCC_Y210) ||
+            (mfx_fourcc == MFX_FOURCC_Y216 && (va_image.format.fourcc == VA_FOURCC_Y216 ||
+                                               va_image.format.fourcc == VA_FOURCC_Y212)))
         {
             ptr->Y16 = (mfxU16 *) (p_buffer + va_image.offsets[0]);
             ptr->U16 = ptr->Y16 + 1;
             ptr->V16 = ptr->Y16 + 3;
         }
+        else return MFX_ERR_LOCK_MEMORY;
         break;
 
     case VA_FOURCC_Y410:
@@ -615,14 +625,15 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
 
 #if (MFX_VERSION >= 1031)
     case VA_FOURCC_Y416:
-        if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
-
+    case VA_FOURCC_Y412:
+        if (mfx_fourcc == MFX_FOURCC_Y416)
         {
             ptr->U16 = (mfxU16 *) (p_buffer + va_image.offsets[0]);
             ptr->Y16 = ptr->U16 + 1;
             ptr->V16 = ptr->Y16 + 1;
             ptr->A   = (mfxU8 *)(ptr->V16 + 1);
         }
+        else return MFX_ERR_LOCK_MEMORY;
         break;
 
 #endif

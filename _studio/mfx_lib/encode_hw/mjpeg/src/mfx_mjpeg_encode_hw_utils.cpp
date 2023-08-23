@@ -267,6 +267,13 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
                         delete[] m_payload_base.data;
                         m_payload_base.data = data;
                         m_payload_base.maxLength = m_payload_base.length + payloadSize;
+
+                        mfxU32 offset = 0;
+                        for (mfxU16 j = 0; j < m_payload_list.size(); j++)
+                        {
+                            m_payload_list[j].data = m_payload_base.data + offset;
+                            offset += m_payload_list[j].length;
+                        }
                     }
                     m_payload_list.resize(m_payload_list.size()+1);
                     m_payload_list.back().data = m_payload_base.data + m_payload_base.length;

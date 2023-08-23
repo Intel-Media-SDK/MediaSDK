@@ -459,20 +459,6 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
         type = m_core->GetHWType();
     }
 
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-    mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(m_vFirstPar.ExtParam, m_vFirstPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
-    if (videoProcessing != nullptr)
-    {
-        // hardware resize is enabled
-        bool hardwareUpscale =
-            videoProcessing->Out.Width >= par->mfx.FrameInfo.Width ||
-            videoProcessing->Out.Height >= par->mfx.FrameInfo.Height;
-        if (hardwareUpscale)
-        {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
-        }
-    }
-#endif
     eMFXPlatform platform = MFX_Utility::GetPlatform_H265(m_core, par);
 
     MFX_CHECK(CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type) >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -802,7 +788,25 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     {
         request->Type |= MFX_MEMTYPE_EXTERNAL_FRAME;
     }
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+    if (videoProcessing)
+    {
+        // need to substitute output format
+        // number of surfaces is same
+        request->Info.FourCC = videoProcessing->Out.FourCC;
+        request->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
+        sts = UpdateCscOutputFormat(par, request);
+        MFX_CHECK_STS(sts);
 
+        request->Info.Width = videoProcessing->Out.Width;
+        request->Info.Height = videoProcessing->Out.Height;
+        request->Info.CropX = videoProcessing->Out.CropX;
+        request->Info.CropY = videoProcessing->Out.CropY;
+        request->Info.CropW = videoProcessing->Out.CropW;
+        request->Info.CropH = videoProcessing->Out.CropH;
+    }
+#endif
     if (platform != core->GetPlatformType())
     {
         VM_ASSERT(platform == MFX_PLATFORM_SOFTWARE);
@@ -1395,12 +1399,23 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
         dispaly_colour->WhitePointY = (mfxU16)pFrame->m_mastering_display.SEI_messages.mastering_display.white_point[1];
         dispaly_colour->MaxDisplayMasteringLuminance = (mfxU32)pFrame->m_mastering_display.SEI_messages.mastering_display.max_luminance;
         dispaly_colour->MinDisplayMasteringLuminance = (mfxU32)pFrame->m_mastering_display.SEI_messages.mastering_display.min_luminance;
+        dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_IDR;
     }
+    else if (dispaly_colour)
+    {
+        dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_OFF;
+    }
+
     mfxExtContentLightLevelInfo* content_light = (mfxExtContentLightLevelInfo*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
     if (content_light && pFrame->m_content_light_level_info.payLoadSize > 0)
     {
         content_light->MaxContentLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_content_light_level;
         content_light->MaxPicAverageLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_pic_average_light_level;
+        content_light->InsertPayloadToggle = MFX_PAYLOAD_IDR;
+    }
+    else if (content_light)
+    {
+        content_light->InsertPayloadToggle = MFX_PAYLOAD_OFF;
     }
 
 }

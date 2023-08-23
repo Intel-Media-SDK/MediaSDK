@@ -1172,6 +1172,9 @@ mfxStatus VideoDECODEVP9_HW::DecodeSuperFrame(mfxBitstream *in, VP9DecoderFrame 
         for (mfxU32 i = 0; i < info.currFrameInBS; i++)
             m_bs.DataOffset += frameSizes[i];
 
+        if (m_bs.DataLength > m_bs.MaxLength)
+            MFX_RETURN(MFX_ERR_MORE_DATA);
+
         info.currFrameInBS++;
         if (info.currFrameInBS < info.frameCountInBS)
             return MFX_ERR_NONE;

@@ -118,7 +118,6 @@ public:
 
     void init(uint8_t *pBitStream, int32_t dataSize)
     {
-        dataSize = std::min(dataSize, 2);
         m_range = 255;
         m_bitcount = 8;
         m_pos = 0;
@@ -133,6 +132,10 @@ public:
     {
         uint32_t z = 0;
         int bit;
+
+        if (m_pos >= (uint32_t)m_input_size)
+            throw vp8_exception(MFX_ERR_MORE_DATA);
+        
         for (bit = bits - 1; bit >= 0;bit--)
         {
             z |= (decode_bit(prob) << bit);

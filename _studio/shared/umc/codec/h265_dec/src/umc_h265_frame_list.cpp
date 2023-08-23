@@ -185,7 +185,6 @@ H265DecoderFrame * H265DBPList::findOldestDisplayable(int32_t /*dbpSize*/ )
     int32_t  LargestRefPicListResetCount = 0;
     int32_t  uid = 0x7fffffff;
 
-    int32_t count = 0;
     while (pCurr)
     {
         if (pCurr->isDisplayable() && !pCurr->wasOutputted())
@@ -202,8 +201,6 @@ H265DecoderFrame * H265DBPList::findOldestDisplayable(int32_t /*dbpSize*/ )
                 pOldest = pCurr;
                 SmallestPicOrderCnt = pCurr->PicOrderCnt();
             }
-
-            count++;
         }
 
         pCurr = pCurr->future();

@@ -697,7 +697,6 @@ mfxStatus CmdProcessor::ParseParFile(FILE *parFile)
         return MFX_ERR_UNSUPPORTED;
 
     mfxU32 currPos = 0;
-    mfxU32 lineIndex = 0;
 
     // calculate file size
     fseek(parFile, 0, SEEK_END);
@@ -727,7 +726,6 @@ mfxStatus CmdProcessor::ParseParFile(FILE *parFile)
         MSDK_CHECK_STATUS(sts, "TokenizeLine failed");
 
         currPos = 0;
-        lineIndex++;
     }
 
     return MFX_ERR_NONE;

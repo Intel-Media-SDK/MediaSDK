@@ -1,3 +1,19 @@
+DISCONTINUATION OF PROJECT.
+
+This project will no longer be maintained by Intel.
+
+This project has been identified as having known security escapes.
+
+Intel has ceased development and contributions including, but not limited to, maintenance, bug and security fixes, new releases, or updates, to this project.
+
+Intel no longer accepts patches to this project.
+
+If you have an ongoing need to use this project, are interested in independently developing it, or would like to maintain patches for the open source software community, please create your own fork of this project.
+
+For continued support and access to new features, Intel® Media SDK users are encouraged to read the transition guide on `upgrading from Intel® Media SDK to Intel® oneAPI Video Processing Library (oneVPL) <https://www.intel.com/content/www/us/en/docs/onevpl/upgrade-from-msdk/2023-1/overview.html>`_, and to move to oneVPL as soon as possible.
+
+Please also refer to the `Media SDK Support Matrix`_ for more information.
+
 Intel® Media SDK
 ================
 
@@ -13,19 +29,17 @@ Intel® Media SDK provides a plain C API to access hardware-accelerated video de
 
 Media SDK is a part of Intel software stack for graphics:
 
-* `Linux Graphics Drivers <https://intel.com/linux-graphics-drivers>`_ - General Purpose GPU Drivers for Linux&ast; Operating Systems
+* Linux Graphics Drivers - General Purpose GPU Drivers for Linux* Operating Systems
 
-  * Visit `documentation <https://dgpu-docs.intel.com>`_ for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux&ast;-based operating system distributions.
+  * Visit `documentation <https://dgpu-docs.intel.com>`_ for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux*-based operating system distributions.
 
 Media SDK Support Matrix
 ------------------------
 
-Pay attention that Intel® Media SDK lifetime comes to an end in a form it
-exists right now. In particular, 
+Pay attention that Intel® Media SDK lifetime comes to an end in a form it exists right now. In particular,
 
 * API 1.35 is projected to be the last API of 1.x API series
 * Runtime library (libmfxhw64.so.1) is not planned to get support of new Gen platforms
-* Project is going to be supported in maintainence mode, critical fixes only
 
 All future development is planned to happen within
 `oneVPL <https://github.com/oneapi-src/oneVPL>`_ library and its runtime

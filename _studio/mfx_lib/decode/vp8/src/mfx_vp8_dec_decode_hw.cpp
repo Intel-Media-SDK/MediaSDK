@@ -1003,309 +1003,317 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoDECODEVP8_HW::DecodeFrameHeader");
     using namespace VP8Defs;
 
-    mfxU8* data_in     = 0;
-    mfxU8* data_in_end = 0;
-    mfxU8  version;
-    int width       = 0;
-    int height      = 0;
-
-    data_in = (uint8_t*)in->Data;
-
-    if(!data_in)
-        return MFX_ERR_NULL_PTR;
-
-    data_in_end = data_in + in->DataLength;
-
-    //suppose that Intraframes -> I_PICTURE ( == VP8_KEY_FRAME)
-    //             Interframes -> P_PICTURE
-    m_frame_info.frameType = (data_in[0] & 1) ? UMC::P_PICTURE : UMC::I_PICTURE; // 1 bits
-    version = (data_in[0] >> 1) & 0x7; // 3 bits
-    m_frame_info.version = version;
-    m_frame_info.showFrame = (data_in[0] >> 4) & 0x01; // 1 bits
-
-    switch (version)
+    try
     {
-        case 1:
-        case 2:
-            m_frame_info.interpolationFlags = VP8_BILINEAR_INTERP;
-            break;
+        mfxU8* data_in     = 0;
+        mfxU8* data_in_end = 0;
+        mfxU8  version;
+        int width       = 0;
+        int height      = 0;
 
-        case 3:
-            m_frame_info.interpolationFlags = VP8_BILINEAR_INTERP | VP8_CHROMA_FULL_PEL;
-            break;
+        data_in = (uint8_t*)in->Data;
 
-        case 0:
-        default:
-            m_frame_info.interpolationFlags = 0;
-            break;
-    }
+        if(!data_in)
+            return MFX_ERR_NULL_PTR;
 
-    mfxU32 first_partition_size = (data_in[0] >> 5) |           // 19 bit
-                                  (data_in[1] << 3) |
-                                  (data_in[2] << 11);
+        data_in_end = data_in + in->DataLength;
 
-    m_frame_info.firstPartitionSize = first_partition_size;
-    m_frame_info.partitionSize[VP8_FIRST_PARTITION] = first_partition_size;
+        //suppose that Intraframes -> I_PICTURE ( == VP8_KEY_FRAME)
+        //             Interframes -> P_PICTURE
+        m_frame_info.frameType = (data_in[0] & 1) ? UMC::P_PICTURE : UMC::I_PICTURE; // 1 bits
+        version = (data_in[0] >> 1) & 0x7; // 3 bits
+        m_frame_info.version = version;
+        m_frame_info.showFrame = (data_in[0] >> 4) & 0x01; // 1 bits
 
-    data_in   += 3;
-
-    if (!m_refresh_info.refreshProbabilities)
-    {
-        m_frameProbs = m_frameProbs_saved;
-
-        std::copy(reinterpret_cast<const char*>(vp8_default_mv_contexts),
-                  reinterpret_cast<const char*>(vp8_default_mv_contexts) + sizeof(vp8_default_mv_contexts),
-                  reinterpret_cast<char*>(m_frameProbs.mvContexts));
-    }
-
-    if (first_partition_size > in->DataLength - 10)
-        return MFX_ERR_MORE_DATA;
-
-    if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
-    {
-        if (!(VP8_START_CODE_FOUND(data_in))) // (0x9D && 0x01 && 0x2A)
-            return MFX_ERR_UNKNOWN;
-
-        width               = ((data_in[4] << 8) | data_in[3]) & 0x3FFF;
-        m_frame_info.h_scale = data_in[4] >> 6;
-        height              = ((data_in[6] << 8) | data_in[5]) & 0x3FFF;
-        m_frame_info.v_scale = data_in[6] >> 6;
-
-        m_frame_info.frameSize.width  = width;
-        m_frame_info.frameSize.height = height;
-
-        width  = (m_frame_info.frameSize.width  + 15) & ~0xF;
-        height = (m_frame_info.frameSize.height + 15) & ~0xF;
-
-        if (width != m_frame_info.frameWidth || height != m_frame_info.frameHeight)
+        switch (version)
         {
-            m_frame_info.frameWidth  = (int16_t)width;
-            m_frame_info.frameHeight = (int16_t)height;
+            case 1:
+            case 2:
+                m_frame_info.interpolationFlags = VP8_BILINEAR_INTERP;
+                break;
+
+            case 3:
+                m_frame_info.interpolationFlags = VP8_BILINEAR_INTERP | VP8_CHROMA_FULL_PEL;
+                break;
+
+            case 0:
+            default:
+                m_frame_info.interpolationFlags = 0;
+                break;
         }
 
-        data_in += 7;
+        mfxU32 first_partition_size = (data_in[0] >> 5) |           // 19 bit
+                                    (data_in[1] << 3) |
+                                    (data_in[2] << 11);
 
-        std::copy(reinterpret_cast<const char*>(vp8_default_coeff_probs),
-                  reinterpret_cast<const char*>(vp8_default_coeff_probs) + sizeof(vp8_default_coeff_probs),
-                  reinterpret_cast<char*>(m_frameProbs.coeff_probs));
+        m_frame_info.firstPartitionSize = first_partition_size;
+        m_frame_info.partitionSize[VP8_FIRST_PARTITION] = first_partition_size;
 
-        UMC_SET_ZERO(m_frame_info.segmentFeatureData);
-        m_frame_info.segmentAbsMode = 0;
+        data_in   += 3;
 
-        UMC_SET_ZERO(m_frame_info.refLoopFilterDeltas);
-        UMC_SET_ZERO(m_frame_info.modeLoopFilterDeltas);
-
-        m_refresh_info.refreshRefFrame = 3; // refresh alt+gold
-        m_refresh_info.copy2Golden = 0;
-        m_refresh_info.copy2Altref = 0;
-
-        // restore default probabilities for Inter frames
-        for (int i = 0; i < VP8Defs::VP8_NUM_MB_MODES_Y - 1; i++)
-            m_frameProbs.mbModeProbY[i] = VP8Defs::vp8_mb_mode_y_probs[i];
-
-        for (int i = 0; i < VP8Defs::VP8_NUM_MB_MODES_UV - 1; i++)
-            m_frameProbs.mbModeProbUV[i] = VP8Defs::vp8_mb_mode_uv_probs[i];
-
-        // restore default MV contexts
-        std::copy(reinterpret_cast<const char*>(VP8Defs::vp8_default_mv_contexts),
-                  reinterpret_cast<const char*>(VP8Defs::vp8_default_mv_contexts) + sizeof(VP8Defs::vp8_default_mv_contexts),
-                  reinterpret_cast<char*>(m_frameProbs.mvContexts));
-
-    }
-
-    m_boolDecoder[VP8_FIRST_PARTITION].init(data_in, (int32_t) (data_in_end - data_in));
-
-    if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
-    {
-        uint32_t bits = m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
-
-        m_frame_info.color_space_type = (uint8_t)(bits >> 1);
-        m_frame_info.clamping_type    = (uint8_t)(bits & 1);
-
-        // supported only color_space_type == 0
-        // see "VP8 Data Format and Decoding Guide" ch.9.2
-        if(m_frame_info.color_space_type)
-            return MFX_ERR_UNSUPPORTED;
-    }
-
-    m_frame_info.segmentationEnabled = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
-
-    if (m_frame_info.segmentationEnabled)
-    {
-        UpdateSegmentation(m_boolDecoder[VP8_FIRST_PARTITION]);
-    }
-    else
-    {
-        m_frame_info.updateSegmentData = 0;
-        m_frame_info.updateSegmentMap  = 0;
-    }
-
-    mfxU8 bits = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(7);
-
-    m_frame_info.loopFilterType  = bits >> 6;
-    m_frame_info.loopFilterLevel = bits & 0x3F;
-
-    bits = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(4);
-
-    m_frame_info.sharpnessLevel     = bits >> 1;
-    m_frame_info.mbLoopFilterAdjust = bits & 1;
-
-    m_frame_info.modeRefLoopFilterDeltaUpdate = 0;
-
-    if (m_frame_info.mbLoopFilterAdjust)
-    {
-        m_frame_info.modeRefLoopFilterDeltaUpdate = (uint8_t)m_boolDecoder[VP8Defs::VP8_FIRST_PARTITION].decode();
-        if (m_frame_info.modeRefLoopFilterDeltaUpdate)
+        if (!m_refresh_info.refreshProbabilities)
         {
-            UpdateLoopFilterDeltas(m_boolDecoder[VP8_FIRST_PARTITION]);
+            m_frameProbs = m_frameProbs_saved;
+
+            std::copy(reinterpret_cast<const char*>(vp8_default_mv_contexts),
+                    reinterpret_cast<const char*>(vp8_default_mv_contexts) + sizeof(vp8_default_mv_contexts),
+                    reinterpret_cast<char*>(m_frameProbs.mvContexts));
         }
-    }
 
-    mfxU32 partitions;
+        if (first_partition_size > in->DataLength - 10)
+            return MFX_ERR_MORE_DATA;
 
-    bits = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
-
-    m_CodedCoeffTokenPartition = bits;
-
-    partitions = 1 << bits;
-    m_frame_info.numTokenPartitions = 1 << bits;
-
-    m_frame_info.numPartitions = m_frame_info.numTokenPartitions;
-    partitions =  m_frame_info.numPartitions;
-    mfxU8 *pTokenPartition = data_in + first_partition_size;
-
-    if (partitions > 1)
-    {
-        m_frame_info.partitionStart[0] = pTokenPartition + (partitions - 1) * 3;
-
-        for (uint32_t i = 0; i < partitions - 1; i++)
+        if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
         {
-            m_frame_info.partitionSize[i] = (int32_t)(pTokenPartition[0]) |
-                                             (pTokenPartition[1] << 8) |
-                                             (pTokenPartition[2] << 16);
-            pTokenPartition += 3;
+            if (!(VP8_START_CODE_FOUND(data_in))) // (0x9D && 0x01 && 0x2A)
+                return MFX_ERR_UNKNOWN;
 
-            m_frame_info.partitionStart[i+1] = m_frame_info.partitionStart[i] + m_frame_info.partitionSize[i];
+            width               = ((data_in[4] << 8) | data_in[3]) & 0x3FFF;
+            m_frame_info.h_scale = data_in[4] >> 6;
+            height              = ((data_in[6] << 8) | data_in[5]) & 0x3FFF;
+            m_frame_info.v_scale = data_in[6] >> 6;
 
-            if (m_frame_info.partitionStart[i+1] > data_in_end)
-                return MFX_ERR_MORE_DATA; //???
+            m_frame_info.frameSize.width  = width;
+            m_frame_info.frameSize.height = height;
 
-            m_boolDecoder[i + 1].init(m_frame_info.partitionStart[i], m_frame_info.partitionSize[i]);
-        }
-    }
-    else
-    {
-        m_frame_info.partitionStart[0] = pTokenPartition;
-    }
+            width  = (m_frame_info.frameSize.width  + 15) & ~0xF;
+            height = (m_frame_info.frameSize.height + 15) & ~0xF;
 
-    m_frame_info.partitionSize[partitions - 1] = int32_t(data_in_end - m_frame_info.partitionStart[partitions - 1]);
-
-    m_boolDecoder[partitions].init(m_frame_info.partitionStart[partitions - 1], m_frame_info.partitionSize[partitions - 1]);
-
-    DecodeInitDequantization(m_boolDecoder[VP8_FIRST_PARTITION]);
-
-    if (m_frame_info.frameType != UMC::I_PICTURE) // data in header for non-KEY frames
-    {
-        m_refresh_info.refreshRefFrame = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
-
-        if (!(m_refresh_info.refreshRefFrame & 2))
-            m_refresh_info.copy2Golden = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
-
-        if (!(m_refresh_info.refreshRefFrame & 1))
-            m_refresh_info.copy2Altref = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
-
-        uint8_t bias = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
-
-        m_refresh_info.refFrameBiasTable[1] = (bias & 1)^(bias >> 1); // ALTREF and GOLD (3^2 = 1)
-        m_refresh_info.refFrameBiasTable[2] = (bias & 1);             // ALTREF and LAST
-        m_refresh_info.refFrameBiasTable[3] = (bias >> 1);            // GOLD and LAST
-    }
-
-    m_refresh_info.refreshProbabilities = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
-
-    if (!m_refresh_info.refreshProbabilities)
-        m_frameProbs_saved = m_frameProbs;
-
-    if (m_frame_info.frameType != UMC::I_PICTURE)
-    {
-        m_refresh_info.refreshLastFrame = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
-    }
-    else
-        m_refresh_info.refreshLastFrame = 1;
-
-    for (int i = 0; i < VP8_NUM_COEFF_PLANES; i++)
-    {
-        for (int j = 0; j < VP8_NUM_COEFF_BANDS; j++)
-        {
-            for (int k = 0; k < VP8_NUM_LOCAL_COMPLEXITIES; k++)
+            if (width != m_frame_info.frameWidth || height != m_frame_info.frameHeight)
             {
-                for (int l = 0; l < VP8_NUM_COEFF_NODES; l++)
-                {
-                    mfxU8 prob = vp8_coeff_update_probs[i][j][k][l];
-                    mfxU8 flag = (uint8_t)m_boolDecoder[VP8Defs::VP8_FIRST_PARTITION].decode(1, prob);
+                m_frame_info.frameWidth  = (int16_t)width;
+                m_frame_info.frameHeight = (int16_t)height;
+            }
 
-                    if (flag)
-                        m_frameProbs.coeff_probs[i][j][k][l] = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
+            data_in += 7;
+
+            std::copy(reinterpret_cast<const char*>(vp8_default_coeff_probs),
+                    reinterpret_cast<const char*>(vp8_default_coeff_probs) + sizeof(vp8_default_coeff_probs),
+                    reinterpret_cast<char*>(m_frameProbs.coeff_probs));
+
+            UMC_SET_ZERO(m_frame_info.segmentFeatureData);
+            m_frame_info.segmentAbsMode = 0;
+
+            UMC_SET_ZERO(m_frame_info.refLoopFilterDeltas);
+            UMC_SET_ZERO(m_frame_info.modeLoopFilterDeltas);
+
+            m_refresh_info.refreshRefFrame = 3; // refresh alt+gold
+            m_refresh_info.copy2Golden = 0;
+            m_refresh_info.copy2Altref = 0;
+
+            // restore default probabilities for Inter frames
+            for (int i = 0; i < VP8Defs::VP8_NUM_MB_MODES_Y - 1; i++)
+                m_frameProbs.mbModeProbY[i] = VP8Defs::vp8_mb_mode_y_probs[i];
+
+            for (int i = 0; i < VP8Defs::VP8_NUM_MB_MODES_UV - 1; i++)
+                m_frameProbs.mbModeProbUV[i] = VP8Defs::vp8_mb_mode_uv_probs[i];
+
+            // restore default MV contexts
+            std::copy(reinterpret_cast<const char*>(VP8Defs::vp8_default_mv_contexts),
+                    reinterpret_cast<const char*>(VP8Defs::vp8_default_mv_contexts) + sizeof(VP8Defs::vp8_default_mv_contexts),
+                    reinterpret_cast<char*>(m_frameProbs.mvContexts));
+
+        }
+
+        if ((int32_t) (data_in_end - data_in) < 4)
+            throw vp8_exception(MFX_ERR_MORE_DATA);
+
+        m_boolDecoder[VP8_FIRST_PARTITION].init(data_in, (int32_t) (data_in_end - data_in));
+
+        if (m_frame_info.frameType == UMC::I_PICTURE)  // if VP8_KEY_FRAME
+        {
+            uint32_t bits = m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
+
+            m_frame_info.color_space_type = (uint8_t)(bits >> 1);
+            m_frame_info.clamping_type    = (uint8_t)(bits & 1);
+
+            // supported only color_space_type == 0
+            // see "VP8 Data Format and Decoding Guide" ch.9.2
+            if(m_frame_info.color_space_type)
+                return MFX_ERR_UNSUPPORTED;
+        }
+
+        m_frame_info.segmentationEnabled = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
+
+        if (m_frame_info.segmentationEnabled)
+        {
+            UpdateSegmentation(m_boolDecoder[VP8_FIRST_PARTITION]);
+        }
+        else
+        {
+            m_frame_info.updateSegmentData = 0;
+            m_frame_info.updateSegmentMap  = 0;
+        }
+
+        mfxU8 bits = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(7);
+
+        m_frame_info.loopFilterType  = bits >> 6;
+        m_frame_info.loopFilterLevel = bits & 0x3F;
+
+        bits = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(4);
+
+        m_frame_info.sharpnessLevel     = bits >> 1;
+        m_frame_info.mbLoopFilterAdjust = bits & 1;
+
+        m_frame_info.modeRefLoopFilterDeltaUpdate = 0;
+
+        if (m_frame_info.mbLoopFilterAdjust)
+        {
+            m_frame_info.modeRefLoopFilterDeltaUpdate = (uint8_t)m_boolDecoder[VP8Defs::VP8_FIRST_PARTITION].decode();
+            if (m_frame_info.modeRefLoopFilterDeltaUpdate)
+            {
+                UpdateLoopFilterDeltas(m_boolDecoder[VP8_FIRST_PARTITION]);
+            }
+        }
+
+        mfxU32 partitions;
+
+        bits = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
+
+        m_CodedCoeffTokenPartition = bits;
+
+        partitions = 1 << bits;
+        m_frame_info.numTokenPartitions = 1 << bits;
+
+        m_frame_info.numPartitions = m_frame_info.numTokenPartitions;
+        partitions =  m_frame_info.numPartitions;
+        mfxU8 *pTokenPartition = data_in + first_partition_size;
+
+        if (partitions > 1)
+        {
+            m_frame_info.partitionStart[0] = pTokenPartition + (partitions - 1) * 3;
+
+            if (m_frame_info.partitionStart[0] > data_in_end)
+                MFX_RETURN(MFX_ERR_MORE_DATA);
+
+            for (uint32_t i = 0; i < partitions - 1; i++)
+            {
+                m_frame_info.partitionSize[i] = (int32_t)(pTokenPartition[0]) |
+                                                (pTokenPartition[1] << 8) |
+                                                (pTokenPartition[2] << 16);
+                pTokenPartition += 3;
+
+                m_frame_info.partitionStart[i+1] = m_frame_info.partitionStart[i] + m_frame_info.partitionSize[i];
+
+                if (m_frame_info.partitionStart[i+1] > data_in_end)
+                    return MFX_ERR_MORE_DATA; //???
+
+                m_boolDecoder[i + 1].init(m_frame_info.partitionStart[i], m_frame_info.partitionSize[i]);
+            }
+        }
+        else
+        {
+            m_frame_info.partitionStart[0] = pTokenPartition;
+        }
+
+        m_frame_info.partitionSize[partitions - 1] = int32_t(data_in_end - m_frame_info.partitionStart[partitions - 1]);
+
+        m_boolDecoder[partitions].init(m_frame_info.partitionStart[partitions - 1], m_frame_info.partitionSize[partitions - 1]);
+
+        DecodeInitDequantization(m_boolDecoder[VP8_FIRST_PARTITION]);
+
+        if (m_frame_info.frameType != UMC::I_PICTURE) // data in header for non-KEY frames
+        {
+            m_refresh_info.refreshRefFrame = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
+
+            if (!(m_refresh_info.refreshRefFrame & 2))
+                m_refresh_info.copy2Golden = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
+
+            if (!(m_refresh_info.refreshRefFrame & 1))
+                m_refresh_info.copy2Altref = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
+
+            uint8_t bias = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(2);
+
+            m_refresh_info.refFrameBiasTable[1] = (bias & 1)^(bias >> 1); // ALTREF and GOLD (3^2 = 1)
+            m_refresh_info.refFrameBiasTable[2] = (bias & 1);             // ALTREF and LAST
+            m_refresh_info.refFrameBiasTable[3] = (bias >> 1);            // GOLD and LAST
+        }
+
+        m_refresh_info.refreshProbabilities = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
+
+        if (!m_refresh_info.refreshProbabilities)
+            m_frameProbs_saved = m_frameProbs;
+
+        if (m_frame_info.frameType != UMC::I_PICTURE)
+        {
+            m_refresh_info.refreshLastFrame = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
+        }
+        else
+            m_refresh_info.refreshLastFrame = 1;
+
+        for (int i = 0; i < VP8_NUM_COEFF_PLANES; i++)
+        {
+            for (int j = 0; j < VP8_NUM_COEFF_BANDS; j++)
+            {
+                for (int k = 0; k < VP8_NUM_LOCAL_COMPLEXITIES; k++)
+                {
+                    for (int l = 0; l < VP8_NUM_COEFF_NODES; l++)
+                    {
+                        mfxU8 prob = vp8_coeff_update_probs[i][j][k][l];
+                        mfxU8 flag = (uint8_t)m_boolDecoder[VP8Defs::VP8_FIRST_PARTITION].decode(1, prob);
+
+                        if (flag)
+                            m_frameProbs.coeff_probs[i][j][k][l] = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
+                    }
                 }
             }
         }
-    }
 
-    m_frame_info.mbSkipEnabled = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
-    m_frame_info.skipFalseProb = 0;
+        m_frame_info.mbSkipEnabled = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode();
+        m_frame_info.skipFalseProb = 0;
 
-    if (m_frame_info.mbSkipEnabled)
-        m_frame_info.skipFalseProb = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
+        if (m_frame_info.mbSkipEnabled)
+            m_frame_info.skipFalseProb = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
 
-    if (m_frame_info.frameType != UMC::I_PICTURE)
-    {
-        m_frame_info.intraProb = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
-        m_frame_info.lastProb  = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
-        m_frame_info.goldProb  = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
-
-        if (m_boolDecoder[VP8_FIRST_PARTITION].decode())
+        if (m_frame_info.frameType != UMC::I_PICTURE)
         {
+            m_frame_info.intraProb = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
+            m_frame_info.lastProb  = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
+            m_frame_info.goldProb  = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(8);
+
+            if (m_boolDecoder[VP8_FIRST_PARTITION].decode())
+            {
+                int i = 0;
+
+                do
+                {
+                    m_frameProbs.mbModeProbY[i] = uint8_t(m_boolDecoder[VP8_FIRST_PARTITION].decode(8));
+                }
+                while (++i < 4);
+            }
+
+            if (m_boolDecoder[VP8_FIRST_PARTITION].decode())
+            {
+                int i = 0;
+
+                do
+                {
+                    m_frameProbs.mbModeProbUV[i] = uint8_t(m_boolDecoder[VP8_FIRST_PARTITION].decode(8));
+                }
+                while (++i < 3);
+            }
+
             int i = 0;
 
             do
             {
-                m_frameProbs.mbModeProbY[i] = uint8_t(m_boolDecoder[VP8_FIRST_PARTITION].decode(8));
-            }
-            while (++i < 4);
-        }
+                mfxU8 *up = (uint8_t *)&vp8_mv_update_probs[i];
+                mfxU8 *p = m_frameProbs.mvContexts[i];
+                mfxU8 *pstop = p + 19;
 
-        if (m_boolDecoder[VP8_FIRST_PARTITION].decode())
-        {
-            int i = 0;
-
-            do
-            {
-                m_frameProbs.mbModeProbUV[i] = uint8_t(m_boolDecoder[VP8_FIRST_PARTITION].decode(8));
-            }
-            while (++i < 3);
-        }
-
-        int i = 0;
-
-        do
-        {
-            mfxU8 *up = (uint8_t *)&vp8_mv_update_probs[i];
-            mfxU8 *p = m_frameProbs.mvContexts[i];
-            mfxU8 *pstop = p + 19;
-
-            do
-            {
-                if (m_boolDecoder[VP8_FIRST_PARTITION].decode(1, *up++))
+                do
                 {
-                    const uint8_t x = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(7);
+                    if (m_boolDecoder[VP8_FIRST_PARTITION].decode(1, *up++))
+                    {
+                        const uint8_t x = (uint8_t)m_boolDecoder[VP8_FIRST_PARTITION].decode(7);
 
-                    *p = x ? x << 1 : 1;
+                        *p = x ? x << 1 : 1;
+                    }
                 }
+                while (++p < pstop);
             }
-            while (++p < pstop);
+            while (++i < 2);
         }
-        while (++i < 2);
-    }
 
 #if !defined(ANDROID) || (MFX_ANDROID_VERSION >= MFX_P)
     // Header info consumed bits
@@ -1321,6 +1329,12 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
     int fix = (m_boolDecoder[VP8_FIRST_PARTITION].bitcount() & 0x7) ? 1 : 0;
     m_frame_info.firstPartitionSize = m_frame_info.firstPartitionSize - (m_boolDecoder[VP8_FIRST_PARTITION].pos() - 3 + fix);
 #endif
+    }
+    catch(const vp8_exception & ex)
+    {
+        mfxStatus sts = (mfxStatus)ex.GetStatus();
+        MFX_RETURN(sts);
+    }
 
     return MFX_ERR_NONE;
 }
