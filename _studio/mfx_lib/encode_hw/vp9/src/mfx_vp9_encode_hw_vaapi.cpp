@@ -1324,6 +1324,19 @@ mfxStatus VAAPIEncoder::QueryStatus(
 
     VASurfaceStatus surfSts = VASurfaceSkipped;
 
+#if VA_CHECK_VERSION(1,9,0)
+    vaSts = vaSyncBuffer(m_vaDisplay, codedBuffer, VA_TIMEOUT_INFINITE);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    if (VASurfaceReady == surfSts)
+    {
+        UMC::AutomaticUMCMutex guard(m_guard);
+        m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
+    }
+#else
     vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -1332,6 +1345,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
         m_feedbackCache.erase( m_feedbackCache.begin() + indxSurf );
     }
     surfSts = VASurfaceReady;
+#endif
 
     switch (surfSts)
     {
