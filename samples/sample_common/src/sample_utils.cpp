@@ -390,58 +390,50 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
         {
         case MFX_FOURCC_I420:
         case MFX_FOURCC_YV12:
-            switch (pInfo.FourCC)
-            {
+            switch (pInfo.FourCC) {
             case MFX_FOURCC_NV12:
-
-                mfxU8 buf[2048]; // maximum supported chroma width for nv12
                 mfxU32 j, dstOffset[2];
                 w /= 2;
                 h /= 2;
                 ptr = pData.UV + pInfo.CropX + (pInfo.CropY / 2) * pitch;
-                if (w > 2048)
-                {
-                    return MFX_ERR_UNSUPPORTED;
-                }
 
                 if (m_ColorFormat == MFX_FOURCC_I420) {
                     dstOffset[0] = 0;
                     dstOffset[1] = 1;
-                } else {
+                } 
+                else {
                     dstOffset[0] = 1;
                     dstOffset[1] = 0;
                 }
 
                 // load first chroma plane: U (input == I420) or V (input == YV12)
-                for (i = 0; i < h; i++)
-                {
-                    nBytesRead = (mfxU32)fread(buf, 1, w, m_files[vid]);
-                    if (w != nBytesRead)
-                    {
-                        return MFX_ERR_MORE_DATA;
+                try {
+                    std::vector<mfxU8> buf(w);
+                    for (i = 0; i < h; i++) {
+                        nBytesRead = (mfxU32)fread(&buf[0], 1, w, m_files[vid]);
+                        if (w != nBytesRead) {
+                            return MFX_ERR_MORE_DATA;
+                        }
+                        for (j = 0; j < w; j++) {
+                            ptr[i * pitch + j * 2 + dstOffset[0]] = buf[j];
+                        }
                     }
-                    for (j = 0; j < w; j++)
-                    {
-                        ptr[i * pitch + j * 2 + dstOffset[0]] = buf[j];
-                    }
-                }
 
-                // load second chroma plane: V (input == I420) or U (input == YV12)
-                for (i = 0; i < h; i++)
-                {
+                    // load second chroma plane: V (input == I420) or U (input == YV12)
+                    for (i = 0; i < h; i++) {
+                        nBytesRead = (mfxU32)fread(&buf[0], 1, w, m_files[vid]);
 
-                    nBytesRead = (mfxU32)fread(buf, 1, w, m_files[vid]);
-
-                    if (w != nBytesRead)
-                    {
-                        return MFX_ERR_MORE_DATA;
-                    }
-                    for (j = 0; j < w; j++)
-                    {
-                        ptr[i * pitch + j * 2 + dstOffset[1]] = buf[j];
+                        if (w != nBytesRead) {
+                            return MFX_ERR_MORE_DATA;
+                        }
+                        for (j = 0; j < w; j++) {
+                            ptr[i * pitch + j * 2 + dstOffset[1]] = buf[j];
+                        }
                     }
                 }
-
+                catch (...) {
+                    return MFX_ERR_MEMORY_ALLOC;
+                }
                 break;
             case MFX_FOURCC_YV12:
                 w /= 2;
