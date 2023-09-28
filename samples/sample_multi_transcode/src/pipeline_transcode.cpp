@@ -167,6 +167,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_nReqFrameTime(0),
     m_nOutputFramesNum(0),
     shouldUseGreedyFormula(false),
+    m_bLatencyMeasurement(false),
     m_nRotationAngle(0)
 {
     MSDK_ZERO_MEMORY(m_RotateParam);
@@ -558,6 +559,8 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
 
     CTimer DevBusyTimer;
     DevBusyTimer.Start();
+
+    mfxU64 latencyTimestamp = 0;
     while (MFX_ERR_MORE_DATA == sts || MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE < sts)
     {
         if (m_rawInput)
@@ -594,6 +597,8 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
             MSDK_CHECK_POINTER_SAFE(pmfxSurface, MFX_ERR_MEMORY_ALLOC, msdk_printf(MSDK_STRING("ERROR: No free surfaces in decoder pool (during long period)\n"))); // return an error if a free surface wasn't found
         }
 
+        latencyTimestamp = msdk_time_get_tick();
+
         if (!m_rawInput)
         {
             sts = m_pmfxDEC->DecodeFrameAsync(m_pmfxBS, pmfxSurface, &pExtSurface->pSurface, &pExtSurface->Syncp);
@@ -618,12 +623,20 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
 
     } //while processing
 
-    // HEVC SW requires additional synchronization
-    if( MFX_ERR_NONE == sts && isHEVCSW)
+    if (MFX_ERR_NONE == sts)
     {
         sts = m_pmfxSession->SyncOperation(pExtSurface->Syncp, MSDK_WAIT_INTERVAL);
         HandlePossibleGpuHang(sts);
         MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "Decode: SyncOperation failed");
+    }
+
+    if (m_bLatencyMeasurement)
+    {
+        mfxU64 finish = msdk_time_get_tick();
+        auto latency = (finish - latencyTimestamp) / 1000.;
+        m_decLatency.value += latency;
+        m_decLatency.maxLatency = latency > m_decLatency.maxLatency ? latency : m_decLatency.maxLatency;
+        m_decLatency.amount += 1;
     }
     return sts;
 
@@ -672,8 +685,7 @@ mfxStatus CTranscodingPipeline::DecodeLastFrame(ExtendedSurface *pExtSurface)
         }
     }
 
-    // HEVC SW requires additional synchronization
-    if( MFX_ERR_NONE == sts && isHEVCSW)
+    if (MFX_ERR_NONE == sts)
     {
         sts = m_pmfxSession->SyncOperation(pExtSurface->Syncp,  MSDK_WAIT_INTERVAL);
         HandlePossibleGpuHang(sts);
@@ -757,8 +769,19 @@ mfxStatus CTranscodingPipeline::EncodeOneFrame(ExtendedSurface *pExtSurface, mfx
 
     for (;;)
     {
+        mfxU64 latencyTimestamp = msdk_time_get_tick();
+
         // at this point surface for encoder contains either a frame from file or a frame processed by vpp
         sts = m_pmfxENC->EncodeFrameAsync(pExtSurface->pEncCtrl, pExtSurface->pSurface, pBS, &pExtSurface->Syncp);
+
+        if (m_bLatencyMeasurement)
+        {
+            if (sts != MFX_WRN_DEVICE_BUSY && pExtSurface->pSurface)
+            {
+                std::lock_guard <std::mutex> guard(m_encLatency.mutex);
+                m_encLatency.data[pExtSurface->pSurface->Data.TimeStamp] = latencyTimestamp;
+            }
+        }
 
         if (MFX_ERR_NONE < sts && !pExtSurface->Syncp) // repeat the call if warning and no output
         {
@@ -1950,6 +1973,24 @@ mfxStatus CTranscodingPipeline::PutBS()
         MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "Encode: SyncOperation failed");
     }
 
+    if (m_bLatencyMeasurement)
+    {
+        mfxU64 finish = msdk_time_get_tick();
+        for (auto p = m_encLatency.data.begin(); p != m_encLatency.data.end(); ++p)
+        {
+            if (p->first == pBitstreamEx->Bitstream.TimeStamp)
+            {
+                std::lock_guard <std::mutex> guard(m_encLatency.mutex);
+                auto latency = (finish - p->second) / 1000.;
+                m_encLatency.value += latency;
+                m_encLatency.amount += 1;
+                m_encLatency.maxLatency = latency > m_encLatency.maxLatency ? latency : m_encLatency.maxLatency;
+                m_encLatency.data.erase(p);
+                break;
+            }
+        }
+    }
+
     m_nOutputFramesNum++;
 
     //--- Time measurements
@@ -2305,7 +2346,8 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
         decPostProc->Out.Width = MSDK_ALIGN16(decPostProc->Out.CropW);
         decPostProc->Out.Height = MSDK_ALIGN16(decPostProc->Out.CropH);
     }
-#endif
+
+#endif //MFX_VERSION >= 1022
 
     return MFX_ERR_NONE;
 }// mfxStatus CTranscodingPipeline::InitDecMfxParams()
@@ -3675,6 +3717,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
 
     m_pParentPipeline = pParentPipeline;
     shouldUseGreedyFormula = pParams->shouldUseGreedyFormula;
+    m_bLatencyMeasurement = pParams->bLatencyMeasurement;
 
     m_nTimeout = pParams->nTimeout;
 
@@ -4306,6 +4349,19 @@ size_t CTranscodingPipeline::GetRobustFlag()
 
 void CTranscodingPipeline::Close()
 {
+    if (m_bLatencyMeasurement)
+    {
+        if (m_decLatency.value)
+            msdk_printf(
+                MSDK_STRING("Total decode latency on session %u: %lf on %llu frames, average %lf, max %lf\n"),
+                GetPipelineID(), m_decLatency.value, m_decLatency.amount, m_decLatency.value / m_decLatency.amount, m_decLatency.maxLatency);
+
+        if (m_encLatency.value)
+            msdk_printf(
+                MSDK_STRING("Total encode latency on session %u: %lf on %llu frames, average %lf, max %lf\n\n"),
+                GetPipelineID(), m_encLatency.value, m_encLatency.amount, m_encLatency.value / m_encLatency.amount, m_encLatency.maxLatency);
+    }
+
     if (m_pmfxDEC.get())
         m_pmfxDEC->Close();
 
