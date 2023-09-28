@@ -225,7 +225,11 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
     return MFX_TASK_DONE;
 }
 
+#if (MFX_VERSION >= MFX_VERSION)
+Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(int32_t* cnt, mfxExtDecodeErrorReport* pDecodeErrorReport)
+#else
 Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(int32_t* cnt)
+#endif
 {
     JSS      sampling;
     JERRCODE jerr;
@@ -236,8 +240,13 @@ Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(int32_t* cnt)
     mfxSize size = {};
 
     int32_t frameChannels, framePrecision;
+#if (MFX_VERSION >= MFX_VERSION)
+    jerr = m_decBase->ReadHeader(
+        &size.width, &size.height, &frameChannels, &m_color, &sampling, &framePrecision, pDecodeErrorReport);
+#else
     jerr = m_decBase->ReadHeader(
         &size.width, &size.height, &frameChannels, &m_color, &sampling, &framePrecision);
+#endif
 
     if(JPEG_ERR_BUFF == jerr)
         return UMC_ERR_NOT_ENOUGH_DATA;
@@ -258,14 +267,22 @@ Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(int32_t* cnt)
     return UMC_OK;
 }
 
+#if (MFX_VERSION >= MFX_VERSION)
+Status MJPEGVideoDecoderMFX_HW::_DecodeField(MediaDataEx* in, mfxExtDecodeErrorReport* pDecodeErrorReport)
+#else
 Status MJPEGVideoDecoderMFX_HW::_DecodeField(MediaDataEx* in)
+#endif
 {
     int32_t     nUsedBytes = 0;
 
     if(JPEG_OK != m_decBase->SetSource((uint8_t*)in->GetDataPointer(), (int32_t)in->GetDataSize()))
         return UMC_ERR_FAILED;
 
+#if (MFX_VERSION >= MFX_VERSION)
+    Status status = _DecodeHeader(&nUsedBytes, pDecodeErrorReport);
+#else
     Status status = _DecodeHeader(&nUsedBytes);
+#endif
     if (status > 0)
     {
         in->MoveDataPointer(nUsedBytes);
@@ -756,11 +773,22 @@ uint16_t MJPEGVideoDecoderMFX_HW::GetNumScans(MediaDataEx* in)
     return numScans;
 }
 
+#if (MFX_VERSION >= MFX_VERSION)
+Status MJPEGVideoDecoderMFX_HW::GetFrame(UMC::MediaDataEx *pSrcData,
+                                         UMC::FrameData** out,
+                                         const mfxU32  fieldPos,
+                                         UMC::MediaData *in)
+#else
 Status MJPEGVideoDecoderMFX_HW::GetFrame(UMC::MediaDataEx *pSrcData,
                                          UMC::FrameData** out,
                                          const mfxU32  fieldPos)
+#endif
 {
     Status status = UMC_OK;
+#if (MFX_VERSION >= MFX_VERSION)
+    UMC::MediaData::AuxInfo* aux = (in) ? in->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+    mfxExtDecodeErrorReport* pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
+#endif
 
     if(0 == out)
     {
@@ -777,7 +805,11 @@ Status MJPEGVideoDecoderMFX_HW::GetFrame(UMC::MediaDataEx *pSrcData,
     if(m_interleaved)
     {
         // interleaved frame
+#if (MFX_VERSION >= MFX_VERSION)
+        status = _DecodeField(pSrcData, pDecodeErrorReport);
+#else
         status = _DecodeField(pSrcData);
+#endif
         if (status > 0)
         {
             return UMC_OK;
@@ -795,7 +827,11 @@ Status MJPEGVideoDecoderMFX_HW::GetFrame(UMC::MediaDataEx *pSrcData,
     else
     {
         // progressive frame
+#if (MFX_VERSION >= MFX_VERSION)
+        status = _DecodeField(pSrcData, pDecodeErrorReport);
+#else
         status = _DecodeField(pSrcData);
+#endif
         if (status > 0)
         {
             return UMC_OK;
