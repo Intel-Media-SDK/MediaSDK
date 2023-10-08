@@ -1614,11 +1614,11 @@ mfxStatus CDecodingPipeline::DeliverOutput(mfxFrameSurface1* frame)
 
     if (m_bExternalAlloc) {
         if (m_eWorkMode == MODE_FILE_DUMP) {
-            res = m_pGeneralAllocator->Lock(m_pGeneralAllocator->pthis, frame->Data.MemId, &(frame->Data));
+            res = m_pGeneralAllocator->Lock(m_pGeneralAllocator->pthis, MFXReadWriteMid(frame->Data.MemId, MFXReadWriteMid::read), &(frame->Data));
             if (MFX_ERR_NONE == res) {
                 res = m_bOutI420 ? m_FileWriter.WriteNextFrameI420(frame)
                     : m_FileWriter.WriteNextFrame(frame);
-                sts = m_pGeneralAllocator->Unlock(m_pGeneralAllocator->pthis, frame->Data.MemId, &(frame->Data));
+                sts = m_pGeneralAllocator->Unlock(m_pGeneralAllocator->pthis, MFXReadWriteMid(frame->Data.MemId, MFXReadWriteMid::read), &(frame->Data));
             }
             if ((MFX_ERR_NONE == res) && (MFX_ERR_NONE != sts)) {
                 res = sts;
