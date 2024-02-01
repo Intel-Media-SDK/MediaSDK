@@ -96,6 +96,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-y216] - pipeline output format: Y216, output file format: Y216\n"));
     msdk_printf(MSDK_STRING("   [-y416] - pipeline output format: Y416, output file format: Y416\n"));
 #endif
+    msdk_printf(MSDK_STRING("   [-lsb10] - dump 10-bit color format in Least Significant Bits of words.\n                 (Dump MSB data by default).\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("   [-sys]                    - work with linear buffer in system memory\n"));
 #if D3D_SURFACES_SUPPORT
@@ -688,6 +689,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-disable_film_grain")))
         {
             pParams->bDisableFilmGrain = true;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-lsb10")))
+        {
+            pParams->DumpLSB = true;
         }
         else // 1-character options
         {

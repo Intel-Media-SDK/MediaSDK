@@ -910,7 +910,7 @@ public :
     virtual ~CSmplYUVWriter();
 
     virtual void      Close();
-    virtual mfxStatus Init(const msdk_char *strFileName, const mfxU32 numViews);
+    virtual mfxStatus Init(const msdk_char *strFileName, const mfxU32 numViews, bool enableShifting = false);
     virtual mfxStatus Reset();
     virtual mfxStatus WriteNextFrame(mfxFrameSurface1 *pSurface);
     virtual mfxStatus WriteNextFrameI420(mfxFrameSurface1 *pSurface);
@@ -923,6 +923,7 @@ protected:
     mfxU32       m_numCreatedFiles;
     msdk_string  m_sFile;
     mfxU32       m_nViews;
+    bool shouldShift10Bits;
 };
 
 class CSmplBitstreamReader
